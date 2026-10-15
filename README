@@ -233,9 +233,6 @@ Potential extensions beyond the initial scope include:
 
 ## Repository Structure
 
-The following is a suggested repository organization. Directory names should be updated to match the actual implementation.
-
-```text
 RAVEN/
 ├── rtl/                # SystemVerilog hardware modules
 │   ├── compute/        # Compute engine
@@ -265,7 +262,6 @@ The eventual instructions should document:
 - Running inference and validating output.
 - Executing verification tests and benchmarks.
 
-No specific build commands are provided here because the design document does not yet define the final toolchain or implementation workflow.
 
 ## Project Status
 
