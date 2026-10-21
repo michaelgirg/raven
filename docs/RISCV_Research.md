@@ -473,7 +473,7 @@ All registers are 32-bit, word-aligned, at offsets from `NPU_BASE = 0xA000_0000`
 | `0x028` | `ERR_CODE` | RO | 0 | `[7:0]` code (§6.8), `[31:16]` sequence number of the failing command |
 | `0x02C` | `ERR_INFO` | RO | 0 | Code-specific detail (for example, offending bank ID or field index) |
 | `0x030` | `OPCODE` | RW (staging) | 0 | `[7:0]` opcode (§6.3) |
-| `0x034` | `OP_FLAGS` | RW (staging) | 0 | `[0]` ACC_INIT, `[1]` ACC_LAST, `[2]` REQUANT_EN, `[3]` RELU_EN, `[5:4]` POOL_MODE (0 max, 1 avg), `[6]` PER_CHANNEL (per-channel params from the PARAM bank), `[8]` RELEASE_A, `[9]` RELEASE_B, `[10]` RELEASE_PARAM, `[11]` DST_ACCUM (destination is the INT32 PSUM region), `[31:12]` reserved |
+| `0x034` | `OP_FLAGS` | RW (staging) | 0 | `[0]` ACC_INIT, `[1]` ACC_LAST, `[2]` REQUANT_EN, `[3]` RELU_EN, `[5:4]` POOL_MODE (0 max, 1 avg), `[6]` PER_CHANNEL (per-channel params from the PARAM bank), `[7]` SRC_A_CB (channel-blocked `SRC_A`; optional, proposed, §9.2), `[8]` RELEASE_A, `[9]` RELEASE_B, `[10]` RELEASE_PARAM, `[11]` DST_ACCUM (destination is the INT32 PSUM region), `[31:12]` reserved |
 | `0x038` | `SRC_A` | RW (staging) | 0 | Scratchpad reference (§6.4): activation input / EWADD input A |
 | `0x03C` | `SRC_B` | RW (staging) | 0 | Weights (Conv/GEMM) / EWADD input B |
 | `0x040`–`0x054` | `P0`–`P5` | RW (staging) | 0 | Per-opcode dimension packing (§6.4). Replaces `PARAM_DIM`. |
@@ -545,7 +545,7 @@ With CONV2D, GEMM, RELU, POOL, REQUANT, and EWADD, the hardware covers the READM
 | Opcode | P0 | P1 | P2 | P3 | P4 | P5 |
 |---|---|---|---|---|---|---|
 | `GEMM` | `[15:0]` M, `[31:16]` N | `[15:0]` K (this chunk) | `[15:0]` A row pitch (bytes) | `[15:0]` B panel pitch (bytes) | `[15:0]` OUT row pitch | 0 |
-| `CONV2D` | `[15:0]` H_in, `[31:16]` W_in (tile, including halo) | `[15:0]` C_in, `[31:16]` C_out (tile) | `[7:0]` Kh, `[15:8]` Kw, `[19:16]` stride_h, `[23:20]` stride_w, `[27:24]` dil_h, `[31:28]` dil_w | `[7:0]` pad_top, `[15:8]` pad_bottom, `[23:16]` pad_left, `[31:24]` pad_right | `[15:0]` H_out, `[31:16]` W_out (tile) | `[15:0]` C_in chunk offset (K chunking over channels) |
+| `CONV2D` | `[15:0]` H_in, `[31:16]` W_in (tile, including halo) | `[15:0]` C_in, `[31:16]` C_out (tile) | `[7:0]` Kh, `[15:8]` Kw, `[19:16]` stride_h, `[23:20]` stride_w, `[27:24]` dil_h, `[31:28]` dil_w | `[7:0]` pad_top, `[15:8]` pad_bottom, `[23:16]` pad_left, `[31:24]` pad_right | `[15:0]` H_out, `[31:16]` W_out (tile) | `[15:0]` C_in chunk offset (K chunking over channels), `[31:16]` channel block size `cb` when `SRC_A_CB=1`, else 0 (optional C2, §9.2) |
 | `POOL` | `[15:0]` H_in, `[31:16]` W_in | `[15:0]` C | `[7:0]` window_h, `[15:8]` window_w, `[19:16]` stride_h, `[23:20]` stride_w | pads as CONV2D | `[15:0]` H_out, `[31:16]` W_out | 0 |
 | `EWADD` | `[23:0]` element count | 0 | 0 | 0 | 0 | 0 |
 | `RELU` / `REQUANT` | `[23:0]` element count | `[15:0]` channels (per-channel requant) | 0 | 0 | 0 | 0 |
@@ -736,7 +736,8 @@ Base `ADP_BASE = 0xA002_0000`. The RTL is owned by Taylor; this field definition
 | `0x04` | `ADP_CTRL` | W1S | `[0]` ARM_FILL, `[1]` ARM_DRAIN, `[2]` SOFT_RESET, `[3]` CLEAR_ERR |
 | `0x08` | `ADP_STATUS` | RO | `[0]` FILL_BUSY, `[1]` DRAIN_BUSY, `[2]` ERROR, `[15:8]` last filled bank, `[23:16]` last drained bank |
 | `0x10` | `FILL_DST` | RW | Scratchpad reference (§6.4) for the incoming MM2S stream |
-| `0x14` | `FILL_BYTES` | RW | Expected bytes. The bank goes READY only when exactly this many bytes arrive and TLAST is seen. |
+| `0x14` | `FILL_BYTES` | RW | Expected bytes. The bank goes READY only when exactly this many bytes arrive and TLAST is seen (on the last segment, if `FILL_SEGS > 1`). |
+| `0x18` | `FILL_SEGS` | RW | **Optional, proposed for C2 (§9.2).** Segments per bank fill, default 1. Not required for the baseline. |
 | `0x20` | `DRAIN_SRC` | RW | Scratchpad reference to stream out to S2MM |
 | `0x24` | `DRAIN_BYTES` | RW | Bytes to emit. TLAST is asserted on the final beat. |
 | `0x30` | `BANK_STATE` | RO | 3 bits per bank × 8 banks: 0 FREE, 1 DMA_FILLING, 2 READY, 3 COMPUTING, 4 NPU_WRITING, 5 FULL, 6 DRAINING, 7 ERROR |
@@ -750,7 +751,9 @@ Base `ADP_BASE = 0xA002_0000`. The RTL is owned by Taylor; this field definition
 **Fill (DDR → bank):**
 
 ```text
-1. require BANK_STATE[bank] == FREE                     (adapter would reject otherwise)
+1. require BANK_STATE[bank] == FREE                     (adapter would reject otherwise;
+                                                         optional C2: later segments of a
+                                                         multi-segment fill, §9.2)
 2. ADP.FILL_DST   = {bank, offset}
 3. ADP.FILL_BYTES = n
 4. ADP.CTRL       = ARM_FILL                            (bank -> DMA_FILLING)
@@ -862,8 +865,10 @@ raven_status_t raven_dma_transfer(raven_dir_t dir, uint32_t ddr_addr,
 raven_status_t raven_dma_wait(raven_dir_t dir, uint32_t timeout_us);
 
 /* Compute (README: raven_set_op, raven_start) */
-raven_status_t raven_set_op(const raven_op_t *op);       /* writes only changed staging fields */
-raven_status_t raven_start(uint16_t *seq_out);           /* push to queue; fails fast if Q_FULL */
+raven_status_t raven_set_op(const raven_op_t *op);       /* copies op into the driver's pending
+                                                            command; no MMIO (see below)        */
+raven_status_t raven_start(uint16_t *seq_out);           /* submit: issue now or park in order;
+                                                            never fails on Q_FULL (parks)       */
 raven_status_t raven_wait(uint16_t seq, uint32_t timeout_us);  /* wraps-aware DONE_SEQ compare */
 
 /* Parameter packing helpers: the only place bit layouts of §6.4 are encoded */
@@ -884,6 +889,14 @@ void raven_recover(void);   /* ABORT, DMA core reset (DMACR.Reset hits both chan
 ```
 
 `raven_wait` compares sequence numbers modulo 2^16 using `(int16_t)(done - seq) >= 0`, so it is correct across wraparound.
+
+**Command submission and parking.** The hardware staging registers are shared, so a parked command must not depend on them:
+
+1. `raven_set_op()` only copies the `raven_op_t` into the driver's *pending command* in LMB. It writes no MMIO.
+2. `raven_start()` copies the **complete** command (all fields of `raven_op_t`) into a slot of the ordered pending list (§9.3) and returns. The caller may then reuse or change its `op` and call `raven_set_op()` again without affecting the submitted command.
+3. When the command's preconditions hold (every referenced fill armed, `Q_FULL = 0`, and every earlier pending command issued), the event loop **restores** that slot into the staging registers, then `fence iorw,iorw`, then `CTRL.START`. Write elision (§6.5) compares against a driver shadow of what the hardware staging registers currently hold, not against the previous `raven_set_op()` call, so a restore always leaves the full command in staging.
+4. **`seq_out` is valid when `raven_start()` returns.** The driver keeps a software counter that it assigns in submission order. Commands reach the hardware queue strictly in that order, and the driver is the only writer of `CTRL.START`, so the software number equals the hardware sequence number. Before each `START` the driver checks `NEXT_SEQ` against the slot's number; a mismatch is reported as `RAVEN_E_HW`. `raven_wait(seq)` on a still-parked command keeps running the event loop until the command has been issued and `DONE_SEQ` reaches it.
+5. **`Q_FULL` parks; it does not fail.** `raven_start()` returns `RAVEN_E_BUSY` only when the software pending list itself is full (sized at compile time). The hardware `ERR_Q_OVERFLOW` (§6.5) remains as a check that the driver never pushes `START` with the queue full.
 
 ### 8.3 Model blob format (interface with Jackie's export tool)
 
@@ -973,10 +986,18 @@ PRM bytes     = 16 · c_out                                 ≤ 4096
 | Rule | When | DDR placement | DMA cost |
 |---|---|---|---|
 | C1. Full channels | `h_out · W_out · C_out` (INT8) and its PSUM fit the OUT bank | Plain NHWC. The tile is a contiguous row band. | One S2MM per band |
-| C2. Channel-blocked layout (proposed) | C1 does not fit and the consumer is another NPU layer | Output tensor stored as `NHWC_CB(cb)`: `[C_out/cb][H][W][cb]`, with `cb = c_out`. Each channel tile is one contiguous block. | One S2MM per tile. The consumer's ACT fill issues one MM2S per channel block, and the bank holds the blocks at a fixed pitch the window frontend reads. |
+| C2. Channel-blocked layout (**optional**, proposed) | C1 does not fit and the consumer is another NPU layer | Output tensor stored as `NHWC_CB(cb)`: `[C_out/cb][H][W][cb]`, with `cb = c_out`. Each channel tile is one contiguous block. | One S2MM per tile. The consumer's ACT fill issues one MM2S per channel block, and the bank holds the blocks at a fixed pitch the window frontend reads. |
 | C3. CPU repack (last resort) | C2 not supported by the consumer (CPU fallback op, final model output, or frontend without block-pitch support) | Drain to a staging buffer in the arena, then the RISC-V scatters it into plain NHWC | One S2MM per tile plus CPU time, reported in the profile |
 
-Jackie's tool picks the layout per tensor from the tiling hints and writes it to the tensor table. The final model output is always plain NHWC. C2 needs Michael's window frontend to accept a channel-block pitch and Taylor's adapter to accept multiple fills into one bank at different offsets; until both agree, C3 is the fallback.
+Jackie's tool picks the layout per tensor from the tiling hints and writes it to the tensor table. The final model output is always plain NHWC.
+
+**Baseline: C1, then C3.** C2 is optional. Until its interface below is agreed by Michael (window frontend) and Taylor (adapter) and verified, the tool never emits `NHWC_CB`, and any layer that does not fit C1 uses the C3 CPU repack. `HW_LIMITS` will advertise C2 support with a capability bit; firmware rejects an `NHWC_CB` blob on hardware without it (`RAVEN_E_UNSUPPORTED`).
+
+**Proposed C2 interface (pending agreement).**
+
+- *Multi-segment fill (adapter, Taylor).* New adapter register `FILL_SEGS` (`0x18`, RW, default 1): the number of DMA transfers that make up one bank fill. The first `ARM_FILL` requires the bank `FREE` and moves it to `DMA_FILLING` with a segment counter of `FILL_SEGS`. Each later `ARM_FILL` to the same bank, with a new `FILL_DST` offset and `FILL_BYTES`, is accepted **only while that bank is `DMA_FILLING` with segments remaining**; any other arm into a non-`FREE` bank is still `ERR_BANK_BUSY`. The bank becomes `READY` only when the **last** segment completes (exact byte count and TLAST). Until then it stays `DMA_FILLING`, so a queued compute command waits in `WAIT_DEP` and cannot read a partial tile. `FILL_DONE` is raised per segment for the driver's MM2S serialization; `ADP_STATUS` reports segments remaining. With `FILL_SEGS = 1` this is exactly the current §7.3 behavior.
+- *Layout in the command (control, Nahjay; consumer, Michael).* New `OP_FLAGS[7]` `SRC_A_CB`: `SRC_A` holds channel-blocked activations. For CONV2D, `P5[31:16]` (currently reserved) carries the block size `cb` in channels. The block pitch is derived rather than a separate field: `block_pitch = align16(H_in · W_in · cb)` bytes, so block *j* starts at `SRC_A + j · block_pitch` and `C_in / cb` blocks are expected. Dispatch rejects `SRC_A_CB` with `cb = 0`, `C_in` not a multiple of `cb`, or blocks overrunning the bank (`ERR_BAD_DIM` / `ERR_BANK_RANGE`). With `SRC_A_CB = 0`, `P5[31:16]` must be 0 and the layout is plain NHWC.
+- *Driver.* For an `NHWC_CB` band, `raven_dma_transfer` is called once per channel block; the driver programs `FILL_SEGS = C_in / cb` on the first segment and keeps the segments contiguous in the pending list so no other fill interleaves on MM2S.
 
 **Loop order.** Weight bank outer, activation bands inner. Each weight tile is loaded once per `c_out` group and reused across every band (memory doc §6). Activation bands alternate ACT0/ACT1.
 
@@ -994,8 +1015,9 @@ for (int b = 0; b < n_bands; b++) {
     op.flags  = ACC_INIT | ACC_LAST | REQUANT_EN | RELU_EN | RELEASE_A
               | (b == n_bands - 1 ? RELEASE_B | RELEASE_PARAM : 0);
     op.p[0]   = raven_pack_conv_p0(band_h_in(b), W_in);
-    raven_set_op(&op);                            /* ~4-5 MMIO writes after the first */
-    raven_start(&seq[b]);                         /* queued; HW waits for ACT READY  */
+    raven_set_op(&op);                            /* copy into driver; no MMIO yet    */
+    raven_start(&seq[b]);                         /* saved in full; seq valid now;   */
+                                                  /* issued (~4-5 writes) or parked  */
 
     if (b + 1 < n_bands)                          /* prefetch next band while b runs */
         raven_dma_transfer(RAVEN_DDR_TO_SPAD, band_addr(b + 1), act((b + 1) & 1),
@@ -1008,7 +1030,7 @@ drain_when_done(seq[n_bands - 1], out((n_bands - 1) & 1), out_addr(n_bands - 1))
 
 `raven_dma_transfer`, `raven_start`, and `drain_when_done` do not spin. When a precondition is unmet (MM2S busy, target bank not FREE, output not FULL), they **park the request in a small ordered pending-action list** that the event loop (§9.4) retries on each interrupt.
 
-**Ordering rule.** The pending list is FIFO per resource and preserves program order between a fill and the commands that read its bank. `raven_start` checks every source bank (`SRC_A`, `SRC_B`, `PARAM`): if a fill into that bank is still parked, the command is parked behind it instead of being written to the hardware queue. It is pushed with `CTRL.START` only after that fill has been armed (bank `DMA_FILLING` or `READY`). The hardware then waits in `WAIT_DEP` for `READY` as usual. A `START` that references a `FREE` bank therefore only happens through a firmware bug, which is what `ERR_BANK_STATE` is meant to catch (§6.7). In the loop above, START for band *b+1* can be parked behind the ACT fill for *b+1*, which in turn waits for band *b−1*'s `RELEASE_A` to free that bank.
+**Ordering rule.** The pending list is FIFO per resource and preserves program order between a fill and the commands that read its bank. `raven_start` checks every source bank (`SRC_A`, `SRC_B`, `PARAM`): if a fill into that bank is still parked, the command is parked behind it instead of being written to the hardware queue. It is pushed with `CTRL.START` only after that fill has been armed (bank `DMA_FILLING` or `READY`) and the queue has space. A parked command holds its own saved copy of every command field and its sequence number, and these are restored into staging immediately before its `START` (§8.2). The hardware then waits in `WAIT_DEP` for `READY` as usual. A `START` that references a `FREE` bank therefore only happens through a firmware bug, which is what `ERR_BANK_STATE` is meant to catch (§6.7). In the loop above, START for band *b+1* can be parked behind the ACT fill for *b+1*, which in turn waits for band *b−1*'s `RELEASE_A` to free that bank.
 
 ### 9.4 Event loop, interrupts vs. polling
 
