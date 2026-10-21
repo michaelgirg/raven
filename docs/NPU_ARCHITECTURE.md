@@ -237,3 +237,26 @@ flowchart TB
 ```
 
 The diagram shows the proposed baseline. Optional vector reduction would sit between the MAC array and result capture. Scratchpad/DMA implementation, MMIO register decoding, and requantization/activation internals are surrounding subsystem interfaces.
+
+## 11. Interfaces to agree before integration
+
+| Interface | Compute-core requirements to agree |
+|---|---|
+| Commands | Dimensions, masks, operand locations/strides where applicable, initialization versus continuation, and completion definition |
+| Operand delivery | Packed lane order, signed types, latency, paired valid/ready behavior, and stalls |
+| Accumulator seed/context | Initial bias correction or per-output restored INT32 partial sums; applied exactly once |
+| Results | Signed INT32 values, output ordering, masks/tags, tile-end indication, and backpressure |
+| Output operators | Full reduction before requantization; exact numeric semantics and sustainable acceptance rate |
+| Status | Last product committed, results accepted, error behavior, and observable compute/stall cycles |
+
+Compute completion and output storage completion may differ. Define those events explicitly with Nahjay and Taylor. Exact register offsets, opcodes, and packed command formats remain open.
+
+## 12. Verification and architecture selection
+
+1. Verify one PE against integer reference results, including signed extremes, initialization, bubbles, and accumulation across cycles.
+2. Verify the parameterized array with GEMMs covering incomplete M/N tiles, multiple K chunks, zero-points, restored partial sums, and output backpressure.
+3. Verify Conv mapping with padding, stride, dilation, 1×1 and 3×3 kernels, using golden tensors from Jackie.
+4. Synthesize for the actual Ultra96-V2 part. Confirm DSP inference, LUT/FF use, pipeline behavior, and timing; then check the integrated memory frontend and routed WNS.
+5. Compare 64 and 128 MACs using equivalent workloads and documented memory/output conditions. Record useful MACs, compute-active cycles, input/output stalls, and operation latency.
+
+Freeze the final array dimensions, interconnect, accumulator contract, panel layout, and result width only after these checks and candidate-model analysis. INT4 and more complex dataflows remain secondary extensions. This document records research, analytical estimates, and proposed behavior; it makes no claims of completed RTL or measured FPGA performance.
