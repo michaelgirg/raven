@@ -8,6 +8,8 @@
 
 This document covers the compute core: MAC organization, dataflow, numeric formats, pipeline, tiling, and Conv/GEMM mapping. Memory delivery and output operators appear as interfaces that the compute core must agree on with the other subsystem owners. Proposed dimensions and interfaces remain subject to model analysis, simulation, and synthesis.
 
+Shared interface proposals are documented in [Nahjay's control/runtime research](RISCV_Research.md) (§§6–9) and [Taylor's memory-system research](RAVEN_Memory_System_Research.md) (§§5–7). This document records the compute-side requirements; shared choices remain proposed until the subsystem owners agree and verify them.
+
 ## 1. Initial proposal
 
 Build a parameterized **output-stationary MAC array** with signed INT8 operands and architectural INT32 accumulation. Evaluate a small broadcast interconnect first, with a systolic implementation as an alternative if routing or timing favors it.
@@ -72,7 +74,7 @@ Each PE contains a signed multiplier, an accumulator, and the control needed for
 
 For 8×8, eight A bytes and eight B bytes support 64 MACs per cycle. Each input is reused across eight PEs. The 64 INT32 sums represent 256 logical bytes of accumulator state; this does not mean they require a BRAM allocation if implemented in DSP/register state.
 
-Keep sums local across the complete reduction, including K chunks. Initialize once, retain partial sums across chunks, and emit a completed result only after the final product commits. Incomplete M/N tiles require lane masks.
+Keep sums on-chip across the complete reduction. PE-local state holds the active microtile; when commands interleave several microtiles across K chunks, their INT32 partial sums are saved to BRAM and restored before continuing. Initialize each output once and emit its completed result only after its final product commits. Incomplete M/N tiles require lane masks.
 
 ## 5. Numeric widths and quantization
 
@@ -136,6 +138,8 @@ An 8×8 tile contains 64 outputs. One result lane takes 64 drain issue cycles; f
 
 The initial neural-network operation is `C=A×B+bias`. Each PE owns one C element, while k advances through the reduction. Arbitrary BLAS alpha/beta and transpose combinations remain separate decisions.
 
+Under Nahjay's proposed interface, one command covers a bank-resident tile operation. The compute controller traverses its M/N microtiles and resident K range; firmware schedules larger tiles, K chunks, and layers. The arithmetic loop below describes a full output reduction; separate commands may save/restore its state at K-chunk boundaries.
+
 ```text
 for each output microtile (m0, n0):
     initialize active sums once
@@ -148,6 +152,10 @@ for each output microtile (m0, n0):
 ```
 
 For `M=24,N=16,K=256`, an 8×8 array handles six output microtiles: 98,304 MACs and 1,536 ideal issue cycles. At 100 MHz that is 15.36 microseconds of issue time, excluding all overhead.
+
+The proposed command flags are `ACC_INIT` for the first chunk, `DST_ACCUM` for INT32 partial-sum storage/continuation, and `ACC_LAST` for the final chunk. Apply the full corrected bias once at initialization; continuation restores the previous sum without adding bias again. Requantization is enabled only after the final reduction. Nahjay proposes a per-bank PSUM tag and READY state between non-final commands; Taylor and the compute controller must agree on the save/restore handshake and destination ownership.
+
+In-place INT32-to-INT8 conversion remains subject to review with Quan and Taylor. Microtile traversal does not necessarily emit outputs in global element order. Any implementation must protect unread partial sums from compacted output writes, using a safe traversal, staging, or separate storage.
 
 Distinguish the physical microtile from larger BRAM panels. Reusing panels across microtiles reduces repeated DDR reads. If multiple output microtiles are interleaved across K chunks, their partial sums need local save/restore storage; keeping only one microtile active avoids that requirement.
 
@@ -166,6 +174,8 @@ For that macro-operation, loading each operand panel once and writing INT8 outpu
 An 8×8 dense array needs simultaneous 64-bit A and 64-bit B streams; 8×16 needs 64-bit A and 128-bit B. At 100 MHz these represent 1.6 and 2.4 GB/s of local operand delivery. They do not specify the DMA bus width or predict sustained DDR bandwidth.
 
 A possible packed format is `A_panel[k][row_lane]` and `B_panel[k][column_lane]`. Ordinary row-major A needs packing, banking, or transposition to produce multiple rows at one k. A dual-port BRAM cannot supply eight unrelated scalar reads per cycle. Bank mapping, packing responsibility, refill ownership, and read latency must be agreed with Taylor.
+
+Nahjay proposes row-major GEMM A in the bank, with a compute-side frontend gathering eight rows at a common K index. Treat this as a candidate responsibility, not a verified eight-read memory interface. Agree the banking and frontend with Taylor before adopting it; packed A panels remain an alternative. Jackie prepares packed B weights offline. Either path must preserve the paired eight-byte A and eight-byte B delivery target, with stalls when operands are unavailable.
 
 ## 8. Conv2D mapping
 
@@ -189,7 +199,9 @@ A[m,k] = input[batch,ih,iw,ci]  // activation zero-point outside bounds
 B[k,n] = weight[n,kh,kw,ci]
 ```
 
-NHWC is a candidate external layout because channels at a pixel are contiguous; the packed compute-panel layout is a separate interface decision.
+Plain NHWC is the proposed baseline external layout; the packed compute-panel layout is a separate interface decision. Nahjay's baseline uses contiguous full-channel row bands where they fit, with software staging/repacking for channel-split output tiles that are not contiguous in full NHWC.
+
+His proposed hardware Conv window frontend is a compute-side candidate pending agreement with Taylor on bank ports, halo/padding delivery, and read latency. The alternatives below remain available while that choice is evaluated. Channel-blocked activations (`SRC_A_CB`, proposed block size/pitch) are optional and require an agreed frontend plus multi-segment adapter fills before use; they are not a baseline compute requirement.
 
 | Conv frontend | Tradeoff | Proposed use |
 |---|---|---|
@@ -222,7 +234,9 @@ Keep vector mode as an experiment until model profiles and measured bottlenecks 
 ```mermaid
 flowchart TB
     CMD["Tile command interface"] --> CTRL["Compute controller<br/>M/N/K loops, masks, init/continue"]
-    A["Packed activation stream<br/>from BRAM / Conv window frontend"] --> AF["A operand buffer"]
+    AMEM["Activation tile in BRAM"] --> FRONT["Operand frontend<br/>proposed row gather / Conv window packing"]
+    FRONT --> A["Packed activation stream"]
+    A --> AF["A operand buffer"]
     B["Packed weight stream<br/>from BRAM"] --> BF["B operand buffer"]
     AF --> ISSUE["Paired operand issue / valid alignment"]
     BF --> ISSUE
@@ -242,19 +256,21 @@ The diagram shows the proposed baseline. Optional vector reduction would sit bet
 
 | Interface | Compute-core requirements to agree |
 |---|---|
-| Commands | Dimensions, masks, operand locations/strides where applicable, initialization versus continuation, and completion definition |
+| Commands | Bank-resident tile dimensions, bank/offset references, strides/masks, and proposed ACC_INIT / DST_ACCUM / ACC_LAST behavior; compute expands microtiles, firmware schedules larger work |
 | Operand delivery | Packed lane order, signed types, latency, paired valid/ready behavior, and stalls |
-| Accumulator seed/context | Initial bias correction or per-output restored INT32 partial sums; applied exactly once |
+| Accumulator seed/context | Corrected bias applied once at ACC_INIT; continuation restores per-output INT32 sums from BRAM; agree PSUM tag and save/restore ownership |
 | Results | Signed INT32 values, output ordering, masks/tags, tile-end indication, and backpressure |
 | Output operators | Full reduction before requantization; exact numeric semantics and sustainable acceptance rate |
 | Status | Last product committed, results accepted, error behavior, and observable compute/stall cycles |
 
-Compute completion and output storage completion may differ. Define those events explicitly with Nahjay and Taylor. Exact register offsets, opcodes, and packed command formats remain open.
+Use Nahjay's proposed completion boundaries: **compute complete** means the command's last product committed; **command complete** means all results reached the destination bank and ownership transitions completed; **DMA complete** reports the separate memory transfer. Acceptance by an output operator alone does not imply that the destination bank is complete. Exact handshakes remain subject to joint review.
+
+Use the proposed register/opcode and command-field definitions in RISCV_Research.md §§6–7 rather than maintaining a second register map here. MMIO staging, queueing, and firmware scheduling belong to Nahjay; BRAM/adapters and bank-state enforcement belong to Taylor; compute microtile sequencing and operand/result handshakes belong to Michael. Output numeric behavior belongs to Quan.
 
 ## 12. Verification and architecture selection
 
 1. Verify one PE against integer reference results, including signed extremes, initialization, bubbles, and accumulation across cycles.
-2. Verify the parameterized array with GEMMs covering incomplete M/N tiles, multiple K chunks, zero-points, restored partial sums, and output backpressure.
+2. Verify the parameterized array with GEMMs covering incomplete M/N tiles, multiple K-chunk commands, zero-points, bias applied once, BRAM save/restore of partial sums, and output backpressure. Check that compute completion precedes command completion only when result storage is still pending; verify unread partial sums are preserved if in-place narrowing is adopted.
 3. Verify Conv mapping with padding, stride, dilation, 1×1 and 3×3 kernels, using golden tensors from Jackie.
 4. Synthesize for the actual Ultra96-V2 part. Confirm DSP inference, LUT/FF use, pipeline behavior, and timing; then check the integrated memory frontend and routed WNS.
 5. Compare 64 and 128 MACs using equivalent workloads and documented memory/output conditions. Record useful MACs, compute-active cycles, input/output stalls, and operation latency.
