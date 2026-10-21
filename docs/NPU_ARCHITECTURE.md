@@ -200,3 +200,40 @@ NHWC is a candidate external layout because channels at a pixel are contiguous; 
 A 1×1 convolution uses `K=Cin` without spatial window expansion. A synthetic `Hout=Wout=16,Cin=16,Cout=32,Kh=Kw=3` layer maps to `M=256,N=32,K=144`: 1,179,648 MACs and 18,432 ideal issue cycles on 8×8.
 
 Depthwise convolution operates per input channel. Treating its weights as a dense, mostly zero matrix wastes work. Evaluate a direct per-channel mapping, an additional compute mode, or a separate operator unit with Quan if candidate models require it. FPGA work demonstrates configurable reductions for depthwise/pointwise computation, but its published implementation sizes and performance do not transfer directly to Ultra96. [Bai et al., 2018](https://users.wpi.edu/~xhuang/pubs/2018_bai_tcas2.pdf).
+
+## 9. Utilization and optional vector mode
+
+For dense broadcast with no K padding, geometric occupancy is:
+
+```text
+occupancy = (M×N) / (ceil(M/R)×R × ceil(N/S)×S)
+```
+
+Batch-one fully connected layers have `M=1`; on 8×8, at most one row is active, giving 12.5% occupancy for sufficiently large N. Tail dimensions also waste lanes. Masks preserve correctness but do not eliminate this cost.
+
+An optional vector mode could use array rows as K-reduction lanes and columns as output channels. Each PE accumulates strided K terms, followed by a reduction across rows. Bias/correction must appear exactly once per output, and the final reduction needs sufficient guard width.
+
+For synthetic `M=1,N=64,K=512`, dense 8×8 requires 4,096 ideal MAC issue cycles; vector mode requires 512. That arithmetic improvement excludes final reduction and other overhead. The vector mapping needs 64 weight bytes plus eight activation bytes per cycle, versus 16 total bytes in dense mode. Wider BRAM delivery and additional routing are significant costs; cold DDR transfers may dominate either mapping.
+
+Keep vector mode as an experiment until model profiles and measured bottlenecks justify it. The baseline compute core should remain independently useful and verifiable.
+
+## 10. Compute-core block diagram
+
+```mermaid
+flowchart TB
+    CMD["Tile command interface"] --> CTRL["Compute controller<br/>M/N/K loops, masks, init/continue"]
+    A["Packed activation stream<br/>from BRAM / Conv window frontend"] --> AF["A operand buffer"]
+    B["Packed weight stream<br/>from BRAM"] --> BF["B operand buffer"]
+    AF --> ISSUE["Paired operand issue / valid alignment"]
+    BF --> ISSUE
+    ISSUE --> MAC["Parameterized output-stationary MAC array<br/>INT8 multiply / INT32 architectural sums"]
+    SEED["Bias-corrected seed or restored partial sums"] --> MAC
+    CTRL -.-> ISSUE
+    CTRL -.-> MAC
+    MAC --> RESULT["Result capture / drain<br/>optional snapshot buffering"]
+    RESULT --> OUT["INT32 result interface<br/>to output operators or local storage"]
+    RESULT -.-> CTRL
+    CTRL --> STATUS["Compute completion / error / cycle counters"]
+```
+
+The diagram shows the proposed baseline. Optional vector reduction would sit between the MAC array and result capture. Scratchpad/DMA implementation, MMIO register decoding, and requantization/activation internals are surrounding subsystem interfaces.
