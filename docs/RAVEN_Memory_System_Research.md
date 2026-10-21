@@ -3,9 +3,9 @@
 **Status:** Initial research and proposed architecture; RTL implementation has not started.  
 **Owner:** Taylor - BRAM organization, memory interfaces, DMA, and memory verification.  
 **Target:** AMD/Avnet Ultra96-V2 (Zynq UltraScale+ MPSoC ZU3EG).  
-**Document purpose:** Research baseline and initial proposal; all widths, capacities, tile sizes, and interface details remain subject to team approval, synthesis, and hardware validation.
 
 Ultra96-V2 memory resources, DDR/AXI paths, DMA, tiling, and double buffering
+
 *Much information in this doc was used to refine the Design Draft*
 
 ## Summary
