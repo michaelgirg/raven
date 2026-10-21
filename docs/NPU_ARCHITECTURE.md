@@ -112,3 +112,91 @@ Convolution padding must supply `a_q = z_a` when using a correction based on all
 Subtracting the zero-point before multiplication is an alternative: centered activations require signed 9 bits, and products with INT8 weights require signed 17 bits. This also fits a DSP48E2 but changes the operand datapath. The initial proposal uses raw INT8 multiplication with validated correction. Nonzero weight zero-points need further support.
 
 The physical DSP may accumulate in 48 bits while exposing an INT32 architectural result; narrowing behavior and range checks must be defined. Requantization occurs after the complete reduction. Its exact multiplier, shift, rounding, zero-point, and clamp behavior must agree with Quan's output-operator interface.
+
+## 6. Proposed pipeline
+
+These are logical stages; exact register placement depends on DSP inference and the agreed scratchpad-read latency.
+
+| Stage | Work |
+|---|---|
+| Tile setup | Latch dimensions/masks and initialize or restore sums |
+| Operand preparation | Read or receive packed A/B vectors and align them |
+| Operand registers | Register signed values and distribute them across rows/columns |
+| Multiply | Produce signed products in DSP multipliers |
+| Accumulate | Update PE-local sums for valid products |
+| Capture/drain | Hold completed sums and transfer them to the result interface |
+
+Target initiation interval one: each PE accepts one new product per cycle after fill. Multiplier pipelining can precede accumulation; extra registers inside the accumulator feedback loop require special handling to preserve that rate.
+
+Consume A/B vectors as a pair. Delay valid, masks, and end-of-reduction information with the data. Missing operands introduce bubbles; only valid products update sums. Count committed products when deciding completion. Hold result data stable under backpressure.
+
+An 8×8 tile contains 64 outputs. One result lane takes 64 drain issue cycles; four lanes take 16; eight take eight. With no overlap, `K=256` and a single lane give an arithmetic-plus-drain ceiling of `256/(256+64)=80%` before pipeline overhead. A snapshot buffer can decouple compute from drain, but sustained throughput still depends on the downstream operator's initiation interval and buffer capacity.
+
+## 7. GEMM mapping and tiling
+
+The initial neural-network operation is `C=A×B+bias`. Each PE owns one C element, while k advances through the reduction. Arbitrary BLAS alpha/beta and transpose combinations remain separate decisions.
+
+```text
+for each output microtile (m0, n0):
+    initialize active sums once
+    for each K chunk:
+        obtain its A and B panels
+        issue one reduction step per cycle when operands are available
+        preserve sums across chunk boundaries
+    wait for the final product to commit
+    emit completed INT32 sums
+```
+
+For `M=24,N=16,K=256`, an 8×8 array handles six output microtiles: 98,304 MACs and 1,536 ideal issue cycles. At 100 MHz that is 15.36 microseconds of issue time, excluding all overhead.
+
+Distinguish the physical microtile from larger BRAM panels. Reusing panels across microtiles reduces repeated DDR reads. If multiple output microtiles are interleaved across K chunks, their partial sums need local save/restore storage; keeping only one microtile active avoids that requirement.
+
+For INT8 panels and a full INT32 partial-sum workspace, an illustrative double-buffered working set is:
+
+```text
+bytes = 2 × (Tm×Tk + Tk×Tn) + 4×Tm×Tn
+```
+
+`Tm=Tn=32,Tk=256` gives 36 KiB logically: 32 KiB of double-buffered operands and 4 KiB of partial sums. This excludes FIFOs, padding, metadata, output buffers, and convolution staging. It is a tiling example for coordination with Taylor, not a finalized scratchpad allocation.
+
+For that macro-operation, loading each operand panel once and writing INT8 outputs transfers 17,408 bytes for 262,144 MACs. Actual traffic depends on successful reuse, packing, and scheduling. FPGA research uses loop tiling and compute/bandwidth analysis to examine these tradeoffs. [Zhang et al., FPGA 2015](https://ceca.pku.edu.cn/media/lw/b73586e2ac7b5f8d63e8e584f398f17f.pdf).
+
+### Compute-side memory requirements
+
+An 8×8 dense array needs simultaneous 64-bit A and 64-bit B streams; 8×16 needs 64-bit A and 128-bit B. At 100 MHz these represent 1.6 and 2.4 GB/s of local operand delivery. They do not specify the DMA bus width or predict sustained DDR bandwidth.
+
+A possible packed format is `A_panel[k][row_lane]` and `B_panel[k][column_lane]`. Ordinary row-major A needs packing, banking, or transposition to produce multiple rows at one k. A dual-port BRAM cannot supply eight unrelated scalar reads per cycle. Bank mapping, packing responsibility, refill ownership, and read latency must be agreed with Taylor.
+
+## 8. Conv2D mapping
+
+Map dense convolution to the same GEMM core:
+
+```text
+M = batch × Hout × Wout
+N = Cout
+K = Kh × Kw × Cin
+```
+
+Each A row is one flattened input window; each B column is one flattened output-channel filter. An 8×8 array computes eight output positions across eight output channels. Implicit GEMM constructs the required tiles without materializing the full expanded activation matrix. [CUTLASS convolution mapping](https://docs.nvidia.com/cutlass/4.5.0/media/docs/cpp/implicit_gemm_convolution.html).
+
+Use neural-network cross-correlation indexing:
+
+```text
+k = ((kh × Kw) + kw) × Cin + ci
+ih = oh × stride_h − pad_top  + kh × dilation_h
+iw = ow × stride_w − pad_left + kw × dilation_w
+A[m,k] = input[batch,ih,iw,ci]  // activation zero-point outside bounds
+B[k,n] = weight[n,kh,kw,ci]
+```
+
+NHWC is a candidate external layout because channels at a pixel are contiguous; the packed compute-panel layout is a separate interface decision.
+
+| Conv frontend | Tradeoff | Proposed use |
+|---|---|---|
+| Full software im2col | Simple core input, but duplicates activations and increases storage/traffic | Small correctness experiments |
+| Tile-local window packing | Bounds staging storage while reusing the GEMM core | First Conv implementation candidate |
+| Streaming line/window buffers | Reuses overlapping pixels but needs deliberate banking and scheduling | Optimize after functional Conv |
+
+A 1×1 convolution uses `K=Cin` without spatial window expansion. A synthetic `Hout=Wout=16,Cin=16,Cout=32,Kh=Kw=3` layer maps to `M=256,N=32,K=144`: 1,179,648 MACs and 18,432 ideal issue cycles on 8×8.
+
+Depthwise convolution operates per input channel. Treating its weights as a dense, mostly zero matrix wastes work. Evaluate a direct per-channel mapping, an additional compute mode, or a separate operator unit with Quan if candidate models require it. FPGA work demonstrates configurable reductions for depthwise/pointwise computation, but its published implementation sizes and performance do not transfer directly to Ultra96. [Bai et al., 2018](https://users.wpi.edu/~xhuang/pubs/2018_bai_tcas2.pdf).
