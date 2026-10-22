@@ -151,6 +151,6 @@ raven/
 └── README.md
 ```
 
-See the [full directory map and ownership guide](docs/REPOSITORY_STRUCTURE.md) for where each teammate's work belongs. Area READMEs describe the intended contents; `.gitkeep` files retain empty implementation folders in Git. Source and test code will be added as development proceeds.
+See the [full directory map and ownership guide](docs/REPOSITORY_STRUCTURE.md) for where each teammate's work belongs. Area READMEs describe the intended contents; [automation notes](.github/AUTOMATION.md) cover future CI. `.gitkeep` files retain empty implementation folders in Git. Source and test code will be added as development proceeds.
 
 Generated products belong under the Git-ignored `build/` directory. Build and execution instructions will be added with the corresponding implementation and tested tool configuration.

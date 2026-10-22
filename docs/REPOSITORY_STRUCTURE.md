@@ -9,7 +9,7 @@ raven/
 ├── README.md
 ├── .gitignore
 ├── .github/
-│   ├── README.md
+│   ├── AUTOMATION.md           # CI notes; root README is the project overview
 │   └── workflows/             # Future CI; no runnable workflow yet
 ├── configs/
 │   ├── README.md
@@ -120,6 +120,8 @@ The named subsystem leads follow the research documents. Shared milestone owners
 - Retain `.gitkeep` until a source directory gains a real source or documentation file, then remove the unnecessary placeholder. The ignored dataset directories keep their placeholder exceptions.
 
 ## Implementation documentation
+
+Keep the project overview in the root `README.md`. Store CI notes in `.github/AUTOMATION.md`; a README in `.github/` takes precedence on the repository front page, so do not place an area README there. See [GitHub README selection rules](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-readmes).
 
 Each top-level implementation area has a README describing its role. Keep setup/run commands with the actual working implementation and record tested dependencies when available. Add a root Makefile or CI jobs once their commands perform real checks; this skeleton supplies neither.
 
