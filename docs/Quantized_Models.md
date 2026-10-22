@@ -55,8 +55,6 @@ Information above found by visualizing the models\DS-CNN\kws_ref_model.tflite fi
 
 ## 3. MobileNetV1 0.25x
 Application: Visual wake words — person vs. no-person detection
-Model: MLPerf Tiny MobileNetV1 0.25x 
-Model file size: ~325 KB (GitHub-reported)
 Architecture: Initial 3×3 Conv2D → 13 × (DepthwiseConv2D → Pointwise Conv2D) → AveragePool2D → Reshape → FullyConnected → Softmax
 Number of layers: 27 convolution operations (14 Conv2D, 13 DepthwiseConv2D), 1 AveragePool2D, 1 Reshape, 1 FullyConnected, 1 Softmax
 Operators: CONV_2D, DEPTHWISE_CONV_2D, AVERAGE_POOL_2D, RESHAPE, FULLY_CONNECTED, SOFTMAX, fused RELU
@@ -74,7 +72,24 @@ Quantization: INT8 activations/weights, INT32 biases and accumulators; per-chann
 
 Information above found by visualizing the models\modelnetv1\vww_96_int8.tflite file in Netron.
 
+## 4. ResNet-8
+Application: Image classification (CIFAR-10, 10 classes)
+Architecture: Initial Conv2D (3→16) → Residual Block (16 channels) → Residual Block (16→32 channels) → Residual Block (32→64 channels) → AveragePool2D → Reshape → FullyConnected → Softmax
+Number of layers: 9 Conv2D, 3 element-wise Add, 1 AveragePool2D, 1 Reshape, 1 FullyConnected, 1 Softmax
+Operators: CONV_2D, ADD, AVERAGE_POOL_2D, RESHAPE, FULLY_CONNECTED, SOFTMAX, fused RELU
+Input tensor: [-1, 32, 32, 3], INT8
+Output tensor: [-1, 10], INT8 (final output node labeled Identity_int8)
+Intermediate tensors: Primarily [-1,32,32,16], [-1,16,16,32], [-1,8,8,64], followed by [-1,1,1,64] and [-1,64]
+Largest intermediate tensor: 32×32×16 = 16,384 elements (16 KiB INT8)
+Weights: 77,360 INT8 parameters (calculated from displayed dimensions)
+Weight storage: 77,360 bytes (~75.55 KiB)
+Biases: 346 INT32 parameters
+Bias storage: 1,384 bytes (~1.35 KiB)
+Total parameter storage: 78,744 bytes (~76.90 KiB)
+Computation: ~12,501,632 MACs per inference
+Quantization: INT8 activations/weights, INT32 biases and accumulators; per-channel weight quantization
 
+Information above found by visualizing the models\resnet-8\pretrainedResnet_quant.tflite file in Netron.
 
 
 
@@ -89,3 +104,4 @@ Information above found by visualizing the models\modelnetv1\vww_96_int8.tflite 
 Feasibility	High — no convolution hardware required
 Feasibility: Medium — requires conventional convolution, depthwise convolution, pooling, and quantization support
 Feasibility: Medium–Low relative to AD01 and DS-CNN due to larger activation tensors, more convolution layers, and greater memory traffic
+Feasibility: Medium — requires convolution, residual ADD, pooling, requantization, and additional activation buffering for skip connections
