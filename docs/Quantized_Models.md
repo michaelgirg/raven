@@ -20,17 +20,29 @@ https://netron.app/
 ## 1. Deep Autoencoder
 Application: Industrial audio anomaly detection
 Architecture: 640 → 128 → 128 → 128 → 128 → 8 → 128 → 128 → 128 → 128 → 640
+
 Number of layers: 10 fully connected layers
+
 Operators: FULLY_CONNECTED, fused RELU
+
 Input tensor: [-1, 640], INT8
+
 Output tensor: [-1, 640], INT8 (expected; final tensor can be checked)
+
 Intermediate tensors: Eight 128-element tensors, one 8-element tensor
+
 Weights: 264,192 INT8 parameters
+
 Weight storage: 264,192 bytes (258 KiB)
+
 Biases: 1,672 INT32 parameters
+
 Bias storage: 6,688 bytes (~6.53 KiB)
+
 Total parameter storage: 270,880 bytes (~264.5 KiB)
+
 Computation:264,192 MACs per inference
+
 Quantization: INT8 activations/weights, INT32 biases and accumulators
 
 Information above found by visualizing the models\deep_autoencoder\ad01_int8.tflite file in Netron.
