@@ -34,7 +34,7 @@ Computation:264,192 MACs per inference
 Quantization: INT8 activations/weights, INT32 biases and accumulators
 
 Information above found by visualizing the models\deep_autoencoder\ad01_int8.tflite file in Netron.
-
+https://github.com/mlcommons/tiny/blob/master/benchmark/training/anomaly_detection/trained_models/ad01_int8.tflite
 ## 2. DS-CNN
 Application: Speech keyword recognition 
 Architecture: Conv2D → 4 × (DepthwiseConv2D → Pointwise Conv2D) → AveragePool2D → Reshape → FullyConnected → Softmax
@@ -52,7 +52,7 @@ Computation: ~2,656,768 MACs per inference (estimated from the visible architect
 Quantization: INT8 activations/weights, INT32 biases and accumulators; per-channel weight quantization observed
 
 Information above found by visualizing the models\DS-CNN\kws_ref_model.tflite file in Netron.
-
+https://github.com/mlcommons/tiny/blob/master/benchmark/training/keyword_spotting/trained_models/kws_ref_model.tflite
 ## 3. MobileNetV1 0.25x
 Application: Visual wake words — person vs. no-person detection
 Architecture: Initial 3×3 Conv2D → 13 × (DepthwiseConv2D → Pointwise Conv2D) → AveragePool2D → Reshape → FullyConnected → Softmax
@@ -71,7 +71,7 @@ Computation: Millions of MACs per inference; exact count TBD
 Quantization: INT8 activations/weights, INT32 biases and accumulators; per-channel quantization observed
 
 Information above found by visualizing the models\modelnetv1\vww_96_int8.tflite file in Netron.
-
+https://github.com/mlcommons/tiny/blob/master/benchmark/training/visual_wake_words/trained_models/vww_96_int8.tflite
 ## 4. ResNet-8
 Application: Image classification (CIFAR-10, 10 classes)
 Architecture: Initial Conv2D (3→16) → Residual Block (16 channels) → Residual Block (16→32 channels) → Residual Block (32→64 channels) → AveragePool2D → Reshape → FullyConnected → Softmax
@@ -90,18 +90,28 @@ Computation: ~12,501,632 MACs per inference
 Quantization: INT8 activations/weights, INT32 biases and accumulators; per-channel weight quantization
 
 Information above found by visualizing the models\resnet-8\pretrainedResnet_quant.tflite file in Netron.
+https://github.com/mlcommons/tiny/blob/master/benchmark/training/image_classification/trained_models/pretrainedResnet_quant.tflite
+## 5. Streaming DS-CNN
+Application: Continuous audio wake-word detection (3 output classes)
+Architecture: DepthwiseConv2D (3×1) → Conv2D (1×1, 40→128) → DepthwiseConv2D (5×1) → Conv2D (1×1, 128→128) → DepthwiseConv2D (10×1) → Conv2D (1×1, 128→128) → DepthwiseConv2D (15×1) → Conv2D (1×1, 128→32) → Reshape → FullyConnected → Softmax
+Number of layers: 8 convolution operations (4 DepthwiseConv2D, 4 Conv2D), 1 Reshape, 1 FullyConnected, 1 Softmax
+Operators: DEPTHWISE_CONV_2D, CONV_2D, RESHAPE, FULLY_CONNECTED, SOFTMAX, fused RELU
+Input tensor: [-1, 30, 1, 40], INT8
+Output tensor: [-1, 3], final datatype to verify
+Intermediate tensors: 28×1×40 → 28×1×128 → 24×1×128 → 24×1×128 → 15×1×128 → 15×1×128 → 1×1×128 → 1×1×32
+Largest intermediate tensor: 28×1×128 = 3,584 elements (~3.5 KiB INT8)
+Weights: 46,040 INT8 parameters
+Weight storage: 46,040 bytes (~44.96 KiB)
+Biases: 843 INT32 parameters
+Bias storage: 3,372 bytes (~3.29 KiB)
+Total parameter storage: 49,412 bytes (~48.25 KiB)
+Computation: ~826,368 MACs per inference
+Quantization: INT8 inputs/weights and intermediate activations, INT32 biases and accumulators; per-channel weight quantization observed
 
 
+Information above found by visualizing the models\streaming-ds-cnn\str_ww_ref_model.tflite file in Netron. 
+https://github.com/mlcommons/tiny/blob/master/benchmark/training/streaming_wakeword/trained_models/str_ww_ref_model.tflite
 
 
-
-
-
-
-
-
-
-Feasibility	High — no convolution hardware required
-Feasibility: Medium — requires conventional convolution, depthwise convolution, pooling, and quantization support
-Feasibility: Medium–Low relative to AD01 and DS-CNN due to larger activation tensors, more convolution layers, and greater memory traffic
-Feasibility: Medium — requires convolution, residual ADD, pooling, requantization, and additional activation buffering for skip connections
+## Which Models To Use
+Should target the first 3 models (Deep Autoencoder, DS-CNN, MobileNet) since they cover different applications (audio anomaly detection, speech recognition, and image classification) while progressively increasing hardware complexity and reusing common NPU operators. Most likely use the first one since has the simplest architecture, requiring only fully connected layers and basic INT8 operations, making it ideal for initially testing and verifying RAVEN's hardware and software integration. 
