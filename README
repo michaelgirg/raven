@@ -1,7 +1,7 @@
-# RAVEN
-### RISC-V-Controlled Programmable FPGA Neural Processing Unit
+**RAVEN**
+RISC-V-Controlled Programmable FPGA Neural Processing Unit
 
-## Overview
+**Overview**
 
 RAVEN is a programmable neural processing unit (NPU) designed for the AMD/Xilinx Ultra96-V2 FPGA development board. It combines a RISC-V soft processor with custom hardware acceleration to execute multiple classes of quantized neural network models on a shared hardware platform.
 
@@ -9,7 +9,7 @@ The project aims to provide a flexible, reusable alternative to single-model FPG
 
 RAVEN is designed to support edge AI applications such as image classification, keyword detection, and sensor time-series analysis, enabling local inference without relying on cloud-based processing.
 
-## Objectives
+**Objectives**
 
 The primary objectives of RAVEN are to:
 
@@ -21,56 +21,56 @@ The primary objectives of RAVEN are to:
 - Verify hardware inference results against software reference implementations.
 - Evaluate performance, bandwidth, power consumption, and FPGA resource utilization.
 
-## System Architecture
+**System Architecture**
 
 RAVEN is organized into three primary interface layers.
 
-### 1. Model Runtime and RISC-V Software Interface
+1. Model Runtime and RISC-V Software Interface
 
-The software layer prepares neural network models for execution and translates model operations into a sequential C-based execution schedule.
+	The software layer prepares neural network models for execution and translates model operations into a sequential C-based execution schedule.
+	
+	The RISC-V runtime manages NPU configuration, execution, and data transfers through driver functions.
+	
+	Proposed runtime functions include:
+	
+	- `raven_dma_transfer()` — manages data transfers.
+	- `raven_set_op()` — configures the operation to execute.
+	- `raven_start()` — initiates NPU execution.
+	
+	This abstraction separates model definitions from the underlying hardware implementation.
 
-The RISC-V runtime manages NPU configuration, execution, and data transfers through driver functions.
+2. RISC-V and NPU Control Interface
 
-Proposed runtime functions include:
+	The RISC-V soft processor communicates with the NPU through memory-mapped I/O (MMIO) registers over an AXI4-Lite interface.
+	
+	The preliminary register map includes:
+	
+	| Register | Address | Purpose |
+	|---|---|---|
+	| CTRL | `0x00` | Start, reset, and interrupt control |
+	| STATUS | `0x04` | Completion, busy, and error status |
+	| OPCODE | `0x08` | Selects the active operation |
+	| PARAM_DIM | `0x0C–0x14` | Configures tensor dimensions and operation parameters |
+	| ADDR_IN | `0x18` | Input data address |
+	| ADDR_WEIGHT | `0x1C` | Weight data address |
+	| ADDR_OUT | `0x20` | Output data address |
+	
+	These addresses represent the preliminary interface described in the design document and may change during implementation.
 
-- `raven_dma_transfer()` — manages data transfers.
-- `raven_set_op()` — configures the operation to execute.
-- `raven_start()` — initiates NPU execution.
+3. DMA and Memory Interface
 
-This abstraction separates model definitions from the underlying hardware implementation.
+	RAVEN uses an AXI DMA engine to move quantized inputs, weights, and intermediate data between external DDR memory and on-chip BRAM scratchpad buffers.
+	
+	The proposed data path includes:
+	
+	- AXI4 master transactions for external DDR memory access.
+	- AXI4-Stream interfaces for transferring data into scratchpad memory.
+	- Local scratchpad buffers for feeding the compute pipeline.
+	- Double-buffering to overlap memory transfers with computation.
+	
+	This architecture is intended to reduce memory-transfer bottlenecks and improve accelerator utilization.
 
-### 2. RISC-V and NPU Control Interface
-
-The RISC-V soft processor communicates with the NPU through memory-mapped I/O (MMIO) registers over an AXI4-Lite interface.
-
-The preliminary register map includes:
-
-| Register | Address | Purpose |
-|---|---|---|
-| CTRL | `0x00` | Start, reset, and interrupt control |
-| STATUS | `0x04` | Completion, busy, and error status |
-| OPCODE | `0x08` | Selects the active operation |
-| PARAM_DIM | `0x0C–0x14` | Configures tensor dimensions and operation parameters |
-| ADDR_IN | `0x18` | Input data address |
-| ADDR_WEIGHT | `0x1C` | Weight data address |
-| ADDR_OUT | `0x20` | Output data address |
-
-These addresses represent the preliminary interface described in the design document and may change during implementation.
-
-### 3. DMA and Memory Interface
-
-RAVEN uses an AXI DMA engine to move quantized inputs, weights, and intermediate data between external DDR memory and on-chip BRAM scratchpad buffers.
-
-The proposed data path includes:
-
-- AXI4 master transactions for external DDR memory access.
-- AXI4-Stream interfaces for transferring data into scratchpad memory.
-- Local scratchpad buffers for feeding the compute pipeline.
-- Double-buffering to overlap memory transfers with computation.
-
-This architecture is intended to reduce memory-transfer bottlenecks and improve accelerator utilization.
-
-## Core Features
+**Core Features**
 
 The planned core functionality includes:
 
@@ -85,7 +85,7 @@ The planned core functionality includes:
 - **FPGA verification:** Functional testing and comparison against software references.
 - **Performance benchmarking:** Measurement of latency, throughput, bandwidth, power, and resource utilization.
 
-## Initial Hardware Targets
+**Initial Hardware Targets**
 
 The initial design targets are:
 
@@ -106,7 +106,7 @@ At 100 MHz, the theoretical peak bandwidth of a 64-bit interface is approximatel
 
 These values are design targets rather than verified performance results.
 
-## Supported Operations
+**Supported Operations**
 
 The preliminary design identifies the following example operations:
 
@@ -120,7 +120,7 @@ The preliminary design identifies the following example operations:
 
 The project targets at least six supported operators. The final operator set and implementation details will be established during development.
 
-## Model Deployment Toolchain
+**Model Deployment Toolchain**
 
 The model deployment toolchain is intended to convert supported neural networks into executable workloads for the RAVEN platform.
 
@@ -136,7 +136,7 @@ Planned functionality includes:
 
 The initial implementation will focus on real quantized models whose operators can be mapped to the supported hardware.
 
-## Verification and Testing
+**Verification and Testing**
 
 Verification will be performed at both the subsystem and system levels.
 
@@ -151,118 +151,79 @@ Planned verification components include:
 
 Quantization-related accuracy changes will be documented by comparing FPGA results against appropriate software reference outputs.
 
-## Development Roadmap
+**Development Roadmap**
 
 The project is organized into six development phases.
 
-### Phase 1 — Architecture and Requirements
-- Finalize the high-level NPU architecture.
-- Define supported data types and operators.
-- Establish subsystem interfaces.
-- Investigate candidate neural network models.
-- Develop a verification strategy.
+Phase 1 — Architecture and Requirements
+	- Finalize the high-level NPU architecture.
+	- Define supported data types and operators.
+	- Establish subsystem interfaces.
+	- Investigate candidate neural network models.
+	- Develop a verification strategy.
 
-### Phase 2 — Independent Subsystem Development
-- Implement the compute core and operator blocks.
-- Prototype scratchpad memory and DMA.
-- Develop the RISC-V/MMIO interface.
-- Create model conversion and golden-reference scripts.
-- Verify individual subsystems.
+Phase 2 — Independent Subsystem Development
+	- Implement the compute core and operator blocks.
+	- Prototype scratchpad memory and DMA.
+	- Develop the RISC-V/MMIO interface.
+	- Create model conversion and golden-reference scripts.
+	- Verify individual subsystems.
 
-### Phase 3 — First NPU Integration
+Phase 3 — First NPU Integration
 - Connect RISC-V control to the NPU.
 - Integrate compute and operator modules.
 - Integrate memory and DMA.
 - Execute synthetic workloads.
 - Establish regression tests.
 
-### Phase 4 — Real Model Execution
-- Deploy the first real quantized model.
-- Add additional model classes.
-- Validate FPGA outputs against software references.
-- Improve handling of unsupported operators.
+Phase 4 — Real Model Execution
+	- Deploy the first real quantized model.
+	- Add additional model classes.
+	- Validate FPGA outputs against software references.
+	- Improve handling of unsupported operators.
 
-### Phase 5 — Beta Milestone
-- Integrate core control, compute, memory, DMA, and operator functionality.
-- Demonstrate real-model support.
-- Establish an FPGA prototype and baseline performance measurements.
+Phase 5 — Beta Milestone
+	- Integrate core control, compute, memory, DMA, and operator functionality.
+	- Demonstrate real-model support.
+	- Establish an FPGA prototype and baseline performance measurements.
 
-### Phase 6 — Optimization and Final Demonstration
-- Optimize timing and FPGA resource utilization.
-- Improve memory bandwidth and dataflow.
-- Benchmark supported models.
-- Analyze power consumption.
-- Complete final verification, documentation, and demonstration.
+Phase 6 — Optimization and Final Demonstration
+	- Optimize timing and FPGA resource utilization.
+	- Improve memory bandwidth and dataflow.
+	- Benchmark supported models.
+	- Analyze power consumption.
+	- Complete final verification, documentation, and demonstration.
 
-## Deliverables
+**Deliverables**
 
 The project is intended to produce:
+	1. An Ultra96-V2 FPGA prototype.
+	2. SystemVerilog RTL for the compute engine, operators, control logic, memory interfaces, and top-level integration.
+	3. A RISC-V runtime and driver.
+	4. Model deployment and conversion tools.
+	5. A hardware verification environment.
+	6. Performance and resource benchmark results.
+	7. Architecture specifications, interface documentation, build instructions, and a final report.
 
-1. An Ultra96-V2 FPGA prototype.
-2. SystemVerilog RTL for the compute engine, operators, control logic, memory interfaces, and top-level integration.
-3. A RISC-V runtime and driver.
-4. Model deployment and conversion tools.
-5. A hardware verification environment.
-6. Performance and resource benchmark results.
-7. Architecture specifications, interface documentation, build instructions, and a final report.
-
-## Potential Limitations
+**Potential Limitations**
 
 RAVEN is a research and educational prototype. Its performance and supported workloads will depend on the final hardware implementation.
 
 Potential limitations include:
-
-- FPGA LUT, BRAM, and DSP resource constraints.
-- External DDR bandwidth limitations.
-- Timing closure challenges.
-- Unsupported neural network operators.
-- Accuracy changes resulting from quantization.
-- Hardware/software integration complexity.
-- Workload-dependent performance.
+	- FPGA LUT, BRAM, and DSP resource constraints.
+	- External DDR bandwidth limitations.
+	- Timing closure challenges.
+	- Unsupported neural network operators.
+	- Accuracy changes resulting from quantization.
+	- Hardware/software integration complexity.
+	- Workload-dependent performance.
 
 The design will use bounded operator support, public benchmark models where appropriate, software reference comparisons, and subsystem-level testing to mitigate these risks.
 
-## Future Extensions
-
-Potential extensions beyond the initial scope include:
-
-- Additional neural network operators and models.
-- INT4 or mixed-precision inference.
-- Further memory and dataflow optimizations.
-- ASIC-style electronic design automation (EDA) analysis of selected RTL blocks.
-
-## Repository Structure
+**Repository Structure**
 
 RAVEN/
-├── rtl/                # SystemVerilog hardware modules
-│   ├── compute/        # Compute engine
-│   ├── operators/      # Neural network operators
-│   ├── control/        # NPU control logic and MMIO
-│   └── memory/         # DMA and scratchpad interfaces
-├── software/           # RISC-V runtime and drivers
 ├── models/             # Model configuration and deployment assets
-├── tools/              # Conversion and quantization scripts
-├── tests/              # Testbenches and regression tests
-├── benchmarks/         # Performance and resource measurements
 ├── docs/               # Architecture and interface documentation
 └── README.md
 ```
-
-## Building and Running
-
-Build and execution instructions will be added as the hardware and software flows are finalized.
-
-The eventual instructions should document:
-
-- Required FPGA development tools and versions.
-- FPGA project setup and synthesis.
-- Bitstream generation and board programming.
-- RISC-V runtime compilation and deployment.
-- Model preparation and quantization.
-- Running inference and validating output.
-- Executing verification tests and benchmarks.
-
-
-## Project Status
-
-RAVEN is a work in progress. Its architecture, interface definitions, and hardware performance targets are based on the current design specification. Final capabilities, supported models, and benchmark results will be documented as implementation and verification progress.
