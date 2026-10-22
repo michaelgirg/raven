@@ -8,7 +8,7 @@ Ultra96-V2 memory resources, DDR/AXI paths, DMA, tiling, and double buffering
 
 *Much information in this doc was used to refine the Design Draft*
 
-*Also important disction after updating: the new BRAM bandwidth figures are theoretical compute-facing requirements, not measured DDR bandwidth. Likewise, the proposed banking arrangement and memory totals still need synthesis and team review before they can be treated as final*
+*Also important distinction after updating: the new BRAM bandwidth figures are theoretical compute-facing requirements, not measured DDR bandwidth. Likewise, the proposed banking arrangement and memory totals still need synthesis and team review before they can be treated as final*
 
 ## Summary
 
@@ -18,11 +18,11 @@ Recommended baseline: keep model tensors in the board’s external LPDDR4; stage
 
 ## 1. Scope and evidence labels
 
-T	his report distinguishes (A) board/vendor facts, (B) requirements or proposals already present in the RAVEN draft/feedback, and (C) engineering recommendations that require team approval and implementation testing. No sustained bandwidth, final buffer fit, or inference performance is claimed without measurement.
+This report distinguishes (A) board/vendor facts, (B) requirements or proposals already present in the RAVEN draft/feedback, and (C) engineering recommendations that require team approval and implementation testing. No sustained bandwidth, final buffer fit, or inference performance is claimed without measurement.
 
 ## 2. Ultra96-V2 memory resources
 
-The Ultra96-V2 uses the Zynq UltraScale+ MPSoC ZU3EG and has 2 GB of LPDDR4 RAM. The ZU3EG programmable logic is listed with 216 block-RAM blocks totaling about 7.6 Mbit (approximately 0.95 MB decimal), 1.8 Mbit of distributed RAM, and no UltraRAM blocks. These are device-level totals; they are not all available to RAVEN because the design also consumes LUTs, registers, BRAMs, and ports for compute, FIFOs, control, and integration. [1, 2]
+The Ultra96-V2 uses the Zynq UltraScale+ MPSoC ZU3EG and has 2 GB of LPDDR4 RAM. The ZU3EG programmable logic is listed with 216 36-Kibit block-RAM primitives: 972 KiB of raw bit capacity including parity positions, or 864 KiB of ordinary data capacity when mapped as 1,024×32 data bits per primitive, 1.8 Mbit of distributed RAM, and no UltraRAM blocks. Primitive configuration affects usable payload; see [AMD UG573](https://docs.amd.com/r/en-US/ug573-ultrascale-memory-resources/Read-Width-READ_WIDTH_-A-B). These are device-level totals; they are not all available to RAVEN because the design also consumes LUTs, registers, BRAMs, and ports for compute, FIFOs, control, and integration. [1, 2]
 
 | Resource | Use in RAVEN | Caveat |
 | --- | --- | --- |
@@ -74,7 +74,7 @@ The current logical scratchpad allocation from the four original rows is **74–
 | Output / partial-sum bank `OUT0` | 8–16 KiB | INT8 output or INT32 partial sums; dimensions and coexistence requirements need agreement |
 | FIFO / control allowance | 2–8 KiB | Stream elasticity, metadata, state and small queues; validate what must actually use BRAM |
 | **Base logical total** | **74–88 KiB** | Sum of the four rows above |
-| Nahjay-proposed parameter bank `PRM` | **+4 KiB** | Proposed additional bank for per-channel bias/requantization records; not included in the base total and pending team/Quan review |
+| Nahjay-proposed parameter bank `PRM` | **+4 KiB** | Proposed additional bank for per-output bias and optional per-channel requantization records; bias is required even with a shared requant scale. Not included in the base total; pending team/Quan review |
 | Optional second output bank `OUT1` | **+8–16 KiB** | Optional output ping-pong bank, if synthesis and the final output/partial-sum lifecycle permit it |
 | **Total with `PRM`, without `OUT1`** | **78–92 KiB** | Base + proposed parameter bank |
 | **Total with `PRM` and `OUT1`** | **86–108 KiB** | Base + parameter bank + optional second output bank |
@@ -108,22 +108,28 @@ Tiling rules: reuse each weight tile across multiple output positions; reuse act
 
 Use ping-pong activation and weight banks. While the NPU computes from one bank, DMA may fill a different bank that is `FREE`. Input/weight banks that are retained after a command may return to `READY` for reuse; they do **not** automatically become `FREE` merely because a compute command finished. The command’s `RELEASE_A`, `RELEASE_B`, or `RELEASE_PARAM` policy (proposed in Nahjay’s `RISCV_Research.md` §6.7) determines when a retained source bank can be released for a new DMA fill. A fill must never overwrite a bank in `READY`, `COMPUTING`, `FULL`, or another owned state.
 
-Output and partial-sum banks have a distinct lifecycle from input banks. A destination being written by compute is `NPU_WRITING`; a completed INT8 output becomes `FULL` and can be drained or consumed by an allowed output operator. A non-final K chunk may leave INT32 partial sums in `READY` with a PSUM tag, where the next chunk continues accumulation. The final chunk converts/writes the output and retires it as `FULL`; the safe default is a separate INT8 output region/bank if in-place INT32-to-INT8 compaction has not been approved. Optional `OUT1` can enable output double buffering but increases the capacity budget by 8–16 KiB. See Nahjay’s proposed partial-sum and bank protocol in `RISCV_Research.md` §§6.6–6.7; final ownership and state transitions need team agreement.
+Output and partial-sum banks have a distinct lifecycle from input banks. A destination being written by compute is `NPU_WRITING`; a completed INT8 output becomes `FULL` and can be drained or consumed by an allowed output operator. A non-final K chunk may leave INT32 partial sums in `READY` with a PSUM tag, where the next chunk continues accumulation.
+
+A continuation explicitly names PSUM_SRC and PSUM_PITCH, validated against saved offset/shape/pitch/bias-applied metadata. Middle chunks update that INT32 context in place. The final chunk holds the context while writing INT8 to a distinct FREE destination bank; after all output writes finish, the old context is invalidated/released to FREE and the new destination becomes FULL. A separate region in the same bank is not the baseline because ownership is bank-level. Without OUT1, a reserved FREE ACT bank is usable only if the implemented compute write path supports it; otherwise reject the plan. Final in-place narrowing remains deferred.
+
+Optional `OUT1` can enable output double buffering but increases the capacity budget by 8–16 KiB. See Nahjay’s proposed partial-sum and bank protocol in `RISCV_Research.md` §§6.6–6.7; final ownership and state transitions need team agreement.
 
 | State / event | Meaning | Proposed transition / rule |
 | --- | --- | --- |
 | `FREE` | Bank available for a new transfer or initial output | A DMA fill may move it to `DMA_FILLING`; a compute destination may be claimed under the agreed output protocol |
 | `DMA_FILLING` | DMA/adapter owns the destination bank; bytes are arriving | `READY` only after exact expected bytes and packet-end validation; protocol/length error moves to `ERROR` |
 | `READY` | Complete input/weight tile, retained bank, or tagged INT32 partial sum | Can be consumed by compute; retained inputs may return to `READY` after use, and PSUM remains `READY` between K chunks |
-| `COMPUTING` | NPU is consuming a source bank | On completion, return to `READY` if retained; release to `FREE` only when the command’s release policy permits |
+| `COMPUTING` | NPU is consuming a source bank | Retained READY inputs return to READY; retained FULL INT8 outputs return to FULL. Explicit release frees a source; final PSUM consumption releases it only after destination writes finish (§6.6 of the control document). |
 | `NPU_WRITING` | Compute/operator is writing a destination | INT32 intermediate partial sum returns to `READY` + PSUM tag; completed INT8 output becomes `FULL` |
 | `FULL` | Completed INT8 output tile | May be drained or consumed by an allowed output operator; becomes `FREE` only after drain/release or explicit ownership release |
-| `DRAINING` | Adapter is reading output bytes for S2MM | Becomes `FREE` only after the expected bytes are emitted and the drain completes |
+| `DRAINING` | Adapter owns output while supplying S2MM | Conservative proposal: hold ownership until expected bytes/TLAST are valid and AXI DMA reports successful S2MM completion; firmware then uses BANK_RELEASE to return FREE |
 | `ERROR` | Transfer, length, range, or protocol fault | Recover/reset and release only through the agreed error-recovery path |
 
-DMA completion and compute completion are separate events. For a fill, the adapter should assert completion and mark a bank `READY` only when the configured byte count has arrived and the final `TLAST` position is valid. For a drain, completion means the requested bytes were emitted to the S2MM stream; the DMA’s own completion/status must also be checked before software treats the DDR transfer as complete.
+DMA completion and compute completion are separate events. For a fill, the adapter should assert completion and mark a bank `READY` only when the configured byte count has arrived and the final `TLAST` position is valid. For a drain, adapter stream completion means the requested bytes were emitted with valid TLAST; it does not establish DDR completion. Keep the bank DRAINING until both completions are checked; firmware then writes BANK_RELEASE, as in Nahjay's §7.3. An error follows recovery rather than silently freeing the bank.
 
 **Register-map source of truth:** use Nahjay’s proposed driver-side register reference in `RISCV_Research.md` §7.1 (AMD AXI DMA PG021 direct-register registers) and §7.2 (RAVEN adapter/bank CSR, proposed base `ADP_BASE = 0xA002_0000`) rather than inventing a second adapter map in this document. Treat adapter offsets/fields as proposals until Taylor and Nahjay agree and the RTL/driver definitions are generated or verified together. AMD AXI DMA’s vendor register map is separate from the RAVEN adapter CSR.
+
+**Result write path (proposed).** Share RESULT_LANES with Michael and Quan: one lane for functional bring-up, four for evaluation, target II=1. This implies up to 1 or 4 INT8 result bytes/cycle, while non-final INT32 context writes require 4 or 16 bytes/cycle. Validate actual BRAM packing, port conflicts, parameter reads, lane masks/tags, and backpressure before selecting four lanes; the capacity totals above do not prove that bandwidth. Both configurations must preserve data and metadata on stalls.
 
 ## 8. Rough bandwidth and performance model
 
@@ -139,7 +145,7 @@ Measure required bandwidth from real transfers: (DDR bytes read + DDR bytes writ
 
 - Boundary safety: no transfer crosses an unsupported 4 KiB boundary behavior; confirm AXI DMA configuration and descriptors.
 
-- Buffer protocol: assertions/testbench prove a DMA writer never overwrites a COMPUTING buffer and the NPU never reads a buffer before READY.
+- Buffer protocol: assertions/testbench prove DMA fills claim only FREE banks and NPU reads obey the opcode-specific READY/FULL tensor-type rules. Test retained FULL sources returning to FULL, unfinished PSUM rejection by standalone operators, explicit continuation source/pitch validation, distinct final-output ownership, and DRAINING retention until successful S2MM completion.
 
 - Functional correctness: tiled GEMM/Conv output matches an integer golden reference across full and edge tiles.
 

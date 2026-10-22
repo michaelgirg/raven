@@ -266,20 +266,22 @@ https://github.com/mlcommons/tiny/blob/master/benchmark/training/streaming_wakew
 
 ## Proposed NPU / CPU Operator Compatibility
 
-**Status:** Proposed execution mapping for the initial RAVEN prototype; implementation has not started. The table below identifies a *target* execution location, not hardware that is already working. CPU fallback means running the equivalent quantized operation on the Ultra96-V2 ARM processor when RAVEN does not yet support it in programmable logic.
+**Status:** Proposed execution mapping for the initial RAVEN prototype; implementation has not started. The table identifies target execution locations, not working hardware. In the shared baseline, **CPU fallback runs on the RISC-V soft processor**, consistent with Nahjay's runtime and Quan's operator proposal. The ARM A53 handles board boot/file staging only. ARM inference fallback would require a separate team decision and an explicit launch, completion, data-ownership, and cache/coherency interface; it is not selected here. Fallback may be slow and must be included in end-to-end measurements.
 
 | TFLite operator | Proposed NPU execution | Proposed CPU fallback | Implementation decision / notes |
 |---|---|---|---|
 | `FULLY_CONNECTED` | **NPU target (first priority)** | Yes, until the NPU kernel works | Dense INT8 matrix-vector / matrix-multiply operations on the planned 8×8 MAC array; implement INT32 accumulation, bias addition, quantized rescaling, and fused activation as needed. |
 | `CONV_2D` (including 1×1 pointwise) | **NPU target (after FC)** | Yes, until convolution is supported | Map convolution to the dense array using appropriate input/weight tiling or patch extraction; verify stride, padding, and per-channel quantization. |
-| `DEPTHWISE_CONV_2D` | **TBD — not committed** | **Proposed initial fallback** | Each channel uses its own filter; DS-CNN, MobileNetV1, and Streaming DS-CNN require it. Decide whether to implement a dedicated depthwise dataflow/kernel in RTL or retain ARM execution. |
-| `AVERAGE_POOL_2D` | Not planned initially | **CPU** | Quantized average/requantization; may be moved to NPU later if useful. |
-| `ADD` (ResNet residual connection) | Not planned initially | **CPU** | Requires correctly scaled INT8 elementwise addition and the specified fused activation. A future NPU elementwise unit is optional. |
-| `RESHAPE` | No MAC-array compute | **ARM runtime / metadata** | Often a shape/stride interpretation with no tensor arithmetic or copy; runtime handles the tensor view and any required layout changes. |
+| `DEPTHWISE_CONV_2D` | **TBD — not committed** | **Proposed initial RISC-V fallback** | DS-CNN, MobileNetV1, and Streaming DS-CNN require it. Jointly evaluate direct-array/dedicated RTL versus continued RISC-V execution; no ARM fallback is assumed. |
+| `AVERAGE_POOL_2D` | Target after FC/Conv bring-up, following Quan's plan | **RISC-V until the NPU operator is verified** | Preserve the pinned reference's raw-sum division/rounding; input and output quantization match. DS-CNN's 25×5 strides use the proposed 8-bit POOL fields. |
+| `ADD` (ResNet residual connection) | Later EWADD target, proposed opcode 0x06 | **RISC-V until the NPU operator is verified** | Residual rescaling includes a common pre-shift plus three multiplier/shift stages. ResNet is an alternative workload; this staging does not remove EWADD from the proposed six-operator plan. |
+| `RESHAPE` | No MAC-array compute | **RISC-V runtime / metadata** | Often a shape/stride interpretation with no tensor arithmetic or copy; runtime handles the tensor view and any required layout changes. |
 | `SOFTMAX` | Not planned initially | **CPU** | Nonlinear normalization/postprocessing; required for exact output compatibility if evaluating the full TFLite graph. |
 | Fused `RELU` | **With NPU FC / Conv if implemented** | **With CPU-executed operator** | Not a separate operator node in these files. Implement the fused activation on the same execution side as its parent operation; otherwise add an explicit postprocessing step. |
 
 **Proposed partition for each model** (operator counts are from the inspected TFLite graphs):
+
+Here every CPU entry means RISC-V. These are early functional partitions; average pool and EWADD migrate to their proposed NPU operators once verified. Shared numeric/command definitions are in [Quan's research](NPU_Operators_Research.md) and [Nahjay's control proposal](RISCV_Research.md) §§6.4–6.7. On NPU GEMM/Conv, the exporter supplies a per-output bias record even when requantization scales are per tensor; PER_CHANNEL selects scale granularity, not whether bias exists.
 
 | Model | Planned NPU operations | Proposed initial CPU operations | Metadata/runtime | Key limitation |
 |---|---|---|---|---|

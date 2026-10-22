@@ -128,7 +128,7 @@ Subtracting the zero-point before multiplication is an alternative: centered act
 
 The physical DSP may accumulate in 48 bits while exposing an INT32 architectural result; narrowing behavior and range checks must be defined. Requantization occurs after the complete reduction. Its exact multiplier, shift, rounding, zero-point, and clamp behavior must agree with Quan's output-operator interface.
 
-Quan proposes a common Q31 multiplier/signed-shift requantize-and-clamp tail for fused and standalone use. Its integer reference version, shift direction, tie handling, intermediate widths, and per-channel record layout remain open. The compute result includes bias/correction already; the tail must not add it again. Preserve the logical output-channel tag so per-channel parameters follow the output element even in microtile order.
+Quan proposes a common Q31 multiplier/signed-shift requantize-and-clamp tail for fused and standalone use, pinned to TFLM commit `c051fea55c4a6b4464186e1bb126708bea50f32e` with `TFLITE_SINGLE_ROUNDING=1` (operator research §§4–5). Positive shift scales up; the int32-input helper uses a wide product and one rounding step, with negative exact ties toward positive infinity. This proposed numeric contract still requires joint ratification and golden tests. The compute result includes bias/correction already; the tail must not add it again. PARAM supplies per-output corrected bias on ACC_INIT even with PER_CHANNEL=0; that flag selects only the requant multiplier/shift source. Preserve the logical output-channel tag so parameter records follow the output element even in microtile order.
 
 ## 6. Proposed pipeline
 
@@ -149,7 +149,7 @@ Consume A/B vectors as a pair. Delay valid, masks, and end-of-reduction informat
 
 An 8×8 tile contains 64 outputs. One result lane takes 64 drain issue cycles; four lanes take 16; eight take eight. With no overlap, `K=256` and a single lane give an arithmetic-plus-drain ceiling of `256/(256+64)=80%` before pipeline overhead. A snapshot buffer can decouple compute from drain, but sustained throughput still depends on the downstream operator's initiation interval and buffer capacity.
 
-For integration planning, propose one signed INT32 result lane with target initiation interval one at 100 MHz, pending Quan's tail and Taylor's write-path agreement. Transfer data, channel/element tag, lane mask, and tile-end together on `valid && ready`; hold them all stable during a stall. Non-final K chunks bypass requantization and save INT32 context. Report actual drain/stall cycles before selecting more lanes.
+Parameterize `RESULT_LANES` consistently across compute, Quan's tail, and Taylor's write path: propose one signed INT32 lane for functional bring-up and four lanes as an evaluation configuration. Target initiation interval one at 100 MHz in either configuration; this does not mean one-cycle pipeline latency. Transfer each lane's data and channel/element tag, plus lane mask and tile-end, together on `valid && ready`; hold them all stable during a stall. Non-final K chunks bypass requantization and save INT32 context. Four lanes require 16 bytes/cycle into the tail and up to 4 bytes/cycle of final INT8 writes. Select the integrated width after checking parameter delivery, BRAM write ports, resource use, and drain/stall cycles with Quan and Taylor.
 
 ## 7. GEMM mapping and tiling
 
@@ -170,9 +170,9 @@ for each output microtile (m0, n0):
 
 For `M=24,N=16,K=256`, an 8×8 array handles six output microtiles: 98,304 MACs and 1,536 ideal issue cycles. At 100 MHz that is 15.36 microseconds of issue time, excluding all overhead.
 
-The proposed command flags are `ACC_INIT` for the first chunk, `DST_ACCUM` for INT32 partial-sum storage/continuation, and `ACC_LAST` for the final chunk. Apply the full corrected bias once at initialization; continuation restores the previous sum without adding bias again. Requantization is enabled only after the final reduction. Nahjay proposes a per-bank PSUM tag and READY state between non-final commands; Taylor and the compute controller must agree on the save/restore handshake and destination ownership.
+The proposed command flags are `ACC_INIT` for the first chunk, `DST_ACCUM` for INT32 partial-sum storage/continuation, and `ACC_LAST` for the final chunk. Apply the full corrected bias once at initialization; continuation restores the previous sum without adding bias again. Requantization is enabled only after the final reduction. Nahjay's revised proposal explicitly identifies a continuation with PSUM_SRC and PSUM_PITCH, plus per-bank context metadata (offset, shape, pitch, initialized/bias-applied status). Non-final contexts remain READY/tagged; a middle chunk reads and updates the same INT32 context. On the last chunk, hold that source until all final INT8 results reach a distinct FREE destination bank, then clear/release the old context and mark the new destination FULL. Taylor and the compute controller must agree on the save/restore handshake and ownership (§6.6 of the control document).
 
-In-place INT32-to-INT8 conversion remains subject to review with Quan and Taylor. Microtile traversal does not necessarily emit outputs in global element order. Any implementation must protect unread partial sums from compacted output writes, using a safe traversal, staging, or separate storage.
+The proposed baseline uses a separate bank for final INT8 output; OUT1 is one option. Without OUT1, a FREE ACT bank is usable only if Taylor's implemented write path supports it; otherwise the scheduler must reject that plan. A separate region in the PSUM bank is insufficient under bank-level ownership. In-place INT32-to-INT8 conversion remains deferred until Quan, Taylor, and Michael prove a safe traversal/staging scheme: microtile traversal does not necessarily emit outputs in global element order.
 
 Distinguish the physical microtile from larger BRAM panels. Reusing panels across microtiles reduces repeated DDR reads. If multiple output microtiles are interleaved across K chunks, their partial sums need local save/restore storage; keeping only one microtile active avoids that requirement.
 
@@ -280,10 +280,10 @@ The diagram shows the proposed baseline. Optional vector reduction would sit bet
 |---|---|
 | Commands | Bank-resident tile dimensions, bank/offset references, strides/masks, and proposed ACC_INIT / DST_ACCUM / ACC_LAST behavior; compute expands microtiles, firmware schedules larger work |
 | Operand delivery | Packed lane order, signed types, latency, paired valid/ready behavior, and stalls |
-| Accumulator seed/context | Corrected bias applied once at ACC_INIT; continuation restores per-output INT32 sums from BRAM; agree PSUM tag and save/restore ownership |
-| Results | Signed INT32 values, output ordering, masks/tags, tile-end indication, and backpressure |
+| Accumulator seed/context | PARAM bias on ACC_INIT regardless of PER_CHANNEL; continuation uses explicit PSUM_SRC/PSUM_PITCH and validated context metadata; agree save/restore and separate final destination ownership |
+| Results | Signed INT32 values; common RESULT_LANES (1 bring-up, 4 evaluation), ordering, per-lane masks/tags, tile-end, and backpressure |
 | Output operators | Full reduction before requantization; exact numeric semantics and sustainable acceptance rate |
-| Standalone operator chaining | Agree how a completed output bank becomes a readable source for Quan's pool/ReLU/EWADD; distinguish completed tensors from unfinished PSUM context |
+| Standalone operator chaining | Follow Nahjay's proposed READY/FULL typed-source rules for pool/ReLU/EWADD, preserving source type when retained; unfinished PSUM is only for GEMM/Conv continuation |
 | Status | Last product committed, results accepted, error behavior, and observable compute/stall cycles |
 
 Use Nahjay's proposed completion boundaries: **compute complete** means the command's last product committed; **command complete** means all results reached the destination bank and ownership transitions completed; **DMA complete** reports the separate memory transfer. Acceptance by an output operator alone does not imply that the destination bank is complete. Exact handshakes remain subject to joint review.
@@ -293,7 +293,7 @@ Use the proposed register/opcode and command-field definitions in RISCV_Research
 ## 12. Verification and architecture selection
 
 1. Verify one PE against integer reference results, including signed extremes, initialization, bubbles, and accumulation across cycles.
-2. Verify the parameterized array with GEMMs covering incomplete M/N tiles, multiple K-chunk commands, zero-points, bias applied once, BRAM save/restore of partial sums, and output backpressure. Check that compute completion precedes command completion only when result storage is still pending; verify unread partial sums are preserved if in-place narrowing is adopted.
+2. Verify the parameterized array with GEMMs covering incomplete M/N tiles, multiple K-chunk commands, zero-points, bias applied once with both PER_CHANNEL settings, BRAM save/restore via explicit PSUM source/pitch, and output backpressure with RESULT_LANES=1 and 4. Check that compute completion precedes command completion only when result storage is still pending, and that final writes use a distinct bank while holding the old context until retirement. Reject mismatched context shape/pitch and unsupported in-place narrowing.
 3. Verify Conv mapping with padding, stride, dilation, 1×1 and 3×3 kernels, using golden tensors from Jackie.
 4. Synthesize for the actual Ultra96-V2 part. Confirm DSP inference, LUT/FF use, pipeline behavior, and timing; then check the integrated memory frontend and routed WNS.
 5. Compare 64 and 128 MACs using equivalent workloads and documented memory/output conditions. Record useful MACs, compute-active cycles, input/output stalls, and operation latency.

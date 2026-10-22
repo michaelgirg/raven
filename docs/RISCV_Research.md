@@ -17,6 +17,8 @@ It builds directly on [NPU_ARCHITECTURE.md](NPU_ARCHITECTURE.md) (Michael, compu
 
 **Status of decisions.** Shared decisions in this document are **proposals until ratified at the sign-offs in §21**. These include MicroBlaze V as the core, the Vivado/Vitis 2024.2 pin, command-queue depth 4, the new 4 KiB PRM bank, hardware Conv window generation, the partial-sum bank protocol, the tensor-layout contract, three-model acceptance, and the calendar dates. The DMA register map in §7.1 follows PG021; Taylor's memory document remains the reference for the DMA and adapter configuration, and §7 should be read as the driver-side view of it.
 
+**Shared-interface revision (proposed, 2026-10-22).** The baseline keeps fallback kernels on the RISC-V, uses one result lane for bring-up with four lanes as an evaluation configuration, widens POOL strides, allocates EWADD's common pre-shift, and explicitly names a continuation's PSUM source and row pitch. Parameter records provide per-output bias even when requantization uses a shared scale. These definitions require the existing subsystem sign-offs; they are not implemented register changes.
+
 **Revision (2026-10-22).** Defined how a completed `FULL` output bank becomes a source for POOL, RELU, or EWADD, with ownership rules and a Conv → Pool → DMA command/state example (§5.1, §6.7, §6.8); made in-place INT32 → INT8 conversion conditional on the compute/output traversal agreement, with a staging fallback (§6.6).
 
 **Revision (2026-10-21).** Fixed the bank-ID encoding in the §10 example; defined the partial-sum bank lifecycle (§6.6–6.7); resolved the parked-fill vs. `FREE`-bank conflict (§6.7, §9.3); completed the GEMM A-operand and Conv output-channel layout contract (§6.4, §8.3, §9.2); corrected the scratchpad budget (§11.3); widened the `STATUS` FSM field (§5.1, §6.2); and marked shared decisions as proposed.
@@ -57,7 +59,7 @@ All rows below are this subsystem's **proposals**; the shared ones are ratified 
 | NPU register interface | 4 KiB CSR block with ID/version, a **staging register set + command queue (depth 4)**, sequence-tagged completion, per-opcode parameter packing, and performance counters | §6 |
 | Command granularity | One command = one **bank-resident tile operation**: the hardware loops over M/N/K microtiles internally; the firmware loops over tiles and layers | §6.6, §11 |
 | Operand addressing | NPU registers name **scratchpad bank + offset**, never DDR addresses. DDR addresses appear only in DMA registers. This corrects the draft's `ADDR_IN/ADDR_WEIGHT/ADDR_OUT`. | §6.4 |
-| Data dependencies | Hardware waits for a referenced bank to become `READY` (with a watchdog). Firmware can queue DMA and compute in program order and get overlap without busy-waiting. | §6.7 |
+| Data dependencies | Hardware waits for each required source to become consumable under its opcode-specific READY/FULL rules (with a watchdog). Firmware can queue DMA and compute in program order and get overlap without busy-waiting. | §6.7 |
 | DMA control | AMD AXI DMA (PG021) direct-register mode, driven by RAVEN firmware, plus a RAVEN **stream-adapter CSR block** that tells the adapter which bank, offset, and byte count to use | §7 |
 | Completion | Polling for bring-up; then an interrupt-driven event loop through AXI INTC | §9.4 |
 | Runtime | Bare-metal, single-threaded C. A **data-driven layer executor** interprets a model blob, so one firmware binary runs every supported model. Unsupported operators fall back to C reference kernels on the RISC-V. | §8, §9 |
@@ -115,9 +117,9 @@ The compute document compares MAC-array organizations. This section compares **c
 **Tradeoffs.**
 
 - Control is minimal and throughput per network is high.
-- Every model needs a new bitstream, and the hardware cannot be shared between models.
+- The generated pipeline is specialized to a graph and folding configuration; changing its architecture can require a new bitstream. Compatible weights can be changed at runtime with supported memory modes, so a new model does not universally require re-synthesis. [FINN runtime-weight FAQ](https://finn.readthedocs.io/en/latest/faq.html#how-do-i-configure-external-mem-mode-for-weights)
 
-**What RAVEN takes.** This is the contrast case. RAVEN's control plane exists *because* the hardware is shared. Running three models from **one bitstream and one firmware binary** (§16) is the measurable proof of that difference.
+**What RAVEN takes.** RAVEN proposes scheduling supported operations across different graphs on a reusable engine. Test that goal by running the selected three models from one bitstream and one firmware binary (§16); this is a RAVEN acceptance target, not a claim that FINN cannot reuse hardware or weights.
 
 ### 2.5 CFU Playground (Google)
 
@@ -360,16 +362,16 @@ typedef struct {
 
 | Actor | Caching | Rule |
 |---|---|---|
-| MicroBlaze V | No caches in the baseline; code and stack in LMB | Its DDR reads and writes are uncached and always coherent with DMA. If a D-cache is enabled later for fallback-kernel speed, the driver calls `hal_dcache_flush(addr,len)` before an MM2S read of CPU-written data and `hal_dcache_invalidate(addr,len)` after an S2MM write the CPU will read. Buffers are aligned to the cache-line size. |
-| A53 loader | Cached | Must clean (flush) the D-cache range of every file it writes into the arena **before** ringing the doorbell. |
-| DMA via HP0 | Noncoherent | Never snoops caches. This is why the two rules above exist. This answers Taylor's open "PS–PL connectivity and cache policy" item. |
+| MicroBlaze V | No caches in the baseline; code and stack in LMB | Uncached DDR access avoids a RISC-V cache copy; ownership, transfer completion, and fences still govern visibility to other masters. If a D-cache is enabled later for fallback-kernel speed, the driver calls `hal_dcache_flush(addr,len)` before an MM2S read of CPU-written data and `hal_dcache_invalidate(addr,len)` after an S2MM write the CPU will read. Buffers are aligned to the cache-line size. |
+| A53 loader | Cached | Clean written model/input cache lines and complete the maintenance with the required A53 barriers before handoff. Map the shared mailbox uncached; if results are read through cached mappings, invalidate the output/profile ranges after successful completion before reading them. Cache-line alignment and exclusive buffer ownership prevent a stale dirty line from overwriting DMA results. |
+| DMA via HP0 | Noncoherent | Never snoops caches. Use the maintenance/ownership rules above. Moving to HPC requires reviewed transaction attributes and PS snoop configuration; port selection alone does not establish coherency. [AMD coherency example](https://xilinx-wiki.atlassian.net/wiki/spaces/A/pages/18842098/Zynq%2BUltraScale%2BMPSoC%2BCache%2BCoherency). |
 
 **MMIO ordering rules for the driver.**
 
-1. All CSR accesses are 32-bit `volatile` loads and stores through `hal_mmio_rd32`/`hal_mmio_wr32`.
-2. Writes to the **same** AXI slave arrive in order. Writes to **different** slaves (for example, the adapter CSR and then the DMA CSR) have no guaranteed relative order through the interconnect. When one device must be armed before another starts, the driver **reads back** a status register of the first device. The read cannot complete before the earlier write.
-3. A `fence iorw, iorw` follows the last staging-register write before `CTRL.START`. On an in-order core this costs little, and it documents intent.
-4. If the CPU writes DDR data that DMA will read, the CPU writes complete, then `fence`, then the DMA start.
+1. All CSR accesses use ordered 32-bit HAL operations to uncached I/O mappings. `volatile` prevents compiler removal; it does not supply the hardware ordering contract.
+2. The HAL must implement the selected core/interconnect's documented write-completion and I/O-fence rules. Before starting DMA, fence after ARM_FILL, read/check the adapter's FILL_BUSY status (bounded polling), then fence before the DMA writes. A status read by itself is not a universal ordering guarantee across AXI read/write channels or different slaves.
+3. A `fence iorw, iorw` orders staging-register writes before CTRL.START. Verify the implemented HAL/core path with register-trace and integration tests.
+4. CPU-written DMA inputs must reach shared memory before DMA starts: perform cache maintenance if applicable, complete it, then fence and program DMA. Observe successful S2MM completion before reading or reusing its destination. The A53 uses its own architectural barrier/cache-maintenance instructions. [RISC-V memory-ordering specification](https://docs.riscv.org/reference/isa/unpriv/rv32.html).
 
 ---
 
@@ -394,7 +396,7 @@ stateDiagram-v2
     FETCH --> CHECK: pop command, latch fields
     CHECK --> ERROR: illegal opcode, bad dims, bank range
     CHECK --> WAIT_DEP: fields legal
-    WAIT_DEP --> ISSUE: all source banks consumable (READY, or FULL for output ops) and dest bank writable
+    WAIT_DEP --> ISSUE: all required source banks consumable and destinations writable (sections 6.6-6.7)
     WAIT_DEP --> ERROR: watchdog timeout
     ISSUE --> RUN: command accepted by compute or operator unit
     RUN --> DRAIN: compute complete, last MAC committed
@@ -464,7 +466,7 @@ All registers are 32-bit, word-aligned, at offsets from `NPU_BASE = 0xA000_0000`
 |---|---|---|---|---|
 | `0x000` | `ID` | RO | `0x5241_564E` | ASCII `RAVN`. The firmware's first sanity check. |
 | `0x004` | `VERSION` | RO | build | `[31:24]` major, `[23:16]` minor, `[15:0]` build/patch. Firmware refuses to run if the major version differs from its header. |
-| `0x008` | `HW_CONFIG` | RO | build | `[7:0]` array rows R, `[15:8]` array cols S, `[19:16]` number of banks, `[23:20]` log2(bank KiB), `[27:24]` command queue depth, `[31:28]` reserved |
+| `0x008` | `HW_CONFIG` | RO | build | `[7:0]` array rows R, `[15:8]` array cols S, `[19:16]` number of banks, `[23:20]` log2(nominal ACT/WGT bank KiB; other bank capacities follow the versioned build table in §6.4), `[27:24]` command queue depth, `[31:28]` reserved |
 | `0x00C` | `HW_LIMITS` | RO | build | `[15:0]` max dimension per field, `[31:16]` supported-opcode bitmap for `0x00–0x0F` |
 | `0x010` | `CTRL` | W1S | 0 | `[0]` START (push staging set into the queue), `[1]` SOFT_RESET (flush queue, return FSM to IDLE, clear counters; does **not** touch bank contents), `[2]` ABORT (stop the current command, go to HALTED), `[3]` CLEAR_ERR, `[4]` CNT_CLEAR |
 | `0x014` | `STATUS` | RO | 0 | `[0]` BUSY, `[1]` HALTED, `[2]` ERROR, `[3]` Q_FULL, `[4]` Q_EMPTY, `[8:5]` FSM state (4-bit encoding, §5.1), `[11:9]` queue occupancy (0–4), `[31:16]` sequence number of the currently executing command |
@@ -475,29 +477,31 @@ All registers are 32-bit, word-aligned, at offsets from `NPU_BASE = 0xA000_0000`
 | `0x028` | `ERR_CODE` | RO | 0 | `[7:0]` code (§6.8), `[31:16]` sequence number of the failing command |
 | `0x02C` | `ERR_INFO` | RO | 0 | Code-specific detail (for example, offending bank ID or field index) |
 | `0x030` | `OPCODE` | RW (staging) | 0 | `[7:0]` opcode (§6.3) |
-| `0x034` | `OP_FLAGS` | RW (staging) | 0 | `[0]` ACC_INIT, `[1]` ACC_LAST, `[2]` REQUANT_EN, `[3]` RELU_EN, `[5:4]` POOL_MODE (0 max, 1 avg), `[6]` PER_CHANNEL (per-channel params from the PARAM bank), `[7]` SRC_A_CB (channel-blocked `SRC_A`; optional, proposed, §9.2), `[8]` RELEASE_A, `[9]` RELEASE_B, `[10]` RELEASE_PARAM, `[11]` DST_ACCUM (destination is the INT32 PSUM region), `[31:12]` reserved |
+| `0x034` | `OP_FLAGS` | RW (staging) | 0 | `[0]` ACC_INIT, `[1]` ACC_LAST, `[2]` REQUANT_EN, `[3]` RELU_EN, `[5:4]` POOL_MODE (0 max, 1 avg), `[6]` PER_CHANNEL (per-output requant multiplier/shift from PARAM; bias delivery is independent), `[7]` SRC_A_CB (channel-blocked `SRC_A`; optional, proposed, §9.2), `[8]` RELEASE_A, `[9]` RELEASE_B, `[10]` RELEASE_PARAM, `[11]` DST_ACCUM (INT32 context storage/continuation, §6.6), `[31:12]` reserved |
 | `0x038` | `SRC_A` | RW (staging) | 0 | Scratchpad reference (§6.4): activation input / EWADD input A |
 | `0x03C` | `SRC_B` | RW (staging) | 0 | Weights (Conv/GEMM) / EWADD input B |
 | `0x040`–`0x054` | `P0`–`P5` | RW (staging) | 0 | Per-opcode dimension packing (§6.4). Replaces `PARAM_DIM`. |
 | `0x058` | `DST` | RW (staging) | 0 | Destination scratchpad reference |
-| `0x05C` | `PARAM` | RW (staging) | 0 | Scratchpad reference to the per-channel bias/requant table when `PER_CHANNEL=1` |
+| `0x05C` | `PARAM` | RW (staging) | 0 | Per-output records: bias is read on GEMM/CONV2D ACC_INIT regardless of PER_CHANNEL; multiplier/shift are read when per-channel requantization is enabled (§6.4) |
 | `0x060` | `Q_ZP` | RW (staging) | 0 | `[7:0]` input A zero-point (int8), `[15:8]` input B zero-point (EWADD), `[23:16]` output zero-point (int8) |
 | `0x064` | `Q_MULT` | RW (staging) | 0 | Per-tensor requant multiplier (int32, Q31), used when `PER_CHANNEL=0` |
 | `0x068` | `Q_SHIFT` | RW (staging) | 0 | `[7:0]` output shift (signed), `[15:8]` input A shift (EWADD), `[23:16]` input B shift (EWADD) |
 | `0x06C` | `Q_CLAMP` | RW (staging) | `0x7F80` | `[7:0]` activation min (int8), `[15:8]` activation max (int8). RELU is clamp-min = output zero-point. |
 | `0x070` | `Q_MULT_A` | RW (staging) | 0 | EWADD input A rescale multiplier |
 | `0x074` | `Q_MULT_B` | RW (staging) | 0 | EWADD input B rescale multiplier |
+| `0x078` | `PSUM_SRC` | RW (staging) | 0 | **Proposed:** scratchpad bank/byte-offset reference to the existing INT32 context on a GEMM/CONV2D continuation; ignored on ACC_INIT |
+| `0x07C` | `PSUM_PITCH` | RW (staging) | 0 | **Proposed:** `[15:0]` INT32 context row pitch in bytes; `[31:16]` reserved. Must match the saved context, be a multiple of 4, and cover the output channels |
 | `0x080`/`0x084` | `CYC_TOTAL_LO/HI` | RO | 0 | Cycles since CNT_CLEAR |
 | `0x088`/`0x08C` | `CYC_BUSY_LO/HI` | RO | 0 | Cycles with a command in RUN or DRAIN |
 | `0x090` | `CYC_COMPUTE` | RO | 0 | Cycles the MAC array issued valid products |
 | `0x094` | `CYC_STALL_IN` | RO | 0 | Cycles RUN waited on operand delivery |
 | `0x098` | `CYC_STALL_OUT` | RO | 0 | Cycles RUN or DRAIN waited on output backpressure |
 | `0x09C` | `CYC_DEP_WAIT` | RO | 0 | Cycles in WAIT_DEP (DMA not finished) |
-| `0x0A0` | `CYC_IDLE_PENDING` | RO | 0 | Cycles idle with the queue empty: **NPU starved by firmware**. This is the control-overhead metric of §11. |
+| `0x0A0` | `CYC_IDLE_PENDING` | RO | 0 | Cycles idle with the queue empty. This raw idle counter can include DMA waits, fallback work, and workload boundaries; it does not by itself attribute idle time to firmware (§11). |
 | `0x0A4`/`0x0A8` | `MAC_COUNT_LO/HI` | RO | 0 | Useful MACs committed (masked lanes excluded) |
 | `0x0AC` | `CMD_COUNT` | RO | 0 | Commands retired |
 
-The quantization fields (`Q_*`) are sized to the LiteRT INT8 scheme cited in the compute document. The **numeric semantics belong to Quan**: rounding mode, shift direction convention, whether EWADD uses a left pre-shift as in TFLite, and the per-channel record format. Final field widths follow Quan's interface.
+The quantization fields (`Q_*`) follow Quan's proposed TFLM commit `c051fea55c4a6b4464186e1bb126708bea50f32e` with `TFLITE_SINGLE_ROUNDING=1` (operators research §§4–5). Positive signed Q_SHIFT scales up; multiplier ties follow that helper, not pooling's division rule. The EWADD common pre-shift is allocated to P1[7:0] (§6.4), separately from the three multiplier shifts. This reference/configuration and the fields remain subject to joint review; no golden execution is claimed here.
 
 ### 6.3 Opcode table (adds Element-wise Add)
 
@@ -510,7 +514,7 @@ The README's draft values (`0x01–0x05`) are preserved, so existing documents s
 | `0x02` | `GEMM` | compute + output ops | A (M×K) | B, packed (K×N) | OUT or PSUM | Fully connected layers, 1×1 conv |
 | `0x03` | `RELU` | output ops | INT8 tensor | n/a | OUT | Standalone form. Normally fused via `OP_FLAGS.RELU_EN`. |
 | `0x04` | `POOL` | output ops | INT8 NHWC | n/a | OUT | `POOL_MODE` max/avg. Global average pool = window equal to the input. |
-| `0x05` | `REQUANT` | output ops | INT32 PSUM | n/a | OUT | Standalone INT32 → INT8. Normally fused via `REQUANT_EN` on the last K chunk. |
+| `0x05` | `REQUANT` | output ops | Completed INT32 tensor | n/a | OUT | Standalone INT32 → INT8 from a READY, validated completed tensor; unfinished PSUM contexts are rejected. Normally fused on the last K chunk. |
 | **`0x06`** | **`EWADD`** | output ops | INT8 input A | INT8 input B | OUT | **New.** Residual add: rescale A and B to a common scale, add, requantize, clamp. Needed by ResNet-style models. |
 | `0x07` | `DWCONV` | reserved | n/a | n/a | n/a | Depthwise conv. Opcode reserved pending the Michael/Quan decision (compute doc §8). The runtime uses the CPU fallback until then (§9.5). |
 | `0x08–0x7F` | reserved | | | | | Returns `ERR_ILLEGAL_OP` |
@@ -521,7 +525,7 @@ With CONV2D, GEMM, RELU, POOL, REQUANT, and EWADD, the hardware covers the READM
 
 ### 6.4 Scratchpad references and per-opcode parameter packing
 
-**Scratchpad reference format** (`SRC_A`, `SRC_B`, `DST`, `PARAM`):
+**Scratchpad reference format** (`SRC_A`, `SRC_B`, `DST`, `PARAM`, `PSUM_SRC`):
 
 ```text
  31        28 27        24 23                                     0
@@ -540,7 +544,9 @@ With CONV2D, GEMM, RELU, POOL, REQUANT, and EWADD, the hardware covers the READM
 | 3 | `WGT1` | 16 KiB | Weight pong |
 | 4 | `OUT0` | 8–16 KiB | INT8 output or INT32 partial sums (`DST_ACCUM`) |
 | 5 | `OUT1` | optional | Output pong, if output double-buffering fits (Taylor) |
-| 6 | `PRM` | **4 KiB (proposed; new request to Taylor, not yet in Taylor's budget)** | Per-channel records `{int32 bias_corrected, int32 multiplier, int8 shift, 7 B pad}` = 16 B/channel, so 256 output channels per tile. The record layout is final only after Quan's review. |
+| 6 | `PRM` | **4 KiB (proposed additional allocation in Taylor's budget)** | Per-output records `{int32 bias_corrected, int32 multiplier, int8 shift, 7 B pad}` = 16 B/channel, so 256 output channels per tile. Bias is needed even when scales are per tensor; final record layout requires Quan's review. |
+
+**Bias versus scale granularity (proposed).** GEMM/CONV2D ACC_INIT always reads one corrected-bias record per logical output channel from PARAM. PER_CHANNEL selects only the requant multiplier/shift source: record fields when 1, Q_MULT/Q_SHIFT when 0. Shared scale does not imply shared bias. AD01 therefore still supplies its per-neuron bias vector with PER_CHANNEL=0. Continuation does not add bias again; standalone REQUANT ignores bias fields. The exporter supplies validated INT32 seeds and zero seeds for a bias-free layer.
 
 **Per-opcode parameter packing** (`P0–P5`). Unused fields must be written as 0; the dispatch check rejects non-zero reserved bits (`ERR_RSVD`).
 
@@ -548,8 +554,8 @@ With CONV2D, GEMM, RELU, POOL, REQUANT, and EWADD, the hardware covers the READM
 |---|---|---|---|---|---|---|
 | `GEMM` | `[15:0]` M, `[31:16]` N | `[15:0]` K (this chunk) | `[15:0]` A row pitch (bytes) | `[15:0]` B panel pitch (bytes) | `[15:0]` OUT row pitch | 0 |
 | `CONV2D` | `[15:0]` H_in, `[31:16]` W_in (tile, including halo) | `[15:0]` C_in, `[31:16]` C_out (tile) | `[7:0]` Kh, `[15:8]` Kw, `[19:16]` stride_h, `[23:20]` stride_w, `[27:24]` dil_h, `[31:28]` dil_w | `[7:0]` pad_top, `[15:8]` pad_bottom, `[23:16]` pad_left, `[31:24]` pad_right | `[15:0]` H_out, `[31:16]` W_out (tile) | `[15:0]` C_in chunk offset (K chunking over channels), `[31:16]` channel block size `cb` when `SRC_A_CB=1`, else 0 (optional C2, §9.2) |
-| `POOL` | `[15:0]` H_in, `[31:16]` W_in | `[15:0]` C | `[7:0]` window_h, `[15:8]` window_w, `[19:16]` stride_h, `[23:20]` stride_w | pads as CONV2D | `[15:0]` H_out, `[31:16]` W_out | 0 |
-| `EWADD` | `[23:0]` element count | 0 | 0 | 0 | 0 | 0 |
+| `POOL` | `[15:0]` H_in, `[31:16]` W_in | `[15:0]` C | `[7:0]` window_h, `[15:8]` window_w, `[23:16]` stride_h, `[31:24]` stride_w (8-bit strides) | pads as CONV2D | `[15:0]` H_out, `[31:16]` W_out | 0 |
+| `EWADD` | `[23:0]` element count | `[7:0]` Q_EWADD_LEFT_SHIFT (unsigned 0–20); upper bits 0 | 0 | 0 | 0 | 0 |
 | `RELU` / `REQUANT` | `[23:0]` element count | `[15:0]` channels (per-channel requant) | 0 | 0 | 0 | 0 |
 | `T_LOOPBACK` | `[23:0]` byte count | 0 | 0 | 0 | 0 | 0 |
 | `T_FILL` | `[7:0]` fill byte | `[23:0]` byte count | 0 | 0 | 0 | 0 |
@@ -565,6 +571,10 @@ Bit-level picture of the CONV2D `P2` geometry word:
 ```
 
 The 16-bit dimensions allow up to 65,535 per field. The hardware advertises its true limits in `HW_LIMITS`, and the firmware tiler never exceeds them.
+
+**POOL and EWADD encoding (proposed).** POOL has its own P2 format; do not use the CONV2D stride packer. DS-CNN's 25×5 window and 25×5 strides encode as `P2=0x05190519`, so stride 25 is representable without truncation. Zero window/stride is invalid. `raven_pack_pool_p2()` validates all four fields before packing.
+
+EWADD P1[7:0] names the common pre-shift before the two input rescalings. Its proposed RAVEN-supported range is 0–20, so centered INT8 values times 2^left_shift fit INT32. The exporter must derive matching multiplier/shift pairs from the pinned reference preparation; firmware must reject out-of-range fields or intermediate ranges. The pinned ADD path uses SmallerThanOneExp at all three scaling stages, so each EWADD multiplier shift must be in [-31, 0], with a nonnegative multiplier. Other requantization paths support the general helper's [-31, 30] range. This pre-shift is distinct from the signed input A/B and output multiplier shifts in Q_SHIFT. Other opcodes retain their own P1 meanings.
 
 **Operand layouts in the bank (interface contract, proposed).** The array consumes, each cycle, the A values of **eight different rows at the same K index**. A row-major M×K A tile does not provide that as one contiguous word, so one component must gather or pack it. The proposed split:
 
@@ -590,52 +600,58 @@ flowchart LR
 
 *Figure 4: staging registers and command queue.*
 
+- Each snapshot includes all staging fields, including PSUM_SRC and PSUM_PITCH; restoring a parked command must restore those fields too.
 - The staging registers keep their values after START. **Firmware only rewrites fields that changed** ("register write elision"). Consecutive tiles of one layer usually differ only in `SRC_A`, `DST`, `OP_FLAGS`, and one geometry word, so 4–5 writes instead of about 20 (§11.2).
 - START while `Q_FULL=1` does not enqueue. It sets `ERR_CODE=ERR_Q_OVERFLOW` and halts, so the bug cannot go unnoticed. The driver checks `Q_FULL` before START.
 - Depth 4 (proposed; `HW_CONFIG` reports the built value) is enough to hold "current + next + one DMA-waiting tile" with margin. Each entry is about 26 × 32-bit words: about 832 bits × 4, implemented in LUTRAM.
 
-### 6.6 Command granularity
+### 6.6 Command granularity and partial-sum context
 
-One command is the work computable from **operands currently resident in the referenced banks**. The compute controller (compute doc §10, "M/N/K loops, masks") iterates microtiles internally. The firmware never issues per-microtile commands. §11.2 quantifies why: a per-microtile command at 8×8×K=64 would spend about 3× more time on MMIO than on arithmetic.
+One command operates on operands resident in the referenced banks. Michael's controller expands M/N microtiles internally; firmware schedules larger tiles, K chunks, and layers. The following is a **proposed** command contract, not implemented behavior.
 
-K-chunking across commands uses `ACC_INIT` (seed with bias, first chunk) and `ACC_LAST` (apply requant/ReLU and write INT8, last chunk). Partial sums persist in `OUT0` as INT32 between chunk commands (`DST_ACCUM=1`). This matches the compute doc's "initialization versus continuation" and the memory doc's "retain partial sums on-chip."
+`ACC_INIT` seeds every output with its corrected bias from PARAM exactly once. `DST_ACCUM` requests INT32 context storage/continuation; it does not by itself mean that the final destination is INT32. `ACC_LAST` marks the final reduction. The baseline final path below sets `REQUANT_EN` and writes INT8; completed raw-INT32 export is a separate, unratified extension rather than an implicitly defined flag combination.
 
-**Partial-sum bank protocol (proposed; shared agreement with Michael and Taylor).** The command behavior is defined by the `OP_FLAGS` combination:
+**Explicit context references.** Continuations supply `PSUM_SRC` (bank + byte offset) and `PSUM_PITCH` (INT32 row pitch), separately from `DST`. PSUM_SRC and DST use the §6.4 scratchpad reference format; PSUM_PITCH is a byte count, not an address. The context records the output row count, channel count, byte offset, pitch, and initialized/bias-applied status alongside its PSUM tag. A Boolean tag alone is insufficient to identify a context. Dispatch validates the supplied reference, shape, pitch, alignment, and footprint against that metadata and the bank limits.
 
-| Chunk | Flags | Required DST bank state at dispatch | NPU action | DST bank state at retire |
+| Chunk | Flags (plus operation-specific flags) | Context source | Destination at dispatch | Retire |
 |---|---|---|---|---|
-| Only chunk (K fits) | `ACC_INIT \| ACC_LAST` | `FREE` | Seed accumulators with bias, accumulate, requant/ReLU, write INT8 | `FULL` |
-| First of several | `ACC_INIT \| DST_ACCUM` | `FREE` | Seed with bias, accumulate, write INT32 partial sums | `READY` + `PSUM` tag |
-| Middle | `DST_ACCUM` | `READY` + `PSUM` tag | Read INT32 psum, add this chunk, write INT32 back in place | `READY` + `PSUM` tag |
-| Last | `DST_ACCUM \| ACC_LAST` | `READY` + `PSUM` tag | Read INT32 psum, add this chunk, requant/ReLU, write INT8 | `FULL` |
+| Only chunk | `ACC_INIT \| ACC_LAST \| REQUANT_EN` | None; PSUM fields 0 | FREE bank | DST becomes FULL INT8 |
+| First of several | `ACC_INIT \| DST_ACCUM` | None; PSUM fields 0 | FREE bank | DST becomes READY with INT32 context/tag |
+| Middle | `DST_ACCUM` | READY tagged PSUM_SRC | Same reference as PSUM_SRC | Updated context becomes READY/tagged |
+| Last, safe default | `DST_ACCUM \| ACC_LAST \| REQUANT_EN` | READY tagged PSUM_SRC | FREE bank distinct from PSUM_SRC and other active sources | Context is consumed/released; DST becomes FULL INT8 |
 
 Rules:
 
-1. **Bias is applied exactly once**, at `ACC_INIT`. A continuation (`ACC_INIT=0`) never adds bias, so `bias_corrected` from the PRM bank (or `Q_*` per-tensor) is read only by the first chunk. Requant reads the multiplier/shift only when `ACC_LAST=1`.
-2. **Held partial sums are `READY`, not `FULL`.** A non-final chunk retires its destination to `READY`, and the control block sets a per-bank `PSUM` tag (kept in `raven_complete`, not in Taylor's 3-bit state). `FULL` means "INT8, drainable," so the adapter never drains a partial result.
-3. **Dispatch "writable" check.** `ACC_INIT=1` requires the DST bank `FREE` with no `PSUM` tag. `ACC_INIT=0` with `DST_ACCUM=1` requires `READY` **with** the `PSUM` tag and the same `DST` reference as the previous chunk. Anything else is `ERR_BANK_STATE`. While a chunk runs, the bank is `NPU_WRITING`.
-4. **INT32 → INT8 conversion on the last chunk: in place only if the traversal agreement allows it (open; Michael, Quan, Taylor).** In-place compaction (element *i* read at `DST + 4i`, written at `DST + i`) is safe only if outputs are written in increasing global element order, so a compacted write never overtakes an unread psum. The compute doc (§10–11) notes that microtile traversal does not necessarily emit outputs in that order. Until the compute/output traversal is agreed, the baseline is:
-   - **Default (safe):** the last chunk writes INT8 to a **separate** output region (`DST` names the INT8 destination; the psum region is named by the previous chunks' `DST` and read through the `PSUM` tag). If the OUT bank cannot hold both, the INT8 result goes to `OUT1`, or the tiler shrinks `c_out`.
-   - **Optional (after sign-off):** in-place compaction, enabled by a `HW_CONFIG` capability bit, only if Michael's controller guarantees increasing-order emission per command or stages one microtile row band before writing.
+1. **Bias and scale.** ACC_INIT reads PARAM's per-output bias regardless of PER_CHANNEL. A continuation restores sums and never re-adds bias. The final tail uses per-output multiplier/shift records only if PER_CHANNEL=1, otherwise Q_MULT/Q_SHIFT. Missing required PARAM ownership/ranges is an error.
+2. **Pitch and bounds.** Logical rows are M for GEMM or H_out×W_out for Conv; channels are N/C_out. For non-final GEMM, P4 is the INT32 destination pitch (multiple of 4, at least 4×N); Conv contexts use packed pitch 4×C_out. PSUM_PITCH must match that saved pitch. Final GEMM P4 is the separate INT8 destination pitch (at least N); Conv INT8 output is packed NHWC. Validate `(rows-1)×pitch + channels×element_bytes` without overflow for each source/destination, not just the first address.
+3. **Ownership.** First chunks claim a FREE destination as NPU_WRITING. Middle chunks atomically claim the READY context as NPU_WRITING and update each INT32 element only after reading it. Last chunks claim the old context as COMPUTING and the distinct destination as NPU_WRITING. An unfinished tagged context cannot be drained or passed to standalone POOL/RELU/EWADD/REQUANT.
+4. **Safe final storage.** PSUM_SRC remains stable and readable until every final output is stored. Only then clear its tag and release its bank to FREE; the new destination becomes FULL. OUT1 can supply the destination. Without OUT1, firmware may reserve a FREE ACT bank only if the implemented write path permits that use; otherwise reject the plan. Do not mark a partially occupied PSUM bank FREE just to allocate another region in it.
+5. **Optional in-place compaction.** Deferred until Michael, Quan, and Taylor prove a safe traversal/staging scheme and define its capability/enable interface. The baseline rejects a final INT8 DST in the PSUM source bank; it does not rely on increasing-order output from a microtile traversal.
+6. **Failure/recovery.** An abort or unit error invalidates the affected context/destination and marks it ERROR, never FULL. Recovery must quiesce active writers/readers before clearing context metadata and reclaiming banks. Physical contents need not be erased to invalidate them.
 
-   Either way, the drain reads `n` INT8 bytes from the INT8 destination, and the `PSUM` tag is cleared at this retire.
-5. **Abort/error:** `SOFT_RESET` or `BANK_RELEASE` clears the `PSUM` tag along with the state.
-
-The PSUM footprint (`4 · h_out · W_out · c_out`) must fit the OUT bank (§9.2). The firmware tiler chooses `c_out` so that it does.
+**Worked continuation example (proposed).** For M=N=32, use OUT0+0 with INT32 pitch 128 bytes: its context occupies 4,096 bytes. First chunk: ACC_INIT|DST_ACCUM, DST=OUT0+0, P4=128. Middle: PSUM_SRC=DST=OUT0+0 and PSUM_PITCH=P4=128. Last: PSUM_SRC=OUT0+0, PSUM_PITCH=128, DST=OUT1+0, P4=32, DST_ACCUM|ACC_LAST|REQUANT_EN. Its 1,024-byte INT8 result goes to OUT1 without overwriting any old sums. This example assumes OUT1 is built and uses neither an implicit old DST nor in-place narrowing.
 
 ### 6.7 Bank-state interlock (with Taylor's buffer protocol)
 
-The memory doc defines the per-bank states FREE → DMA_FILLING → READY → COMPUTING → FREE. The control plane adds two rules:
+**Referenced-source checks (proposed).** Check only operands used by the opcode/flags, not every staging register:
 
-1. **Dispatch waits instead of failing.** A command whose `SRC_A`, `SRC_B`, or `PARAM` bank is still `DMA_FILLING` sits in `WAIT_DEP` until `READY`. The firmware can therefore issue "DMA tile n+1, then NPU tile n+1" back-to-back while tile *n* computes. A watchdog (`2^20` cycles ≈ 10.5 ms at 100 MHz) converts a lost DMA into `ERR_DEP_TIMEOUT` instead of a silent hang. A source bank in `FREE` (never armed) is an immediate `ERR_BANK_STATE`, because that is a firmware ordering bug, not a slow transfer. **To make that true in normal scheduling, firmware never issues `START` for a command whose source fill is still parked in software** (§9.3): the command waits in the same ordered pending list until every referenced fill has been armed (bank `DMA_FILLING` or `READY`). A hardware "reserved" bank state was considered and rejected for the baseline, because Taylor's 3-bit `BANK_STATE` encoding already uses all eight values.
+- GEMM/CONV2D: SRC_A and SRC_B; PARAM on ACC_INIT or per-channel final requantization; PSUM_SRC on continuation.
+- POOL/RELU: SRC_A; EWADD: SRC_A and SRC_B; REQUANT: SRC_A always, plus PARAM only for per-channel scaling.
+- T_LOOPBACK: SRC_A; T_FILL/NOP: no data source. Unused references are zeroed by firmware and ignored by dispatch.
+
+Apply READY/FULL acceptance by source type below. Continuation source/destination ownership uses §6.6. The software pending-list checks use these same predicates, including earlier queued producers; they must not reject a queued output-op source merely because it is still awaiting its producer.
+
+The memory doc defines the per-bank states FREE → DMA_FILLING → READY → COMPUTING → FREE. The control plane adds the following rules:
+
+1. **Dispatch waits instead of failing.** A command whose required input/parameter source is still DMA_FILLING sits in WAIT_DEP until READY; an earlier command's result/context follows its producer dependency and typed-source rules. The firmware can therefore issue "DMA tile n+1, then NPU tile n+1" back-to-back while tile *n* computes. A watchdog (`2^20` cycles ≈ 10.5 ms at 100 MHz) converts a lost DMA into `ERR_DEP_TIMEOUT` instead of a silent hang. A required source still FREE when its command reaches the dispatch head, after earlier producers have retired, is an immediate ERR_BANK_STATE: no valid producer/fill owns it. **To make that true in normal scheduling, firmware never issues `START` for a command whose source fill is still parked in software** (§9.3): the command waits in the same ordered pending list until every required fill has been armed (DMA_FILLING or READY), or an earlier queued producer is guaranteed to supply the required result/context before dispatch. A hardware "reserved" bank state was considered and rejected for the baseline, because Taylor's 3-bit `BANK_STATE` encoding already uses all eight values.
 2. **Release is explicit.** Weights are reused across many commands (the memory doc's tiling rule), so a bank does **not** return to FREE automatically. The command sets `RELEASE_A`, `RELEASE_B`, or `RELEASE_PARAM` on its last use. Until then the bank stays `READY` and can be referenced again. The adapter refuses to arm a fill into a bank that is not FREE (`ERR_BANK_BUSY` in the adapter).
 3. **A completed `FULL` output bank is a legal source for `POOL`, `RELU`, and `EWADD` (proposed; shared agreement with Quan and Taylor).** This lets an intermediate tensor stay on chip between a Conv/GEMM and its output operator, without a DDR round trip. Ownership rules:
-   - **Who may consume it.** Only `POOL`, `RELU`, and `EWADD` (`SRC_A`, and `SRC_B` for EWADD) accept a `FULL` source. `CONV2D`/`GEMM` operands and `REQUANT` (which reads INT32 via the `PSUM` tag, §6.6) still require `READY`. A `FULL` bank with a `PSUM` tag cannot exist, because the tag is cleared when the bank goes `FULL`.
+   - **Who may consume it.** Only `POOL`, `RELU`, and `EWADD` (`SRC_A`, and `SRC_B` for EWADD) accept a `FULL` source. `CONV2D`/`GEMM` operands still require READY. Standalone REQUANT requires a READY completed INT32 tensor (for example, a validated DMA-loaded test tensor), not an unfinished tagged context. Only GEMM/CONV2D continuation reads PSUM_SRC under §6.6. A `FULL` bank with a `PSUM` tag cannot exist, because the tag is cleared when the bank goes `FULL`.
    - **Consume.** At dispatch, the source moves `FULL → COMPUTING`. While `COMPUTING` it cannot be drained (drain requires `FULL`, §7.3) or written.
-   - **Retire.** Without `RELEASE_A`/`RELEASE_B`, the source returns `COMPUTING → FULL`: it is still an INT8 result and may be drained or consumed again (for example, a residual tensor used by both the next Conv and an EWADD). With the flag, it returns `COMPUTING → FREE`, discarding the data, which is the normal case for an intermediate that is never written to DDR.
+   - **Retire.** Without `RELEASE_A`/`RELEASE_B`, the source returns `COMPUTING → FULL`: it is still an INT8 result and may be drained or consumed again (for example, a residual tensor retained for a later EWADD). With the flag, it returns `COMPUTING → FREE`, discarding the data, which is the normal case for an intermediate that is never written to DDR.
    - **Producer still running.** A source in `NPU_WRITING` is produced by an earlier command. Dispatch is in order, so that command has retired before this one leaves `WAIT_DEP`; the dispatch check still treats `NPU_WRITING` as "wait" for safety, under the same watchdog.
    - **No drain/consume overlap.** A bank in `DRAINING` is an immediate `ERR_BANK_STATE` as a source. If an intermediate must be both spilled to DDR and consumed, firmware consumes it first without `RELEASE`, then drains it (the drain frees it). The driver enforces this order in the pending list (§9.3).
-   - **No aliasing.** `DST` must not name a bank that is a source of the same command (`ERR_BANK_STATE`). In-place output operators are out of scope until proven safe (operators doc, "legal in-place scratchpad aliasing").
+   - **No aliasing.** DST must not name a bank used by a required SRC_A, SRC_B, or PARAM reference. A middle K chunk may update its own PSUM_SRC context in place under §6.6; the final INT8 destination must use a distinct bank. In-place output operators remain deferred; unsupported aliasing is ERR_BANK_STATE.
    - **Destination.** An output op's `DST` follows the normal output path: `FREE → NPU_WRITING → FULL`.
 
 ```mermaid
@@ -646,18 +662,20 @@ stateDiagram-v2
     DMA_FILLING --> ERROR: length mismatch or stream error
     READY --> COMPUTING: NPU dispatch references bank
     COMPUTING --> READY: command retires, no RELEASE flag
-    COMPUTING --> FREE: command retires with RELEASE flag
+    COMPUTING --> FREE: command retires with RELEASE, or final PSUM consumed
     READY --> FREE: firmware BANK_RELEASE override
     FREE --> NPU_WRITING: dispatch, bank is DST
+    NPU_WRITING --> READY: non-final INT32 context saved and tagged
+    READY --> NPU_WRITING: middle K chunk claims tagged context
     NPU_WRITING --> FULL: INT8 result retired
     FULL --> COMPUTING: POOL/RELU/EWADD source
     COMPUTING --> FULL: retire, no RELEASE flag
     FULL --> DRAINING: firmware arms drain
-    DRAINING --> FREE: S2MM complete
+    DRAINING --> FREE: both completions checked, firmware BANK_RELEASE
     ERROR --> FREE: adapter reset
 ```
 
-*Figure 5: bank states, owned by Taylor, with control-plane transitions. Output banks follow FREE → NPU_WRITING → FULL → DRAINING → FREE for INT8 results, driven by the drain path in §7.2. A `FULL` bank may also be consumed by an output op (FULL → COMPUTING → FULL, or → FREE with a RELEASE flag; rule 3). K-chunked partial sums loop NPU_WRITING → READY (+`PSUM` tag) → NPU_WRITING until the last chunk retires to FULL (§6.6).*
+*Figure 5: bank states, owned by Taylor, with control-plane transitions. Output banks follow FREE → NPU_WRITING → FULL → DRAINING → FREE for INT8 results, driven by the drain path in §7.2. A `FULL` bank may also be consumed by an output op (FULL → COMPUTING → FULL, or → FREE with a RELEASE flag; rule 3). Non-final K chunks loop NPU_WRITING → READY (+PSUM metadata) → NPU_WRITING. The last chunk consumes that context through COMPUTING → FREE while a distinct destination follows NPU_WRITING → FULL (§6.6).*
 
 **Example: Conv → Pool → DMA (one tile, K fits, `OUT1` present).** The Conv result stays on chip and is consumed by the pool. Only the pooled result is drained.
 
@@ -669,7 +687,7 @@ stateDiagram-v2
 | 4 | seq 0 retires (`DONE_SEQ=0`) | **FREE** (released) | READY (kept for next tile) | **FULL** | FREE |
 | 5 | seq 1 leaves `WAIT_DEP` (OUT0 `FULL` is a legal POOL source) | FREE | READY | **COMPUTING** (consumed) | NPU_WRITING |
 | 6 | seq 1 retires (`DONE_SEQ=1`) | FREE | READY | **FREE** (released by `RELEASE_A`) | FULL |
-| 7 | Drain OUT1 (§7.3) | FREE | READY | FREE | DRAINING → FREE |
+| 7 | Drain OUT1; check both completions and BANK_RELEASE (§7.3) | FREE | READY | FREE | DRAINING → FREE |
 
 The intermediate (OUT0) is **consumed** at step 5 and **released** at step 6, when seq 1 retires; it never goes to DDR, so OUT0 is free for the next tile's Conv. Steps 2 and 3 are issued back to back; the queue and `WAIT_DEP` order them without CPU polling. If `OUT1` is not built, the pool writes to a FREE ACT bank instead, at the cost of that bank's ping-pong slot for the tile. If the Conv output were also needed in DDR, seq 1 would omit `RELEASE_A` and firmware would drain OUT0 after `DONE_SEQ=1` (rule 3).
 
@@ -681,7 +699,7 @@ The intermediate (OUT0) is **consumed** at step 5 and **released** at step 6, wh
 | `0x01` | `ERR_ILLEGAL_OP` | Opcode reserved or not in the `HW_LIMITS` bitmap |
 | `0x02` | `ERR_BAD_DIM` | A required dimension is 0 or exceeds `HW_LIMITS` |
 | `0x03` | `ERR_BANK_RANGE` | `BANK_ID` invalid, or offset + implied size exceeds the bank |
-| `0x04` | `ERR_BANK_STATE` | Referenced source bank FREE, DRAINING, or ERROR at dispatch; a `FULL` source on an opcode other than POOL/RELU/EWADD; `DST` aliasing a source; or destination bank not writable under the §6.6 partial-sum rules |
+| `0x04` | `ERR_BANK_STATE` | Referenced source bank FREE, DRAINING, or ERROR at dispatch; a `FULL` source on an opcode other than POOL/RELU/EWADD; unsupported DST/source aliasing (the middle-chunk PSUM exception is in §6.6); or destination bank not writable under those partial-sum rules |
 | `0x05` | `ERR_DEP_TIMEOUT` | WAIT_DEP watchdog expired |
 | `0x06` | `ERR_Q_OVERFLOW` | START while the queue was full |
 | `0x07` | `ERR_RSVD` | Non-zero reserved bits |
@@ -739,12 +757,12 @@ Base `DMA_BASE = 0xA001_0000`. Offsets and bit positions below match PG021 v7.1.
 | Offset | Register | RAVEN usage |
 |---|---|---|
 | `0x00` | `MM2S_DMACR` | `[0]` RS (run/stop), `[2]` Reset (**soft-resets the whole AXI DMA core**, both channels), `[12]` IOC_IrqEn, `[14]` Err_IrqEn. Threshold/delay fields `[31:16]` are unused in direct-register mode. |
-| `0x04` | `MM2S_DMASR` | `[0]` Halted, `[1]` Idle, `[4]` DMAIntErr, `[5]` DMASlvErr, `[6]` DMADecErr, `[12]` IOC_Irq (W1C), `[14]` Err_Irq (W1C). SG error bits and Dly_Irq read 0 in direct mode. |
+| `0x04` | `MM2S_DMASR` | `[0]` Halted, `[1]` Idle, `[4]` DMAIntErr (fixed 0 in direct mode), `[5]` DMASlvErr, `[6]` DMADecErr, `[12]` IOC_Irq (W1C), `[14]` Err_Irq (W1C). SG error bits and Dly_Irq read 0 in direct mode. |
 | `0x18` | `MM2S_SA` | DDR source address (arena-checked, 16-byte aligned) |
 | `0x1C` | `MM2S_SA_MSB` | Always 0 (32-bit DDR addresses, §4.3) |
 | `0x28` | `MM2S_LENGTH` | Byte count. Writing a non-zero value **starts the transfer**, and PG021's direct-mode sequence says it "must be written last." The driver never writes 0. |
 | `0x30` | `S2MM_DMACR` | As MM2S |
-| `0x34` | `S2MM_DMASR` | As MM2S |
+| `0x34` | `S2MM_DMASR` | Halted/Idle/IRQ positions as MM2S; S2MM DMAIntErr[4] is active in direct mode (for example, an invalid receive length condition). Do not copy MM2S's fixed-zero interpretation. |
 | `0x48` | `S2MM_DA` | DDR destination address |
 | `0x4C` | `S2MM_DA_MSB` | Always 0 |
 | `0x58` | `S2MM_LENGTH` | Receive buffer size, written last. It must be at least the largest packet expected, or behavior is undefined. After completion it reads back the **actual** bytes received, which the driver compares to the expected drain length. |
@@ -775,7 +793,7 @@ Base `ADP_BASE = 0xA002_0000`. The RTL is owned by Taylor; this field definition
 | `0x20` | `DRAIN_SRC` | RW | Scratchpad reference to stream out to S2MM |
 | `0x24` | `DRAIN_BYTES` | RW | Bytes to emit. TLAST is asserted on the final beat. |
 | `0x30` | `BANK_STATE` | RO | 3 bits per bank × 8 banks: 0 FREE, 1 DMA_FILLING, 2 READY, 3 COMPUTING, 4 NPU_WRITING, 5 FULL, 6 DRAINING, 7 ERROR |
-| `0x34` | `BANK_RELEASE` | W1S | One bit per bank: force FREE (error recovery, end of model) |
+| `0x34` | `BANK_RELEASE` | W1S | One bit per bank: release to FREE after owners are quiescent. Normal drain release follows successful S2MM plus adapter stream completion (§7.3); recovery must stop all active readers/writers first |
 | `0x38` | `ADP_IRQ_ENABLE` | RW | `[0]` FILL_DONE, `[1]` DRAIN_DONE, `[2]` ERROR |
 | `0x3C` | `ADP_IRQ_STATUS` | W1C | Same bits |
 | `0x40` | `ADP_ERR` | RO | `[7:0]` code: 1 length mismatch (TLAST early or late), 2 arm into non-FREE bank, 3 range, 4 stream protocol |
@@ -791,7 +809,7 @@ Base `ADP_BASE = 0xA002_0000`. The RTL is owned by Taylor; this field definition
 2. ADP.FILL_DST   = {bank, offset}
 3. ADP.FILL_BYTES = n
 4. ADP.CTRL       = ARM_FILL                            (bank -> DMA_FILLING)
-5. (void)ADP.STATUS                                     (read-back: adapter armed before DMA, §4.5)
+5. ordered read/check ADP.STATUS.FILL_BUSY              (HAL fences; bounded poll, §4.5)
 6. require MM2S not busy (software flag, cleared by IOC/Idle; Idle is 0 before 1st use)
 7. DMA.MM2S_SA     = ddr_addr                           (allowlist-checked)
 8. DMA.MM2S_LENGTH = n                                  (starts transfer; last write)
@@ -806,10 +824,11 @@ Base `ADP_BASE = 0xA002_0000`. The RTL is owned by Taylor; this field definition
 3. DMA.S2MM_LENGTH = n                                  (S2MM now waiting for stream)
 4. ADP.DRAIN_SRC   = {bank, offset}; ADP.DRAIN_BYTES = n
 5. ADP.CTRL        = ARM_DRAIN
-   completion: S2MM IOC; check S2MM_LENGTH readback == n; bank -> FREE
+   completion: successful S2MM IOC, length == n, adapter stream complete
+6. ADP.BANK_RELEASE = 1 << bank                         (DRAINING -> FREE after both completions)
 ```
 
-That is 5 MMIO writes plus one read-back per fill, and 5 writes per drain. MM2S/S2MM `DMACR` is written once at init: `RS | IOC_IrqEn | Err_IrqEn = 0x0000_5001`. Writing 0 to the threshold field is harmless because PG021 says threshold and delay "are not used" in direct-register mode. The driver then waits for `DMASR.Halted = 0`, per PG021's start-up sequence.
+That is 5 MMIO writes plus at least one status read per fill, and 6 writes per drain including the explicit bank release. Extra polling, IRQ acknowledgments, and error recovery add accesses. MM2S/S2MM `DMACR` is written once at init: `RS | IOC_IrqEn | Err_IrqEn = 0x0000_5001`. Writing 0 to the threshold field is harmless because PG021 says threshold and delay "are not used" in direct-register mode. The driver then waits for `DMASR.Halted = 0`, per PG021's start-up sequence.
 
 ---
 
@@ -885,6 +904,8 @@ typedef struct {
     uint8_t  opcode;               /* RAVEN_OP_* (§6.3) */
     uint32_t flags;                /* RAVEN_F_ACC_INIT | RAVEN_F_ACC_LAST | ... */
     raven_spad_t src_a, src_b, dst, param;
+    raven_spad_t psum_src;         /* continuation's explicit INT32 context */
+    uint32_t psum_pitch;           /* byte pitch, PSUM_PITCH[15:0] */
     uint32_t p[6];                 /* packed per §6.4; use raven_pack_*() helpers */
     uint32_t q_zp, q_mult, q_shift, q_clamp, q_mult_a, q_mult_b;
 } raven_op_t;
@@ -908,6 +929,10 @@ raven_status_t raven_wait(uint16_t seq, uint32_t timeout_us);  /* wraps-aware DO
 /* Parameter packing helpers: the only place bit layouts of §6.4 are encoded */
 uint32_t raven_pack_gemm_p0(uint16_t m, uint16_t n);
 uint32_t raven_pack_conv_p2(uint8_t kh, uint8_t kw, uint8_t sh, uint8_t sw, uint8_t dh, uint8_t dw);
+/* Proposed checked helpers return RAVEN_E_BOUNDS on fields outside the contract. */
+raven_status_t raven_pack_pool_p2(uint32_t kh, uint32_t kw, uint32_t sh, uint32_t sw,
+                                  uint32_t *packed_out);
+raven_status_t raven_pack_ewadd_p1(uint32_t left_shift, uint32_t *packed_out);
 
 /* Model level */
 typedef struct raven_model raven_model_t;
@@ -928,7 +953,7 @@ void raven_recover(void);   /* ABORT, DMA core reset (DMACR.Reset hits both chan
 
 1. `raven_set_op()` only copies the `raven_op_t` into the driver's *pending command* in LMB. It writes no MMIO.
 2. `raven_start()` copies the **complete** command (all fields of `raven_op_t`) into a slot of the ordered pending list (§9.3) and returns. The caller may then reuse or change its `op` and call `raven_set_op()` again without affecting the submitted command.
-3. When the command's preconditions hold (every referenced fill armed, `Q_FULL = 0`, and every earlier pending command issued), the event loop **restores** that slot into the staging registers, then `fence iorw,iorw`, then `CTRL.START`. Write elision (§6.5) compares against a driver shadow of what the hardware staging registers currently hold, not against the previous `raven_set_op()` call, so a restore always leaves the full command in staging.
+3. When the command's preconditions hold (every required fill armed or earlier producer queued, `Q_FULL = 0`, and every earlier pending command issued), the event loop **restores** that slot into the staging registers, then `fence iorw,iorw`, then `CTRL.START`. Write elision (§6.5) compares against a driver shadow of what the hardware staging registers currently hold, not against the previous `raven_set_op()` call, so a restore always leaves the full command in staging.
 4. **`seq_out` is valid when `raven_start()` returns.** The driver keeps a software counter that it assigns in submission order. Commands reach the hardware queue strictly in that order, and the driver is the only writer of `CTRL.START`, so the software number equals the hardware sequence number. Before each `START` the driver checks `NEXT_SEQ` against the slot's number; a mismatch is reported as `RAVEN_E_HW`. `raven_wait(seq)` on a still-parked command keeps running the event loop until the command has been issued and `DONE_SEQ` reaches it.
 5. **`Q_FULL` parks; it does not fail.** `raven_start()` returns `RAVEN_E_BUSY` only when the software pending list itself is full (sized at compile time). The hardware `ERR_Q_OVERFLOW` (§6.5) remains as a check that the driver never pushes `START` with the queue full.
 
@@ -965,7 +990,7 @@ RAVEN model blob (little-endian, every section 16-byte aligned)
 +------------------------------------------------------------+
 | weights: pre-packed panel layout (compute doc §7, B_panel)  |
 +------------------------------------------------------------+
-| params: per-channel {bias_corrected, mult, shift} records   |
+| params: per-output {bias_corrected, mult, shift} records    |
 +------------------------------------------------------------+
 | (verification builds) golden output per layer, crc32 each   |
 +------------------------------------------------------------+
@@ -1025,7 +1050,7 @@ PRM bytes     = 16 · c_out                                 ≤ 4096
 
 Jackie's tool picks the layout per tensor from the tiling hints and writes it to the tensor table. The final model output is always plain NHWC.
 
-**Baseline: C1, then C3.** C2 is optional. Until its interface below is agreed by Michael (window frontend) and Taylor (adapter) and verified, the tool never emits `NHWC_CB`, and any layer that does not fit C1 uses the C3 CPU repack. `HW_LIMITS` will advertise C2 support with a capability bit; firmware rejects an `NHWC_CB` blob on hardware without it (`RAVEN_E_UNSUPPORTED`).
+**Baseline: C1, then C3.** C2 is optional. Until its interface below is agreed by Michael (window frontend) and Taylor (adapter) and verified, the tool never emits `NHWC_CB`, and any layer that does not fit C1 uses the C3 CPU repack. The capability-reporting field for C2 is still TBD: HW_LIMITS currently allocates its bits to dimensions and opcodes. Until a versioned capability field and implementation are agreed, firmware rejects NHWC_CB blobs (RAVEN_E_UNSUPPORTED).
 
 **Proposed C2 interface (pending agreement).**
 
@@ -1046,7 +1071,7 @@ raven_dma_transfer(RAVEN_DDR_TO_SPAD, band_addr(0), act(0), band_bytes(0));
 for (int b = 0; b < n_bands; b++) {
     op.src_a  = act(b & 1);                       /* ACT0 / ACT1 ping-pong          */
     op.dst    = out(b & 1);                       /* OUT0 / OUT1 if present          */
-    op.flags  = ACC_INIT | ACC_LAST | REQUANT_EN | RELU_EN | RELEASE_A
+    op.flags  = ACC_INIT | ACC_LAST | REQUANT_EN | RELU_EN | PER_CHANNEL | RELEASE_A
               | (b == n_bands - 1 ? RELEASE_B | RELEASE_PARAM : 0);
     op.p[0]   = raven_pack_conv_p0(band_h_in(b), W_in);
     raven_set_op(&op);                            /* copy into driver; no MMIO yet    */
@@ -1064,7 +1089,7 @@ drain_when_done(seq[n_bands - 1], out((n_bands - 1) & 1), out_addr(n_bands - 1))
 
 `raven_dma_transfer`, `raven_start`, and `drain_when_done` do not spin. When a precondition is unmet (MM2S busy, target bank not FREE, output not FULL), they **park the request in a small ordered pending-action list** that the event loop (§9.4) retries on each interrupt.
 
-**Ordering rule.** The pending list is FIFO per resource and preserves program order between a fill and the commands that read its bank. `raven_start` checks every source bank (`SRC_A`, `SRC_B`, `PARAM`): if a fill into that bank is still parked, the command is parked behind it instead of being written to the hardware queue. It is pushed with `CTRL.START` only after that fill has been armed (bank `DMA_FILLING` or `READY`) and the queue has space. A parked command holds its own saved copy of every command field and its sequence number, and these are restored into staging immediately before its `START` (§8.2). The hardware then waits in `WAIT_DEP` for `READY` as usual. A `START` that references a `FREE` bank therefore only happens through a firmware bug, which is what `ERR_BANK_STATE` is meant to catch (§6.7). In the loop above, START for band *b+1* can be parked behind the ACT fill for *b+1*, which in turn waits for band *b−1*'s `RELEASE_A` to free that bank.
+**Ordering rule.** The pending list is FIFO per resource and preserves program order between a fill and the commands that read its bank. `raven_start` checks every source bank (references actually used by its opcode/flags (§6.7)): if a required fill is still parked, the command is parked behind it. A source produced by an earlier command follows that producer dependency instead of requiring a DMA fill; opcode/source-type readiness is defined in §6.7. It is pushed with CTRL.START only when each required fill is armed, or its earlier producer is already queued, and the queue has space. A parked command holds its own saved copy of every command field and its sequence number, and these are restored into staging immediately before its `START` (§8.2). Hardware then applies the typed-source checks in WAIT_DEP. A source can still be FREE at submission if its producer is earlier in the queue; it must be valid when the consumer reaches dispatch, or ERR_BANK_STATE reports the broken dependency (§6.7). In the loop above, START for band *b+1* can be parked behind the ACT fill for *b+1*, which in turn waits for band *b−1*'s `RELEASE_A` to free that bank.
 
 ### 9.4 Event loop, interrupts vs. polling
 
@@ -1097,7 +1122,9 @@ sequenceDiagram
     FW->>ADP: DRAIN_SRC=OUT0, ARM_DRAIN
     ADP->>DMA: stream OUT0
     DMA->>DDR: write band 0 output
-    DMA-->>FW: S2MM IOC (check length)
+    DMA-->>FW: S2MM IOC (check success and length)
+    Note over FW,ADP: also observe adapter stream completion
+    FW->>ADP: BANK_RELEASE OUT0 (now FREE)
     FW->>ADP: ARM_FILL ACT0 (band 2)
     Note over NPU,DMA: band 1 compute overlaps band 0 drain and band 2 fill
 ```
@@ -1115,11 +1142,11 @@ Interrupt sources into AXI INTC: `npu_irq` (DONE, ERROR, Q_SPACE), `mm2s_introut
 
 ### 9.5 CPU fallback operators
 
-Some operators the NPU does not support run as C reference kernels on the RISC-V, directly on DDR tensors. They are bit-exact with the golden reference because they implement the same integer arithmetic.
+Some operators the NPU does not support run as C reference kernels on the RISC-V, directly on DDR tensors. They must match the pinned golden integer reference; planned byte-for-byte tests, not the use of C alone, establish bit-exactness.
 
 | Operator | Why CPU | Expected cost |
 |---|---|---|
-| Softmax (final layer, ≤ ~12 classes) | Tiny vector. Hardware not justified. | Negligible. Output is dequantized for display only. |
+| Softmax (final layer, ≤ ~12 classes) | Small vector; proposed CPU implementation | Measure its cycles and include them in inference time. Preserve quantized graph output; dequantize only for display. |
 | Reshape / flatten | Metadata only (NHWC contiguous) | Zero: pointer aliasing in the arena plan |
 | Depthwise conv (until `0x07` is decided) | See compute doc §8 | Example: a DS-CNN-like layer of 25×5×64 outputs with a 3×3 kernel is about 72k MACs. At about 10 cycles per MAC for an RV32IM inner loop (two loads, multiply, add, index updates), that is ~0.7 M cycles ≈ 7 ms at 100 MHz. **Acceptable for correctness, poor for throughput.** Measuring this is what decides the `DWCONV` hardware question. |
 | Any opcode not in `HW_LIMITS` | Graceful degradation | Reported in the profile as CPU time |
@@ -1128,7 +1155,7 @@ The CPU path is also the **reference oracle on the board**. A verification build
 
 ### 9.6 Later extension: descriptor sequencer
 
-If measurements show firmware issue overhead is a bottleneck (`CYC_IDLE_PENDING` above target, §11), add a VTA-like sequencer: firmware writes a list of pre-encoded command records into a small BRAM or DDR ring, and hardware pops them into the command queue. Because §6.5 already defines a command as a fixed staging-register snapshot, the record format is just that snapshot. **This is an extension, not baseline scope.**
+If measurements show firmware issue overhead is a bottleneck (eligible command-issue gaps identified in the trace, §11), add a VTA-like sequencer: firmware writes a list of pre-encoded command records into a small BRAM or DDR ring, and hardware pops them into the command queue. Because §6.5 already defines a command as a fixed staging-register snapshot, the record format is just that snapshot. **This is an extension, not baseline scope.**
 
 ---
 
@@ -1143,14 +1170,14 @@ This is the compute doc's example, `M=24, N=16, K=256`, per-channel requant with
 | Params (16 channels × 16 B) | 256 B | DDR `0x6010_1400` → `PRM+0` |
 | C (INT8 24×16) | 384 B | `OUT0+0` → DDR `0x6400_2000` |
 
-All fit in one bank each, K fits one chunk, so one command suffices. Scratchpad references use the §6.4 format, `BANK_ID` in bits `[31:28]`: `ACT0+0 = 0x00000000`, `WGT0+0 = 0x20000000`, `OUT0+0 = 0x40000000`, `PRM+0 = 0x60000000`.
+All fit in one bank each, K fits one chunk, so one command suffices. This illustrative trace begins after initialization with zeroed staging fields; omitted fields, including PSUM_SRC/PSUM_PITCH, remain zero. Scratchpad references use the §6.4 format, `BANK_ID` in bits `[31:28]`: `ACT0+0 = 0x00000000`, `WGT0+0 = 0x20000000`, `OUT0+0 = 0x40000000`, `PRM+0 = 0x60000000`.
 
 ```text
 # --- fills (adapter base 0xA002_0000, DMA base 0xA001_0000) ---
 W 0xA0020010 = 0x20000000   FILL_DST    = WGT0+0
 W 0xA0020014 = 0x00001000   FILL_BYTES  = 4096
 W 0xA0020004 = 0x00000001   ARM_FILL
-R 0xA0020008                (read-back ordering)
+R 0xA0020008                (ordered HAL read; check FILL_BUSY=1)
 W 0xA0010018 = 0x60100400   MM2S_SA
 W 0xA0010028 = 0x00001000   MM2S_LENGTH -> transfer starts
 ... wait FILL_DONE, then the same 5 writes + read-back for PRM (256 B) and ACT0 (6144 B) ...
@@ -1180,12 +1207,13 @@ W 0xA0010058 = 0x00000180   S2MM_LENGTH = 384
 W 0xA0020020 = 0x40000000   DRAIN_SRC   = OUT0+0
 W 0xA0020024 = 0x00000180   DRAIN_BYTES = 384
 W 0xA0020004 = 0x00000002   ARM_DRAIN
-... S2MM IOC; R 0xA0010058 == 0x180 ...
+... successful S2MM IOC; R 0xA0010058 == 0x180; adapter stream complete ...
+W 0xA0020034 = 0x00000010   BANK_RELEASE = 1 << OUT0 (bank 4)
 ```
 
-**Counts:** 15 fill writes + 14 NPU writes + 5 drain writes = **34 MMIO writes** and 8 read-backs and status reads.
+**Counts:** 15 fill writes + 14 NPU writes + 6 drain/release writes = **35 MMIO writes**, plus read-backs and status reads. This excludes initialization, extra polls, and IRQ acknowledgments.
 
-**Cost.** At 15 cycles per AXI4-Lite access (inside the T2 budget), that is ≈ 630 cycles of control. The NPU's ideal issue time for this GEMM is 1,536 cycles (compute doc §7). With no overlap, control would be ≈ 29% of this tiny, single-tile layer. This is why §11 targets overhead **across a model with overlap**, not per isolated small op, and why small layers are a known weak spot (§17).
+**Cost.** Illustratively, with 8 reads and 15 cycles per AXI4-Lite access (inside the T2 budget), 43 accesses cost ≈ 645 cycles of control. The NPU's ideal issue time for this GEMM is 1,536 cycles (compute doc §7). With no overlap, control would be ≈ 30% of this tiny, single-tile layer before further overhead. This is why §11 targets overhead **across a model with overlap**, not per isolated small op, and why small layers are a known weak spot (§17).
 
 This trace format is the planned **golden register trace** (§13). The host unit test asserts that `raven_*` emits exactly this sequence, and the RTL testbench replays it.
 
@@ -1204,11 +1232,13 @@ Each target is measured with the NPU counters (§6.2) and the core's `rdcycle` c
 | T3 | Command issue cost, full program (≈ 20 writes) | ≤ 4 µs | Timer from first staging write to START |
 | T4 | Command issue cost with write elision (≈ 5 writes) | ≤ 1 µs | Same |
 | T5 | IRQ latency (NPU DONE asserted → first handler instruction) | ≤ 2 µs | A `NOP` command raises DONE at a cycle logged by `CYC_TOTAL`; the handler's first instruction reads `rdcycle`. Both counters run on the same 100 MHz clock, so they are aligned once at init. |
-| T6 | **NPU starvation from firmware**: `CYC_IDLE_PENDING / CYC_TOTAL` over Conv/GEMM layers of each of the 3 models | ≤ 5% | NPU counters per model run |
+| T6 | Queue-empty idle fraction: delta CYC_IDLE_PENDING / delta CYC_TOTAL for each Conv/GEMM layer window | ≤ 5% (proposed) | Window from first tile preparation to last command retirement; report raw counters and correlate DMA, CPU-fallback, and command-issue events before attributing causes |
 | T7 | Firmware footprint (`.text + .rodata + .data + .bss + stack`) | ≤ 48 KiB of 64 KiB LMB | `size firmware.elf` |
 | T8 | Boot: RISC-V reset release → mailbox ready | ≤ 100 ms | Timer / GPIO toggle on a scope |
 | T9 | Model switch: load a different blob without re-synthesis or firmware rebuild | Required; 3 models | Demo procedure |
 | T10 | Error containment: every injected fault (§13) ends in a reported error code within 20 ms, never a hang | 100% of injected cases | Fault-injection tests |
+
+The T6 ratio measures all queue-empty idle within its stated window. It is not a pure firmware-cost measurement; use the event trace to identify intervals when a ready command could have been submitted. Report CPU fallback and whole-model latency separately.
 
 ### 11.2 Control-overhead model (why commands are coarse and queued)
 
@@ -1229,7 +1259,7 @@ The synthetic conv layer (16×16×16 → 16×16×32, 3×3) fits entirely in bank
 | WGT | 3·3·16·32 | 4,608 B |
 | OUT | 16×16×32 | 8 KiB INT8 |
 
-The whole layer is 3 fills + 1 command + 1 drain ≈ 34 writes + ~8 reads ≈ 630 cycles of control against 18,432 compute cycles, **≈ 3% before overlap**.
+The whole layer is 3 fills + 1 command + 1 drain/release ≈ 35 writes + an illustrative 8 reads ≈ 645 cycles of control against 18,432 compute cycles, **≈ 3% before overlap**.
 
 The table is the quantitative basis for:
 
@@ -1244,7 +1274,7 @@ It also predicts where T6 is at risk: **very small layers** (FC heads, tiny pool
 | Resource | Budget | Note |
 |---|---|---|
 | BRAM (LMB) | 64 KiB LMB = **16 BRAM36** (4 KiB data each at ×32), 7.4% of 216 | Control plane only |
-| BRAM (scratchpad, for context) | Taylor's listed bank allocation totals **74–88 KiB** (the memory document's 58–72 KiB total does not match its own list). Adding the proposed 4 KiB PRM bank gives **78–92 KiB**. Optional OUT1 adds 8–16 KiB on top, **86–108 KiB** with it. | At 4 KiB per BRAM36 that is roughly 20–23 BRAM36 (22–27 with OUT1). Combined with the LMB this is about 36–43 of 216, well under the 80% README target. **Physical BRAM use is subject to synthesis**: port widths, dual-port use, and bank partitioning can increase it, so the number is confirmed from `report_utilization` at M1/M5. |
+| BRAM (scratchpad, for context) | Taylor's corrected base allocation totals **74–88 KiB**. Adding the proposed 4 KiB PRM bank gives **78–92 KiB**. Optional OUT1 adds 8–16 KiB on top, **86–108 KiB** with it. | At 4 KiB per BRAM36 that is roughly 20–23 BRAM36 (22–27 with OUT1). Combined with the LMB this is about 36–43 of 216, well under the 80% README target. **Physical BRAM use is subject to synthesis**: port widths, dual-port use, and bank partitioning can increase it, so the number is confirmed from `report_utilization` at M1/M5. |
 | DSP | 0 to a few (MicroBlaze V M-extension multiplier) | Leaves the DSPs for the MAC array (compute doc §3) |
 | LUT / FF | Reported at M1 | MicroBlaze V, SmartConnect, INTC, timer, GPIO, CSR, and queue, from `report_utilization -hierarchical` |
 
@@ -1293,8 +1323,8 @@ All subsystems use the same Vivado/Vitis version. Exact Python package versions 
 | Level | What | Tooling | Catches |
 |---|---|---|---|
 | L1 CSR unit | Reset values, RO/RW/W1S/W1C behavior, SLVERR on bad strobe/address, IRQ logic | cocotb + cocotbext-axi on Verilator | Register-map bugs before integration |
-| L2 Queue/dispatch unit | Sequence numbers, wraparound, Q_FULL overflow, legality checks for every error code, WAIT_DEP + watchdog, RELEASE semantics, ABORT/SOFT_RESET mid-command | cocotb with a behavioral stub of the compute core and adapter | Control bugs independent of compute RTL |
-| L3 Host driver tests | Drivers emit the exact golden register trace for each API call (§10). Bounds checks reject bad addresses. Sequence comparison handles wraparound. | Mock HAL on x86 | Firmware bugs without hardware |
+| L2 Queue/dispatch unit | Sequence numbers, wraparound, Q_FULL overflow, legality checks for every error code, WAIT_DEP + watchdog, RELEASE semantics, typed READY/FULL sources, PSUM metadata/pitch and separate final destination, ABORT/SOFT_RESET mid-command | cocotb with a behavioral stub of the compute core and adapter | Control bugs independent of compute RTL |
+| L3 Host driver tests | Drivers emit the exact golden register trace for each API call (§10). Bounds checks reject bad addresses. Check POOL 25×5 strides without truncation, EWADD pre-shift bounds, PARAM bias with PER_CHANNEL=0, PSUM source/pitch snapshots, and queued producer dependencies. Sequence comparison handles wraparound. | Mock HAL on x86 | Firmware bugs without hardware |
 | L4 Trace replay | The same golden traces from L3 drive the L1/L2 RTL testbench | cocotb trace player | **Firmware/RTL disagreement on the register contract** |
 | L5 Firmware-in-the-loop sim | Real firmware ELF on a CPU model against RAVEN RTL (PicoRV32 in Verilator, or MicroBlaze V in xsim) | Verilator / xsim | Ordering, interrupt, and timing interactions |
 | L6 On-board | Self-test, DMA benchmarks, single ops vs. golden, full models | Ultra96-V2 + XSDB | Real integration, measured performance |
@@ -1311,7 +1341,7 @@ All subsystems use the same Vivado/Vitis version. Exact Python package versions 
 | M5 | Control path on board (no compute) | `raven_selftest()` passes: ID/VERSION match; T_FILL and T_LOOPBACK on every bank; DMA DDR → bank → DDR round-trip bit-exact for lengths {16, 4096, 16384} B and 1,000 random 16-byte-multiple lengths ≤ 16 KiB (joint with Taylor) |
 | M6 | First integration: synthetic GEMM/Conv on NPU | GEMM (24×16×256) and compute doc's synthetic conv match Jackie's integer golden **bit-exactly**, launched by RISC-V via the API, polling mode |
 | M7 | Model executor | First real model end-to-end from a blob. Every layer's output matches the per-layer golden bit-exactly. Final output matches the reference top-1 on the agreed test set. |
-| M8 | Interrupt-driven pipeline | Overlap demonstrated: `CYC_DEP_WAIT + CYC_IDLE_PENDING` measurably lower than in polling mode on the same layers. T2–T5 measured and reported. |
+| M8 | Interrupt-driven pipeline | Overlap demonstrated: per-layer deltas of CYC_DEP_WAIT + CYC_IDLE_PENDING measurably lower than in polling mode within identical layer windows, with causes checked against the event trace. T2–T5 measured and reported. |
 | M9 | Beta: 3 models, one binary | One firmware ELF and one bitstream run all 3 models by swapping blobs only (T9). Bit-exact layer checks pass. T6, T7, T8 reported. |
 | M10 | Robustness | All L7 fault-injection cases produce the expected error code and recover with `raven_recover()` without a power cycle (T10) |
 | M11 | Handoff verified | A teammate other than Nahjay builds from a clean clone using only the docs and passes M5 and M6 (§15.3) |
@@ -1392,8 +1422,8 @@ These claims are verifiable, with explicit baselines, replacing the hedged "pote
 
 | Claim | Baseline compared against | Evidence produced |
 |---|---|---|
-| One bitstream + one firmware binary execute **3 different quantized models** by loading a blob | FINN-style flow: one bitstream per network | M9 demo log: same ELF hash and bitstream hash across all 3 runs |
-| The control plane costs **≤ 5% NPU starvation** on Conv/GEMM layers | Same layers in polling, non-pipelined mode (M6 configuration) | Counter-based measurement (T6), reported per model |
+| One bitstream + one firmware binary execute **3 different quantized models** by loading a blob | Graph-specialized FINN dataflow as prior art; compatible runtime-weight reuse is supported (§2.4) | M9 demo log: same ELF hash and bitstream hash across all 3 runs |
+| Target **≤ 5% queue-empty idle** within defined Conv/GEMM layer windows | Same layers in polling, non-pipelined mode (M6 configuration) | Counter-based measurement (T6), reported per model |
 | CPU fallback vs. NPU per operator | The same operator on the RISC-V in C | Per-layer cycle table with measured speedup |
 | Inference runs fully on the board with **no cloud service** | n/a, by construction | Board disconnected from any network during the demo |
 | Another student can reproduce the control path from the docs | Author-only knowledge | M11 handoff test result |
@@ -1408,7 +1438,7 @@ Severity and likelihood are rated on a 1–5 scale (5 = worst or most likely).
 |---|---|---:|---:|---|---|
 | R1 | MicroBlaze V / Vivado integration problems (address map, reset ordering, BSP) | 4 | 3 | Start M2 early (Nov). Tcl-scripted block design. NEORV32 fallback behind the HAL. | M2 not passing by its date. Address Editor conflicts. |
 | R2 | Toolchain/version mismatch across teammates | 3 | 4 | Single pinned version (§12). `check_versions.sh` in every script. | Block-design Tcl fails to import on another machine |
-| R3 | Firmware issue overhead dominates small layers | 3 | 4 | Coarse commands, write elision, queue, fusion of ReLU/requant, CPU for tiny ops. Descriptor sequencer as an extension. | `CYC_IDLE_PENDING` > 5% (T6) |
+| R3 | Firmware issue overhead dominates small layers | 3 | 4 | Coarse commands, write elision, queue, fusion of ReLU/requant, CPU for tiny ops. Descriptor sequencer as an extension. | T6 idle fraction > 5%; trace shows ready commands delayed by firmware |
 | R4 | Cache-coherency bugs (stale data between A53/RISC-V/DMA) | 4 | 2 | Baseline RISC-V has no caches. A53 flush rule. Explicit HAL cache API if caches are enabled. | Intermittent golden mismatches that vanish with debug prints |
 | R5 | AXI4-Lite bus hang (slave never responds) freezes the CPU | 5 | 2 | CSR block responds in bounded cycles and never waits on compute. AXI protocol checker IP in simulation. Watchdog timer reset of the RISC-V. | XSDB shows the core stuck on a load/store |
 | R6 | Register-contract drift between RTL, firmware, and docs | 3 | 4 (if hand-maintained) → 1 (with SystemRDL) | Generated from SystemRDL. L4 trace replay. | L4 failures. Fields named differently across docs. |
@@ -1523,9 +1553,10 @@ All figures are Mermaid source. They render as SVG on GitHub and are exported fo
 | Command-queue depth 4, calendar dates (§18), three-model acceptance target (M9) | Team | M1 |
 | HP port assignment, 23-bit DMA length width, OUT1 bank, 4 KiB PRM bank, scratchpad budget (§11.3) | Taylor | Register review, 2026-11-20 |
 | Command field set, completion semantics, `ERR_ACC_RANGE` detector, hardware Conv window generation | Michael | Register review |
-| Partial-sum bank protocol and `PSUM` tag (§6.6) | Michael + Taylor + Nahjay | Register review |
+| Partial-sum source/pitch registers, typed context, destination and release rules (§6.6) | Michael + Taylor + Nahjay | Register review |
 | Tensor-layout contract: GEMM A gather, channel-blocked NHWC (§6.4, §9.2) | Michael + Taylor + Jackie + Nahjay | Register review |
-| Q_* field widths, rounding, EWADD rescale semantics, per-channel record layout, DWCONV hardware vs. CPU | Quan (+ Michael for DWCONV) | Register review; DWCONV after M7 measurement |
+| Pinned single-rounding reference, bias records independent of scale granularity, EWADD P1 pre-shift, 8-bit POOL strides | Quan + Nahjay + Jackie | Register review |
+| RESULT_LANES=1 bring-up / 4-lane evaluation, II and memory-write contract; DWCONV hardware vs. RISC-V fallback | Michael + Quan + Taylor (+ Nahjay for fallback) | Register review; DWCONV after M7 measurement |
 | Blob format details, the 3 models, input sizes, accuracy thresholds | Jackie + team | Before M7 |
 | Ratify the demo policy (§14) | Team | Before M9 |
 | M9 and final-handoff leads, maintenance owner | Team | M1 |
