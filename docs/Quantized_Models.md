@@ -264,5 +264,31 @@ Information above found by visualizing the models\streaming-ds-cnn\str_ww_ref_mo
 https://github.com/mlcommons/tiny/blob/master/benchmark/training/streaming_wakeword/trained_models/str_ww_ref_model.tflite
 
 
+## Proposed NPU / CPU Operator Compatibility
+
+**Status:** Proposed execution mapping for the initial RAVEN prototype; implementation has not started. The table below identifies a *target* execution location, not hardware that is already working. CPU fallback means running the equivalent quantized operation on the Ultra96-V2 ARM processor when RAVEN does not yet support it in programmable logic.
+
+| TFLite operator | Proposed NPU execution | Proposed CPU fallback | Implementation decision / notes |
+|---|---|---|---|
+| `FULLY_CONNECTED` | **NPU target (first priority)** | Yes, until the NPU kernel works | Dense INT8 matrix-vector / matrix-multiply operations on the planned 8×8 MAC array; implement INT32 accumulation, bias addition, quantized rescaling, and fused activation as needed. |
+| `CONV_2D` (including 1×1 pointwise) | **NPU target (after FC)** | Yes, until convolution is supported | Map convolution to the dense array using appropriate input/weight tiling or patch extraction; verify stride, padding, and per-channel quantization. |
+| `DEPTHWISE_CONV_2D` | **TBD — not committed** | **Proposed initial fallback** | Each channel uses its own filter; DS-CNN, MobileNetV1, and Streaming DS-CNN require it. Decide whether to implement a dedicated depthwise dataflow/kernel in RTL or retain ARM execution. |
+| `AVERAGE_POOL_2D` | Not planned initially | **CPU** | Quantized average/requantization; may be moved to NPU later if useful. |
+| `ADD` (ResNet residual connection) | Not planned initially | **CPU** | Requires correctly scaled INT8 elementwise addition and the specified fused activation. A future NPU elementwise unit is optional. |
+| `RESHAPE` | No MAC-array compute | **ARM runtime / metadata** | Often a shape/stride interpretation with no tensor arithmetic or copy; runtime handles the tensor view and any required layout changes. |
+| `SOFTMAX` | Not planned initially | **CPU** | Nonlinear normalization/postprocessing; required for exact output compatibility if evaluating the full TFLite graph. |
+| Fused `RELU` | **With NPU FC / Conv if implemented** | **With CPU-executed operator** | Not a separate operator node in these files. Implement the fused activation on the same execution side as its parent operation; otherwise add an explicit postprocessing step. |
+
+**Proposed partition for each model** (operator counts are from the inspected TFLite graphs):
+
+| Model | Planned NPU operations | Proposed initial CPU operations | Metadata/runtime | Key limitation |
+|---|---|---|---|---|
+| **AD01** | `FULLY_CONNECTED` × 10 | None after all FC functionality is supported | Input/output handling | Best first hardware/software bring-up; no depthwise convolution. |
+| **DS-CNN** | `CONV_2D` × 5; `FULLY_CONNECTED` × 1 | `DEPTHWISE_CONV_2D` × 4; `AVERAGE_POOL_2D` × 1; `SOFTMAX` × 1 | `RESHAPE` × 1 | Four depthwise layers require an implementation decision. |
+| **MobileNetV1 0.25x** | `CONV_2D` × 14; `FULLY_CONNECTED` × 1 | `DEPTHWISE_CONV_2D` × 13; `AVERAGE_POOL_2D` × 1; `SOFTMAX` × 1 | `RESHAPE` × 1 | Thirteen depthwise layers make CPU/NPU transfers especially relevant. |
+| **ResNet-8** | `CONV_2D` × 9; `FULLY_CONNECTED` × 1 | `ADD` × 3; `AVERAGE_POOL_2D` × 1; `SOFTMAX` × 1 | `RESHAPE` × 1 | Residual `ADD` needs software support unless an NPU elementwise path is added. |
+| **Streaming DS-CNN** | `CONV_2D` × 4; `FULLY_CONNECTED` × 1 | `DEPTHWISE_CONV_2D` × 4; `SOFTMAX` × 1 | `RESHAPE` × 1 | Depthwise execution plus streaming input-window management. |
+
+
 ## Which Models To Use
 Should target the first 3 models (Deep Autoencoder, DS-CNN, MobileNet) since they cover different applications (audio anomaly detection, speech recognition, and image classification) while progressively increasing hardware complexity and reusing common NPU operators. Most likely use the first one since has the simplest architecture, requiring only fully connected layers and basic INT8 operations, making it ideal for initially testing and verifying RAVEN's hardware and software integration. 
