@@ -170,11 +170,11 @@ Phase 2 — Independent Subsystem Development
 	- Verify individual subsystems.
 
 Phase 3 — First NPU Integration
-- Connect RISC-V control to the NPU.
-- Integrate compute and operator modules.
-- Integrate memory and DMA.
-- Execute synthetic workloads.
-- Establish regression tests.
+	- Connect RISC-V control to the NPU.
+	- Integrate compute and operator modules.
+	- Integrate memory and DMA.
+	- Execute synthetic workloads.
+	- Establish regression tests.
 
 Phase 4 — Real Model Execution
 	- Deploy the first real quantized model.
