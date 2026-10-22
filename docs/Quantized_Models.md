@@ -1,7 +1,7 @@
 # RAVEN Quantized Models Research
 
 **Status:** Initial research on real quantized models, implementation has not started.  
-**Owner:** Taylor - BRAM organization, memory interfaces, DMA, and memory verification.  
+**Owner:** Jackie Wang - Quantized Models to Use.  
 **Target:** AMD/Avnet Ultra96-V2 (Zynq UltraScale+ MPSoC ZU3EG).  
 
 ## Summary
