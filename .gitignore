@@ -1,0 +1,36 @@
+# Local generated output; builds should write under this directory.
+/build/
+
+# Vivado/Vitis project state and generated implementation products.
+.Xil/
+*.xpr
+*.jou
+*.log
+*.runs/
+*.cache/
+*.gen/
+*.ip_user_files/
+*.sim/
+*.dcp
+*.bit
+*.xsa
+*.wdb
+
+# Local dataset contents; keep directory placeholders trackable.
+/data/raw/**
+!/data/raw/.gitkeep
+/data/processed/**
+!/data/processed/.gitkeep
+
+# Python environments and test caches.
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Local operating-system files.
+.DS_Store
+Thumbs.db
