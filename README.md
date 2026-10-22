@@ -1,4 +1,4 @@
-**RAVEN**
+## RAVEN
 RISC-V-Controlled Programmable FPGA Neural Processing Unit
 
 **Overview**
@@ -197,6 +197,7 @@ Phase 6 — Optimization and Final Demonstration
 **Deliverables**
 
 The project is intended to produce:
+
 	1. An Ultra96-V2 FPGA prototype.
 	2. SystemVerilog RTL for the compute engine, operators, control logic, memory interfaces, and top-level integration.
 	3. A RISC-V runtime and driver.
@@ -210,6 +211,7 @@ The project is intended to produce:
 RAVEN is a research and educational prototype. Its performance and supported workloads will depend on the final hardware implementation.
 
 Potential limitations include:
+
 	- FPGA LUT, BRAM, and DSP resource constraints.
 	- External DDR bandwidth limitations.
 	- Timing closure challenges.
