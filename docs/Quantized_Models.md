@@ -54,6 +54,25 @@ Quantization: INT8 activations/weights, INT32 biases and accumulators; per-chann
 Information above found by visualizing the models\DS-CNN\kws_ref_model.tflite file in Netron.
 
 ## 3. MobileNetV1 0.25x
+Application: Visual wake words — person vs. no-person detection
+Model: MLPerf Tiny MobileNetV1 0.25x 
+Model file size: ~325 KB (GitHub-reported)
+Architecture: Initial 3×3 Conv2D → 13 × (DepthwiseConv2D → Pointwise Conv2D) → AveragePool2D → Reshape → FullyConnected → Softmax
+Number of layers: 27 convolution operations (14 Conv2D, 13 DepthwiseConv2D), 1 AveragePool2D, 1 Reshape, 1 FullyConnected, 1 Softmax
+Operators: CONV_2D, DEPTHWISE_CONV_2D, AVERAGE_POOL_2D, RESHAPE, FULLY_CONNECTED, SOFTMAX, fused RELU
+Input tensor: [-1, 96, 96, 3], INT8
+Output tensor: [-1, 2], INT8 expected (verify final tensor)
+Intermediate tensors: Progressively reduced spatial dimensions: 48×48×8 → 24×24×16 → 12×12×32 → 6×6×64 → 3×3×256, with additional intermediate channel dimensions
+Largest observed intermediate tensor: 48×48×16 = 36,864 elements (~36 KiB INT8)
+Weights: Approximately 0.25–0.30 million INT8 parameters (estimate; exact count requires extraction)
+Weight storage: Approximately 250–300 KiB (estimate)
+Biases: INT32, one per convolution output channel or depthwise output channel (exact count TBD)
+Bias storage: TBD — extract from model
+Total parameter storage: TBD — extract from model
+Computation: Millions of MACs per inference; exact count TBD
+Quantization: INT8 activations/weights, INT32 biases and accumulators; per-channel quantization observed
+
+Information above found by visualizing the models\modelnetv1\vww_96_int8.tflite file in Netron.
 
 
 
@@ -69,3 +88,4 @@ Information above found by visualizing the models\DS-CNN\kws_ref_model.tflite fi
 
 Feasibility	High — no convolution hardware required
 Feasibility: Medium — requires conventional convolution, depthwise convolution, pooling, and quantization support
+Feasibility: Medium–Low relative to AD01 and DS-CNN due to larger activation tensors, more convolution layers, and greater memory traffic
