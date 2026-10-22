@@ -8,11 +8,11 @@
 
 Five Example Models
 
-1. Deep Autoencoder: https://github.com/mlcommons/tiny/tree/master/benchmark/training/anomaly_detection
-2. DS-CNN: https://github.com/mlcommons/tiny/tree/master/benchmark/training/keyword_spotting
-3. MobileNetV1 0.25x: https://github.com/mlcommons/tiny/tree/master/benchmark/training/visual_wake_words
-4. ResNet-8: https://github.com/mlcommons/tiny/tree/master/benchmark/training/image_classification
-5. Streaming DS-CNN: https://github.com/mlcommons/tiny/tree/master/benchmark
+1. Deep Autoencoder (AD01) — Audio Anomaly Detection: https://github.com/mlcommons/tiny/tree/master/benchmark/training/anomaly_detection
+2. DS-CNN — Keyword Spotting: https://github.com/mlcommons/tiny/tree/master/benchmark/training/keyword_spotting
+3. MobileNetV1 0.25x — Visual Wake Words (Person Detection): https://github.com/mlcommons/tiny/tree/master/benchmark/training/visual_wake_words
+4. ResNet-8 — Image Classification: https://github.com/mlcommons/tiny/tree/master/benchmark/training/image_classification
+5. Streaming DS-CNN — Streaming Wake Word Detection: https://github.com/mlcommons/tiny/tree/master/benchmark
 
 Used Netron to help visualize models by uploading a .tflite or .onnx model to look at network graph, operator types, weights, tensor dimensions, and connectivity. 
 https://netron.app/
