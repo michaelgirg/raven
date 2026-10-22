@@ -1,12 +1,14 @@
 # RAVEN Memory-System Research
 
 **Status:** Initial research and proposed architecture; RTL implementation has not started.  
-**Owner:** Taylor - BRAM organization, memory interfaces, DMA, and memory verification.  
+**Owner:** Taylor — BRAM organization, memory interfaces, DMA, and memory verification.  
 **Target:** AMD/Avnet Ultra96-V2 (Zynq UltraScale+ MPSoC ZU3EG).  
 
 Ultra96-V2 memory resources, DDR/AXI paths, DMA, tiling, and double buffering
 
 *Much information in this doc was used to refine the Design Draft*
+
+*Also important disction after updating: the new BRAM bandwidth figures are theoretical compute-facing requirements, not measured DDR bandwidth. Likewise, the proposed banking arrangement and memory totals still need synthesis and team review before they can be treated as final*
 
 ## Summary
 
@@ -61,16 +63,33 @@ Bandwidth arithmetic: bytes/cycle = width/8. At 100 MHz, 64 bits gives 8 × 100 
 
 ## 5. Scratchpad organization
 
-A reasonable first synthesis experiment is a 58–72 KiB logical scratchpad allocation. Treat these as capacity targets, not a guarantee of physical BRAM fit: inferred memory width/depth, port count, banking, and primitive packing affect resource use.
+The current logical scratchpad allocation from the four original rows is **74–88 KiB**, not 58–72 KiB. Keep Nahjay’s proposed parameter bank and the optional second output bank separate in the budget rather than silently folding them into the base total. These are logical capacities; physical BRAM use must be checked after synthesis because width, depth, banking, and port requirements affect primitive packing.
 
-| Logical buffer | Proposed capacity | Role |
-| --- | --- | --- |
-| Activation A/B | 2 × 16 KiB | Current input tile and next tile |
-| Weight A/B | 2 × 16 KiB | Current weight tile and next tile |
-| Output / partial sums | 8–16 KiB | INT32 accumulation and/or output staging; confirm dimensions |
-| FIFO/control allowance | 2–8 KiB | Stream elasticity, metadata, state and small queues |
+### 5.1 Base allocation and additions
 
-Use INT8 storage for quantized activations and weights, but wider accumulators. INT32 is the draft’s proposed accumulation format. Keep partial sums on-chip across reduction-dimension chunks when possible; repeatedly writing partial sums to DDR wastes bandwidth. Separate logical buffers even if synthesis packs them into fewer physical memories. Define bank ownership, addresses, byte counts, and arbitration explicitly.
+| Logical buffer | Proposed capacity | Role / status |
+| --- | ---: | --- |
+| Activation banks `ACT0` / `ACT1` | 2 × 16 KiB = 32 KiB | Current activation tile and next tile; ping-pong input banks |
+| Weight banks `WGT0` / `WGT1` | 2 × 16 KiB = 32 KiB | Current weight tile and next tile; may retain weights across multiple commands |
+| Output / partial-sum bank `OUT0` | 8–16 KiB | INT8 output or INT32 partial sums; dimensions and coexistence requirements need agreement |
+| FIFO / control allowance | 2–8 KiB | Stream elasticity, metadata, state and small queues; validate what must actually use BRAM |
+| **Base logical total** | **74–88 KiB** | Sum of the four rows above |
+| Nahjay-proposed parameter bank `PRM` | **+4 KiB** | Proposed additional bank for per-channel bias/requantization records; not included in the base total and pending team/Quan review |
+| Optional second output bank `OUT1` | **+8–16 KiB** | Optional output ping-pong bank, if synthesis and the final output/partial-sum lifecycle permit it |
+| **Total with `PRM`, without `OUT1`** | **78–92 KiB** | Base + proposed parameter bank |
+| **Total with `PRM` and `OUT1`** | **86–108 KiB** | Base + parameter bank + optional second output bank |
+
+Nahjay’s RISC-V/control proposal assigns bank IDs `ACT0=0`, `ACT1=1`, `WGT0=2`, `WGT1=3`, `OUT0=4`, optional `OUT1=5`, and proposed `PRM=6`; see `RISCV_Research.md` §6.4. The PRM record layout and exact output-bank configuration remain proposed and require review by the compute/output owners. Do not treat these estimates as a synthesis result.
+
+### 5.2 Compute-facing BRAM bandwidth (separate from DMA bandwidth)
+
+The proposed 8×8 MAC array needs **eight INT8 activation bytes and eight INT8 weight bytes simultaneously on every active compute cycle**: 8 bytes/cycle from the activation operand path and 8 bytes/cycle from the weight operand path. At 100 MHz, that is 0.8 GB/s of activation data plus 0.8 GB/s of weight data at the compute-facing interface, or 1.6 GB/s combined when both streams are active. This is a local BRAM-to-compute requirement, not the same thing as the AXI DMA’s DDR-to-stream width or bandwidth.
+
+**Proposed BRAM organization for evaluation:** bank or replicate memories so the compute frontend can obtain an eight-byte activation vector and an eight-byte weight vector each active cycle without conflicting reads. A candidate is eight byte-wide logical lanes/banks per operand, with the address mapping distributing the eight values needed for one cycle across independent banks; another implementation may use a suitably wide BRAM word plus lane extraction. The correct organization depends on the actual packed layout, BRAM primitive widths, whether read ports are true dual-port or replicated, and the frontend’s access pattern. A conventional single-port byte-wide memory will not supply eight independent bytes per cycle. Taylor and Michael must agree the read-port/banking contract and verify it in synthesis and timing; no final bank mapping is claimed here.
+
+The adapter’s 128-bit AXI4-Stream path describes transfer beats into or out of scratchpad storage (16 bytes per full beat). It does **not** by itself guarantee the compute core’s eight-lane read bandwidth. The BRAM-to-compute interface must separately define operand word width, addresses/strides, read latency, valid/ready behavior, and how an A row-major tile is gathered into eight activation lanes. Nahjay’s proposal assigns GEMM A gathering to Michael’s compute frontend and proposes pre-packed B/weight panels; the packed layout and ownership of convolution tile/window preparation remain shared decisions (see `RISCV_Research.md` §6.4 and §9.2).
+
+Use INT8 storage for quantized activations and weights, but wider accumulators. INT32 is the proposed accumulation format. Keep partial sums on-chip across reduction-dimension chunks when possible; repeatedly writing partial sums to DDR wastes bandwidth. Separate logical buffers even if synthesis packs them into fewer physical memories.
 
 ## 6. Tiling proposal
 
@@ -87,23 +106,30 @@ Tiling rules: reuse each weight tile across multiple output positions; reuse act
 
 ## 7. Double buffering and control protocol
 
-Use ping-pong activation and weight buffers. While the NPU computes from bank A, DMA may fill bank B. Once compute has finished using A and B is fully loaded, the roles swap. Apply the same concept to output draining if it helps overlap writes with computation.
+Use ping-pong activation and weight banks. While the NPU computes from one bank, DMA may fill a different bank that is `FREE`. Input/weight banks that are retained after a command may return to `READY` for reuse; they do **not** automatically become `FREE` merely because a compute command finished. The command’s `RELEASE_A`, `RELEASE_B`, or `RELEASE_PARAM` policy (proposed in Nahjay’s `RISCV_Research.md` §6.7) determines when a retained source bank can be released for a new DMA fill. A fill must never overwrite a bank in `READY`, `COMPUTING`, `FULL`, or another owned state.
 
-| State | Meaning | Allowed next state |
+Output and partial-sum banks have a distinct lifecycle from input banks. A destination being written by compute is `NPU_WRITING`; a completed INT8 output becomes `FULL` and can be drained or consumed by an allowed output operator. A non-final K chunk may leave INT32 partial sums in `READY` with a PSUM tag, where the next chunk continues accumulation. The final chunk converts/writes the output and retires it as `FULL`; the safe default is a separate INT8 output region/bank if in-place INT32-to-INT8 compaction has not been approved. Optional `OUT1` can enable output double buffering but increases the capacity budget by 8–16 KiB. See Nahjay’s proposed partial-sum and bank protocol in `RISCV_Research.md` §§6.6–6.7; final ownership and state transitions need team agreement.
+
+| State / event | Meaning | Proposed transition / rule |
 | --- | --- | --- |
-| FREE | Buffer available for a new tile | DMA_FILLING |
-| DMA_FILLING | DMA/adapter owns buffer; writes are in progress | READY or ERROR |
-| READY | Full tile validated; safe for NPU to consume | COMPUTING |
-| COMPUTING | NPU owns tile; DMA must not overwrite it | FREE after completion |
-| ERROR | Transfer/length/protocol fault | FREE after reset/recovery |
+| `FREE` | Bank available for a new transfer or initial output | A DMA fill may move it to `DMA_FILLING`; a compute destination may be claimed under the agreed output protocol |
+| `DMA_FILLING` | DMA/adapter owns the destination bank; bytes are arriving | `READY` only after exact expected bytes and packet-end validation; protocol/length error moves to `ERROR` |
+| `READY` | Complete input/weight tile, retained bank, or tagged INT32 partial sum | Can be consumed by compute; retained inputs may return to `READY` after use, and PSUM remains `READY` between K chunks |
+| `COMPUTING` | NPU is consuming a source bank | On completion, return to `READY` if retained; release to `FREE` only when the command’s release policy permits |
+| `NPU_WRITING` | Compute/operator is writing a destination | INT32 intermediate partial sum returns to `READY` + PSUM tag; completed INT8 output becomes `FULL` |
+| `FULL` | Completed INT8 output tile | May be drained or consumed by an allowed output operator; becomes `FREE` only after drain/release or explicit ownership release |
+| `DRAINING` | Adapter is reading output bytes for S2MM | Becomes `FREE` only after the expected bytes are emitted and the drain completes |
+| `ERROR` | Transfer, length, range, or protocol fault | Recover/reset and release only through the agreed error-recovery path |
 
-Completion is split across DMA and compute. DMA completion means the expected bytes reached the adapter or DDR endpoint; NPU completion means the compute operation has finished. Do not reuse a buffer until the owner releases it. Verify backpressure, delayed DMA completion, reset during transfer, partial tiles, and mismatched byte counts.
+DMA completion and compute completion are separate events. For a fill, the adapter should assert completion and mark a bank `READY` only when the configured byte count has arrived and the final `TLAST` position is valid. For a drain, completion means the requested bytes were emitted to the S2MM stream; the DMA’s own completion/status must also be checked before software treats the DDR transfer as complete.
+
+**Register-map source of truth:** use Nahjay’s proposed driver-side register reference in `RISCV_Research.md` §7.1 (AMD AXI DMA PG021 direct-register registers) and §7.2 (RAVEN adapter/bank CSR, proposed base `ADP_BASE = 0xA002_0000`) rather than inventing a second adapter map in this document. Treat adapter offsets/fields as proposals until Taylor and Nahjay agree and the RTL/driver definitions are generated or verified together. AMD AXI DMA’s vendor register map is separate from the RAVEN adapter CSR.
 
 ## 8. Rough bandwidth and performance model
 
-T	he feedback document proposes 64 INT8 MAC units (8×8), INT32 accumulation and a minimum 100 MHz clock. If each unit completes one MAC per cycle, the arithmetic ceiling is 64 × 100 MHz = 6.4 GMAC/s (12.8 GOPS if multiply and add count as two operations). This is a theoretical ceiling, not expected sustained throughput.
+The feedback document proposes 64 INT8 MAC units (8×8), INT32 accumulation and a minimum 100 MHz clock. If each unit completes one MAC per cycle, the arithmetic ceiling is 64 × 100 MHz = 6.4 GMAC/s (12.8 GOPS if multiply and add count as two operations). This is a theoretical ceiling, not expected sustained throughput.
 
-A deliberately pessimistic no-reuse case that fetches a new INT8 activation and a new INT8 weight for every MAC would demand about 12.8 GB/s at 6.4 GMAC/s-well above the 128-bit/100 MHz interface ceiling. This illustrates why tiling and operand reuse are essential; it is not a prediction of actual DDR traffic.
+A deliberately pessimistic no-reuse case that fetches a new INT8 activation and a new INT8 weight for every MAC would demand about 12.8 GB/s at 6.4 GMAC/s—well above the 128-bit/100 MHz interface ceiling. This illustrates why tiling and operand reuse are essential; it is not a prediction of actual DDR traffic.
 
 Measure required bandwidth from real transfers: (DDR bytes read + DDR bytes written) / inference time. Count input activations, weights, intermediate writes, and output writes separately. Benchmark sequential DMA transfers at multiple sizes, then benchmark full layers and models. Record achieved throughput, average/maximum transfer latency, NPU stall cycles, BRAM usage, timing slack, and inference latency. Avoid asserting a sustained-bandwidth percentage before measurement.
 
@@ -125,15 +151,27 @@ Measure required bandwidth from real transfers: (DDR bytes read + DDR bytes writ
 
 ## 10. Risks and decisions still open
 
-| Issue | Risk / decision needed |
-| --- | --- |
-| PS–PL connectivity and cache policy | Select actual AXI port and document whether DDR buffers are coherent or require cache clean/invalidate operations. |
-| DMA mode | Confirm AXI DMA direct-register vs scatter-gather; pin Vivado/IP version. |
-| Scratchpad implementation | Choose RAM banking/ports and adapter protocol; confirm capacity in synthesis. |
-| Tile sizes | Tune against supported models and compute-array shape. |
-| Register map | Define DMA base address, control/status bits, byte count, error semantics and interrupt behavior; do not conflate proposed NPU registers with AMD IP’s own register map. |
-| Ownership | Feedback names Taylor for BRAM organization, memory interfaces, DMA and memory verification; name a separate integration lead for shared integration. |
-| Ethical/security controls | DMA address validation and memory-region limits are relevant because programmable DMA can access sensitive data if software or descriptors are incorrect. |
+Severity and likelihood use a proposed 1–5 scale (5 = highest severity / most likely). These are initial engineering judgments for prioritization, not measured probabilities; revise them after the first synthesis and integration tests.
+
+| Risk | Severity (1–5) | Likelihood (1–5) | Mitigation / evidence to collect |
+| --- | ---: | ---: | --- |
+| Compute-facing bandwidth stalls: BRAM cannot deliver 8 activation bytes + 8 weight bytes each active cycle | 5 | 3 | Agree the compute-facing word/lane contract with Michael; evaluate banking/wide-word/replication options; measure operand-stall cycles and post-route timing. |
+| BRAM port conflicts or bank mapping cannot sustain simultaneous reads/writes | 4 | 3 | Specify per-bank read/write ownership and ports; test representative access patterns; inspect inferred RAM and utilization reports; add assertions for conflicting owners. |
+| Scratchpad capacity underestimated, especially with the 4 KiB `PRM` bank and optional 8–16 KiB `OUT1` | 4 | 3 | Track base 74–88 KiB, +4 KiB PRM, and optional +8–16 KiB OUT1 separately; synthesize candidate layouts and record physical BRAM usage. |
+| DMA/adapter transfer length, final-beat, or `TLAST` mismatch | 4 | 3 | Reference Nahjay’s adapter proposal (§7.2 in `RISCV_Research.md`); verify exact byte count, `TLAST`, backpressure, and error status with aligned, tail, and malformed-length tests. |
+| Buffer ownership/state error: DMA overwrites an input still retained by compute, or output/PSUM bank is reused too early | 5 | 3 | Align with Nahjay’s `READY` retention, explicit release, `FULL` output and PSUM lifecycle; add assertions and stress tests with overlapped transfers/compute/drains. |
+| Packed operand layout or convolution tile preparation is ambiguous across owners | 4 | 4 | Record the agreed layout, pitches, alignment, and responsible frontend/tool owner before freezing adapter interfaces; keep unresolved choices explicitly proposed/TBD. |
+| PS–PL connectivity/cache policy causes stale or contended DDR data | 4 | 2 | Select the HP/HPC route and document cache/coherency handling; benchmark concurrent read/write traffic. |
+| DMA mode/register configuration differs from software assumptions | 3 | 3 | Pin the AXI DMA IP version/configuration; use PG021 for vendor registers and Nahjay’s §7.2 only for RAVEN adapter CSRs; test direct-register completion and errors. |
+
+### Shared decisions still open
+
+- **BRAM-to-compute contract:** eight activation bytes and eight weight bytes per active cycle; agree banking, physical word width, read latency, lane order, and valid/ready semantics with Michael.
+- **Packed operand layout:** Nahjay’s proposal is row-major GEMM A gathered by Michael’s frontend and pre-packed B/weights from Jackie’s export tool; final layout/stride/alignment contract remains subject to compute review.
+- **Convolution preparation:** decide who creates convolution tiles/windows and whether window generation is performed in Michael’s frontend or by an offline/software packer; do not assume Taylor owns compute-side transformation.
+- **Bank ownership:** align input retention/release with `READY` reuse, and separately define `OUT0`/optional `OUT1` and INT32 PSUM lifecycle with Nahjay, Michael, and Quan.
+- **Adapter registers:** use `RISCV_Research.md` §§7.1–7.2 as the current proposed reference; agree the interface once, rather than maintaining duplicate register maps. Confirm the adapter base address in Vivado and ensure the implementation matches the driver header.
+- **Physical capacity and timing:** validate actual BRAM count, port inference, timing slack, and overlap with synthesis/implementation reports; all capacity figures above are logical proposals until then.
 
 ## References
 
@@ -147,6 +185,6 @@ Measure required bandwidth from real transfers: (DDR bytes read + DDR bytes writ
 
 1. [5] RAVEN Design Draft, supplied project document, especially initial hardware targets and Interfaces/DMA section.
 
-1. [6] RAVEN Design Draft - Comments and Draft Responses, supplied feedback document, especially performance targets, accountability, acceptance criteria and mockup content.
+1. [6] RAVEN Design Draft — Comments and Draft Responses, supplied feedback document, especially performance targets, accountability, acceptance criteria and mockup content.
 
 Status note: this document is an initial research/proposal artifact. Confirm current board documentation, exact ZU3EG resource figures, selected Vivado version/IP configuration, and actual block-design connectivity before treating any proposed setting as final.

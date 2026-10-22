@@ -10,6 +10,8 @@ This document covers the compute core: MAC organization, dataflow, numeric forma
 
 Shared interface proposals are documented in [Nahjay's control/runtime research](RISCV_Research.md) (§§6–9) and [Taylor's memory-system research](RAVEN_Memory_System_Research.md) (§§5–7). This document records the compute-side requirements; shared choices remain proposed until the subsystem owners agree and verify them.
 
+Workload priorities below follow [Jackie's model inventory](Quantized_Models.md); result processing follows [Quan's operator proposal](NPU_Operators_Research.md). Model descriptions are reported research, not independent model verification or measured RAVEN support.
+
 ## 1. Initial proposal
 
 Build a parameterized **output-stationary MAC array** with signed INT8 operands and architectural INT32 accumulation. Evaluate a small broadcast interconnect first, with a systolic implementation as an alternative if routing or timing favors it.
@@ -28,6 +30,17 @@ Build a parameterized **output-stationary MAC array** with signed INT8 operands 
 | Optional extension | Vector dot-product mode using the same multipliers | Investigate after baseline validation |
 
 Choose the final array using actual layer shapes, routed timing, resource use, and operand/output throughput. The initial 8×8 size is a practical starting point, not a permanent performance ceiling.
+
+### Candidate workloads and compute implications
+
+| Reported candidate | Compute implication | Proposed role |
+|---|---|---|
+| AD01 deep autoencoder | Fully connected GEMMs plus requantization/fused ReLU; batch-one execution uses only one array row | First functional integration; not evidence of full-array throughput |
+| DS-CNN keyword spotting | Dense/pointwise Conv and FC use this core; depthwise Conv needs a separate mapping or CPU fallback; average pool is an output-operator dependency | Candidate after AD01 |
+| MobileNetV1 visual wake words | Dense/pointwise Conv plus depthwise, average pool, and runtime operations; feature maps require tiling | Candidate after AD01; profile fallback and memory costs |
+| ResNet-8 / Streaming DS-CNN | ResNet adds residual EWADD; Streaming DS-CNN adds another depthwise workload | Alternatives/extensions, pending team model selection |
+
+The recommended first three are candidates, not frozen acceptance requirements. Softmax, preprocessing, and application-level scoring belong to the runtime/model workflow. End-to-end latency must include CPU fallbacks and data movement, not just MAC issue time.
 
 ## 2. Architecture research and tradeoffs
 
@@ -115,6 +128,8 @@ Subtracting the zero-point before multiplication is an alternative: centered act
 
 The physical DSP may accumulate in 48 bits while exposing an INT32 architectural result; narrowing behavior and range checks must be defined. Requantization occurs after the complete reduction. Its exact multiplier, shift, rounding, zero-point, and clamp behavior must agree with Quan's output-operator interface.
 
+Quan proposes a common Q31 multiplier/signed-shift requantize-and-clamp tail for fused and standalone use. Its integer reference version, shift direction, tie handling, intermediate widths, and per-channel record layout remain open. The compute result includes bias/correction already; the tail must not add it again. Preserve the logical output-channel tag so per-channel parameters follow the output element even in microtile order.
+
 ## 6. Proposed pipeline
 
 These are logical stages; exact register placement depends on DSP inference and the agreed scratchpad-read latency.
@@ -133,6 +148,8 @@ Target initiation interval one: each PE accepts one new product per cycle after 
 Consume A/B vectors as a pair. Delay valid, masks, and end-of-reduction information with the data. Missing operands introduce bubbles; only valid products update sums. Count committed products when deciding completion. Hold result data stable under backpressure.
 
 An 8×8 tile contains 64 outputs. One result lane takes 64 drain issue cycles; four lanes take 16; eight take eight. With no overlap, `K=256` and a single lane give an arithmetic-plus-drain ceiling of `256/(256+64)=80%` before pipeline overhead. A snapshot buffer can decouple compute from drain, but sustained throughput still depends on the downstream operator's initiation interval and buffer capacity.
+
+For integration planning, propose one signed INT32 result lane with target initiation interval one at 100 MHz, pending Quan's tail and Taylor's write-path agreement. Transfer data, channel/element tag, lane mask, and tile-end together on `valid && ready`; hold them all stable during a stall. Non-final K chunks bypass requantization and save INT32 context. Report actual drain/stall cycles before selecting more lanes.
 
 ## 7. GEMM mapping and tiling
 
@@ -211,7 +228,7 @@ His proposed hardware Conv window frontend is a compute-side candidate pending a
 
 A 1×1 convolution uses `K=Cin` without spatial window expansion. A synthetic `Hout=Wout=16,Cin=16,Cout=32,Kh=Kw=3` layer maps to `M=256,N=32,K=144`: 1,179,648 MACs and 18,432 ideal issue cycles on 8×8.
 
-Depthwise convolution operates per input channel. Treating its weights as a dense, mostly zero matrix wastes work. Evaluate a direct per-channel mapping, an additional compute mode, or a separate operator unit with Quan if candidate models require it. FPGA work demonstrates configurable reductions for depthwise/pointwise computation, but its published implementation sizes and performance do not transfer directly to Ultra96. [Bai et al., 2018](https://users.wpi.edu/~xhuang/pubs/2018_bai_tcas2.pdf).
+Depthwise convolution operates per input channel. Treating its weights as a dense, mostly zero matrix wastes work. Jackie's DS-CNN, MobileNetV1, and Streaming DS-CNN inventories report it, so compatibility is required if those models are selected. Follow Quan and Nahjay's proposed CPU fallback for bring-up, then jointly compare a direct MAC-array mode with a dedicated operator using actual layer shapes, operand bandwidth, and measured fallback time. No depthwise hardware mode is selected here. FPGA work demonstrates configurable reductions for depthwise/pointwise computation, but its published implementation sizes and performance do not transfer directly to Ultra96. [Bai et al., 2018](https://users.wpi.edu/~xhuang/pubs/2018_bai_tcas2.pdf).
 
 ## 9. Utilization and optional vector mode
 
@@ -222,6 +239,8 @@ occupancy = (M×N) / (ceil(M/R)×R × ceil(N/S)×S)
 ```
 
 Batch-one fully connected layers have `M=1`; on 8×8, at most one row is active, giving 12.5% occupancy for sufficiently large N. Tail dimensions also waste lanes. Masks preserve correctness but do not eliminate this cost.
+
+Jackie's reported AD01 dimensions all have output widths divisible by eight. At batch one, its reported 264,192 MACs therefore take 33,024 ideal dense-mode issue cycles (330.24 microseconds at 100 MHz), using eight active MACs per cycle. This derived estimate excludes setup, DMA, result drain, and operators. AD01 is a functional-validation workload, not evidence for the 6.4 GMAC/s full-array ceiling. Vector mode remains optional even for this workload.
 
 An optional vector mode could use array rows as K-reduction lanes and columns as output channels. Each PE accumulates strided K terms, followed by a reduction across rows. Bias/correction must appear exactly once per output, and the final reduction needs sufficient guard width.
 
@@ -245,7 +264,10 @@ flowchart TB
     CTRL -.-> ISSUE
     CTRL -.-> MAC
     MAC --> RESULT["Result capture / drain<br/>optional snapshot buffering"]
-    RESULT --> OUT["INT32 result interface<br/>to output operators or local storage"]
+    RESULT --> OUT["Tagged INT32 result interface<br/>valid / ready / channel / element / mask"]
+    OUT -->|"final reduction, requant enabled"| TAIL["Quan: requantize + activation clamp"]
+    TAIL --> STORE["Taylor: INT8 output staging / scratchpad"]
+    OUT -->|"non-final K chunk"| PSUM["Taylor: INT32 partial-sum workspace"]
     RESULT -.-> CTRL
     CTRL --> STATUS["Compute completion / error / cycle counters"]
 ```
@@ -261,6 +283,7 @@ The diagram shows the proposed baseline. Optional vector reduction would sit bet
 | Accumulator seed/context | Corrected bias applied once at ACC_INIT; continuation restores per-output INT32 sums from BRAM; agree PSUM tag and save/restore ownership |
 | Results | Signed INT32 values, output ordering, masks/tags, tile-end indication, and backpressure |
 | Output operators | Full reduction before requantization; exact numeric semantics and sustainable acceptance rate |
+| Standalone operator chaining | Agree how a completed output bank becomes a readable source for Quan's pool/ReLU/EWADD; distinguish completed tensors from unfinished PSUM context |
 | Status | Last product committed, results accepted, error behavior, and observable compute/stall cycles |
 
 Use Nahjay's proposed completion boundaries: **compute complete** means the command's last product committed; **command complete** means all results reached the destination bank and ownership transitions completed; **DMA complete** reports the separate memory transfer. Acceptance by an output operator alone does not imply that the destination bank is complete. Exact handshakes remain subject to joint review.
@@ -274,5 +297,7 @@ Use the proposed register/opcode and command-field definitions in RISCV_Research
 3. Verify Conv mapping with padding, stride, dilation, 1×1 and 3×3 kernels, using golden tensors from Jackie.
 4. Synthesize for the actual Ultra96-V2 part. Confirm DSP inference, LUT/FF use, pipeline behavior, and timing; then check the integrated memory frontend and routed WNS.
 5. Compare 64 and 128 MACs using equivalent workloads and documented memory/output conditions. Record useful MACs, compute-active cycles, input/output stalls, and operation latency.
+
+For model-level validation, use version/hash-identified artifacts from Jackie's inventory with batch size, tensor layouts, and quantization recorded. Start with AD01 layer outputs against the agreed integer reference, including per-channel tags and stalled result transfers through Quan's tail. For DS-CNN/MobileNet, separate dense-core timing from depthwise/other CPU fallback time. AD01 reconstruction/anomaly metrics and classifier metrics remain separate model-level acceptance decisions; hardware bit-exactness is checked per tensor.
 
 Freeze the final array dimensions, interconnect, accumulator contract, panel layout, and result width only after these checks and candidate-model analysis. INT4 and more complex dataflows remain secondary extensions. This document records research, analytical estimates, and proposed behavior; it makes no claims of completed RTL or measured FPGA performance.
