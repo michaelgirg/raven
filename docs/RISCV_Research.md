@@ -19,6 +19,8 @@ It builds directly on [NPU_ARCHITECTURE.md](NPU_ARCHITECTURE.md) (Michael, compu
 
 **Shared-interface revision (proposed, 2026-10-22).** The baseline keeps fallback kernels on the RISC-V, uses one result lane for bring-up with four lanes as an evaluation configuration, widens POOL strides, allocates EWADD's common pre-shift, and explicitly names a continuation's PSUM source and row pitch. Parameter records provide per-output bias even when requantization uses a shared scale. These definitions require the existing subsystem sign-offs; they are not implemented register changes.
 
+**Revision (2026-10-22, zeroization).** Made zeroization optional in general and required for demos, and split it into two stages so the output is never cleared before the consumer reads it: banks before DONE, arena after SHUTDOWN or the next run (§14).
+
 **Revision (2026-10-22).** Defined how a completed `FULL` output bank becomes a source for POOL, RELU, or EWADD, with ownership rules and a Conv → Pool → DMA command/state example (§5.1, §6.7, §6.8); made in-place INT32 → INT8 conversion conditional on the compute/output traversal agreement, with a staging fallback (§6.6).
 
 **Revision (2026-10-21).** Fixed the bank-ID encoding in the §10 example; defined the partial-sum bank lifecycle (§6.6–6.7); resolved the parked-fill vs. `FREE`-bank conflict (§6.7, §9.3); completed the GEMM A-operand and Conv output-channel layout contract (§6.4, §8.3, §9.2); corrected the scratchpad budget (§11.3); widened the `STATUS` FSM field (§5.1, §6.2); and marked shared decisions as proposed.
@@ -1367,7 +1369,7 @@ The instructor's point is that the **hardware itself** carries misuse and privac
 | Optional CPU-side PMP | MicroBlaze V supports up to 64 PMP entries (`C_PMP_ENTRIES`, UG1629). Firmware can lock its own `.text` read-only/execute and limit CPU data access to LMB, CSRs, and the arena. This protects against firmware bugs on the CPU side only; **PMP does not constrain the DMA master**, which is why the next row exists. | Fault-injection: a deliberate out-of-arena CPU store must trap |
 | Optional hardware window check (stretch, joint with Taylor) | A small AXI address checker on the DMA's AR/AW channels returns DECERR outside the arena. It protects even against firmware bugs. | L2-style RTL test |
 | Model blob validation | Magic, version, CRC32, every offset and size bounds-checked against the blob and arena, every opcode checked against `HW_LIMITS`, before any DMA is programmed. Invalid → `RAVEN_E_BLOB`, nothing executed. | L7: corrupted and out-of-range blobs |
-| Zeroization | Configurable `RAVEN_CFG_ZEROIZE`: after inference, `T_FILL` 0x00 over all banks and DMA-zero the activation arena. Reported in the profile (cost is measured, not hidden). | On-board readback test |
+| Zeroization | Configurable `RAVEN_CFG_ZEROIZE`, optional in general and required for demonstrations. Two stages, so results are never cleared before they are read: (1) after the final output drain, `T_FILL` 0x00 over all banks, then mailbox `status = DONE`; (2) after the consumer has read the output and writes mailbox `cmd = SHUTDOWN` or the next `RUN_MODEL`, DMA-zero the activation arena, including the output buffer. Reported in the profile (cost is measured, not hidden). | On-board readback test: banks read zero at DONE, output still intact; arena reads zero after SHUTDOWN |
 | No network or persistence in firmware | Firmware has no network stack and writes nothing to non-volatile storage. Outputs only go to the mailbox and console. | Code review |
 | Logging minimization | Logs and profiles record layer IDs, counters, and error codes, **not tensor contents**. Tensor dumps need an explicit debug build flag. | Code review, build-flag test |
 | Demo data policy | Demonstrations use **prerecorded public datasets** (e.g., CIFAR-10, Speech Commands) loaded from SD, not live camera or microphone capture of people | Team policy |
@@ -1377,7 +1379,7 @@ The instructor's point is that the **hardware itself** carries misuse and privac
 **Demo policy.**
 
 - The final demo uses prerecorded public datasets, not live capture.
-- Inputs are not retained after a session; the arena is zeroized at shutdown.
+- `RAVEN_CFG_ZEROIZE` is enabled. Inputs are not retained after a session: banks are cleared before DONE, and the arena (including the output) is cleared only after the consumer acknowledges with SHUTDOWN or the next run.
 - The demo board and JTAG pod stay in team custody in the lab.
 - The hardware window checker is a stretch goal after M9.
 
