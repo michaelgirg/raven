@@ -291,6 +291,44 @@ Here every CPU entry means RISC-V. These are early functional partitions; averag
 | **ResNet-8** | `CONV_2D` × 9; `FULLY_CONNECTED` × 1 | `ADD` × 3; `AVERAGE_POOL_2D` × 1; `SOFTMAX` × 1 | `RESHAPE` × 1 | Residual `ADD` needs software support unless an NPU elementwise path is added. |
 | **Streaming DS-CNN** | `CONV_2D` × 4; `FULLY_CONNECTED` × 1 | `DEPTHWISE_CONV_2D` × 4; `SOFTMAX` × 1 | `RESHAPE` × 1 | Depthwise execution plus streaming input-window management. |
 
+## AD01 as the First Functional Bring-Up Model
+
+**Proposed priority:** AD01 should be RAVEN's first end-to-end model because its TFLite graph contains only ten `FULLY_CONNECTED` operations. It avoids the depthwise convolution, pooling, residual addition, and softmax kernels required by other candidates. The initial bring-up can therefore focus on validating the model-loading/runtime path, memory transfers, INT8 multiplication, INT32 accumulation and bias, layer-specific requantization and zero-points, and fused ReLU against a TensorFlow Lite reference.
+
+**Performance limitation for the proposed 8×8 MAC array:** AD01 is evaluated at **batch size 1**, so each dense layer executes a *matrix-vector multiplication* rather than a large batched matrix-matrix multiplication. An array or scheduler optimized for matrix-matrix tiles may leave some processing elements idle because it cannot exploit parallelism across independent batch columns. The narrow `128 → 8` bottleneck layer also offers only eight simultaneous output neurons. However, **underutilization is not guaranteed**: a dataflow that parallelizes across output neurons and input reduction terms can use more of the 64 MAC units, even for batch-one inference. Actual utilization therefore depends on the RTL dataflow, mapping, and tile scheduling and must be measured after implementation.
+
+**Planned bring-up acceptance checks (not yet performed):**
+
+1. Run each of the ten AD01 layers on the NPU and compare its INT8 output with a TFLite golden reference under identical quantization/rounding assumptions (allowed per-tensor difference: **TBD**).
+2. Confirm correct intermediate tensor storage, per-layer scales/zero-points, bias addition, fused ReLU and final `NONE` activation, and NPU/ARM buffer transfers.
+3. Measure end-to-end latency and 8×8 array utilization (active MACs / available MAC slots, using a consistently defined active-cycle window). Acceptance thresholds: **TBD**.
+4. Compare batch-one performance and utilization with convolution-based models after `CONV_2D` support is implemented.
+
+**Conclusion:** AD01 is the best initial **functional** bring-up workload, but it is not necessarily the best demonstration of the NPU's peak compute throughput.
+
+## Proposed Datasets, Preprocessing, and Acceptance Metrics
+
+**Status:** Proposed evaluation methodology. Dataset versions, reference preprocessing scripts, numerical-error tolerances, and RAVEN-specific acceptance thresholds will be finalized during implementation. Evaluation should use the same **preprocessed INT8 input** for the TFLite baseline and the RAVEN implementation so that differences reflect computation rather than input preparation.
+
+| Model | Proposed evaluation dataset | Proposed preprocessing / input | Primary model-quality metric | RAVEN acceptance criterion |
+|---|---|---|---|---|
+| **AD01** | **ToyADMOS / DCASE 2020 Task 2, ToyCar** normal and anomalous machine-audio clips | Use the repository's reference audio feature-extraction pipeline to generate a 640-element vector, then quantize using the model's INT8 input scale and zero-point. Follow its window/recording aggregation method. | **Reconstruction error** for anomaly scoring; evaluate **ROC-AUC** (and pAUC as an additional DCASE measure) | AUC/pAUC agreement with TFLite within **TBD**; maximum output difference **TBD** |
+| **DS-CNN** | **Google Speech Commands v2**, reference 12-class split | Convert audio to the reference **49×10 MFCC** features; pack as `INT8 [1,49,10,1]` with the model's quantization parameters | **Top-1 classification accuracy** over 12 classes | Top-1 accuracy degradation versus TFLite ≤ **TBD**; output tolerance **TBD** |
+| **MobileNetV1 0.25x** | **Visual Wake Words**, derived from COCO person/no-person labels | Resize images to **96×96 RGB**, use the reference normalization (e.g. [0,1] before quantization), then produce `INT8 [1,96,96,3]` | **Binary top-1 accuracy** (person vs no-person) | Accuracy degradation versus TFLite ≤ **TBD**; output tolerance **TBD** |
+| **ResNet-8** | **CIFAR-10** official test set or MLPerf Tiny supplied validation subset | Use **32×32 RGB** inputs and the exact reference model's scaling/quantization to produce `INT8 [1,32,32,3]` | **10-class top-1 accuracy** | Accuracy degradation versus TFLite ≤ **TBD**; output tolerance **TBD** |
+| **Streaming DS-CNN** | **MLPerf Tiny streaming wake-word custom test audio**, with annotated event windows | Use the reference audio front end and continuously updated **`INT8 [1,30,1,40]`** feature windows; preserve stream timing and detection-window rules | **False positives, false negatives**, and event-detection latency | FP/FN count not worse than reference by more than **TBD**; latency requirement **TBD** |
+
+### AD01 Anomaly-Detection Scoring
+
+AD01 reconstructs a 640-element feature vector; it does **not** directly output class probabilities. An anomaly score can be derived from the mean squared reconstruction error:
+
+```text
+score(x) = (1 / 640) * sum_i (x_real[i] - x_reconstructed_real[i])^2
+```
+
+The model input and reconstructed output use **different quantization scales/zero-points**, so first dequantize each tensor separately: `real_value = scale * (int8_value - zero_point)`. Do **not** subtract the raw INT8 values without accounting for quantization. For an audio recording containing multiple windows, aggregate window errors according to the reference evaluation script (aggregation procedure to be pinned). Use normal/anomaly labels and the resulting per-recording scores to compute **ROC-AUC** and, if desired, **partial AUC**. Classification accuracy by itself is not an appropriate primary metric for AD01.
+
+
 
 ## Which Models To Use
 Should target the first 3 models (Deep Autoencoder, DS-CNN, MobileNet) since they cover different applications (audio anomaly detection, speech recognition, and image classification) while progressively increasing hardware complexity and reusing common NPU operators. Most likely use the first one since has the simplest architecture, requiring only fully connected layers and basic INT8 operations, making it ideal for initially testing and verifying RAVEN's hardware and software integration. 
