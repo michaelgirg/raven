@@ -95,7 +95,8 @@ https://github.com/mlcommons/tiny/blob/master/benchmark/training/anomaly_detecti
 - **Intermediate numerical tensors:** `INT8` for activation tensors; all learnable weights `INT8`; all learnable biases `INT32`. Some `INT32` shape tensors are metadata, not activations.
 - **Parameters:** **22,016 INT8 weights** (22,016 bytes); **588 INT32 bias values** (2,352 bytes); **22,604 parameter values**.
 - **Combined constant weight/bias storage:** **24,368 bytes** (~23.80 KiB), excluding graph metadata, activation buffers, runtime overhead.
-- **Dense MAC count:** **2,656,768 per batch-one inference** (standard convolution + depthwise convolution + fully connected; excludes non-MAC ops and padding optimizations).
+- **Dense MAC count:** **12,501,632 per batch-one inference** (standard convolution and fully connected operations; excludes non-MAC ops and padding optimizations).
+
 - **Largest observed INT8 graph tensor (including input/output):** [1, 25, 5, 64] = 8,000 bytes (~7.81 KiB). This is not a calculated peak live-memory budget.
 - **Weight quantization:** 9 of 10 weighted operators use per-channel INT8 weight scales; remaining weighted operators use per-tensor scales. Weight and bias zero-points are 0 in the uploaded file.
 
@@ -300,7 +301,7 @@ Here every CPU entry means RISC-V. These are early functional partitions; averag
 **Planned bring-up acceptance checks (not yet performed):**
 
 1. Run each of the ten AD01 layers on the NPU and compare its INT8 output with a TFLite golden reference under identical quantization/rounding assumptions (allowed per-tensor difference: **TBD**).
-2. Confirm correct intermediate tensor storage, per-layer scales/zero-points, bias addition, fused ReLU and final `NONE` activation, and NPU/ARM buffer transfers.
+2. Confirm correct intermediate tensor storage, per-layer scales/zero-points, bias addition, fused ReLU and final `NONE` activation, and RISC-V/NPU data transfers and buffer synchronization.
 3. Measure end-to-end latency and 8×8 array utilization (active MACs / available MAC slots, using a consistently defined active-cycle window). Acceptance thresholds: **TBD**.
 4. Compare batch-one performance and utilization with convolution-based models after `CONV_2D` support is implemented.
 
