@@ -12,6 +12,8 @@ Shared interface proposals are documented in [Nahjay's control/runtime research]
 
 Workload priorities below follow [Jackie's model inventory](Quantized_Models.md); result processing follows [Quan's operator proposal](NPU_Operators_Research.md). Model descriptions are reported research, not independent model verification or measured RAVEN support.
 
+**Shared baseline (2026-10-23):** use the [interface contract](interfaces/RAVEN_INTERFACE_CONTRACT.md) for operand delivery, DMA commit, capabilities, CPU/NPU constants, and recovery; use the [project plan](PROJECT_PLAN.md) for dates and acceptance targets. These remain design specifications pending implementation evidence.
+
 ## 1. Initial proposal
 
 Build a parameterized **output-stationary MAC array** with signed INT8 operands and architectural INT32 accumulation. Evaluate a small broadcast interconnect first, with a systolic implementation as an alternative if routing or timing favors it.
@@ -172,7 +174,7 @@ For `M=24,N=16,K=256`, an 8×8 array handles six output microtiles: 98,304 MACs 
 
 The proposed command flags are `ACC_INIT` for the first chunk, `DST_ACCUM` for INT32 partial-sum storage/continuation, and `ACC_LAST` for the final chunk. Apply the full corrected bias once at initialization; continuation restores the previous sum without adding bias again. Requantization is enabled only after the final reduction. Nahjay's revised proposal explicitly identifies a continuation with PSUM_SRC and PSUM_PITCH, plus per-bank context metadata (offset, shape, pitch, initialized/bias-applied status). Non-final contexts remain READY/tagged; a middle chunk reads and updates the same INT32 context. On the last chunk, hold that source until all final INT8 results reach a distinct FREE destination bank, then clear/release the old context and mark the new destination FULL. Taylor and the compute controller must agree on the save/restore handshake and ownership (§6.6 of the control document).
 
-The proposed baseline uses a separate bank for final INT8 output; OUT1 is one option. Without OUT1, a FREE ACT bank is usable only if Taylor's implemented write path supports it; otherwise the scheduler must reject that plan. A separate region in the PSUM bank is insufficient under bank-level ownership. In-place INT32-to-INT8 conversion remains deferred until Quan, Taylor, and Michael prove a safe traversal/staging scheme: microtile traversal does not necessarily emit outputs in global element order.
+The proposed baseline uses a separate bank for final INT8 output; OUT1 is one option. Without OUT1, reserve a FREE ACT destination before prefetching into it and require HW_FEATURES[2] for the implemented ACT write route; otherwise reschedule or reject. The proposed one-lane writer uses byte enables and exclusive bank ownership. A separate region in the PSUM bank is insufficient under bank-level ownership. In-place INT32-to-INT8 conversion remains deferred until Quan, Taylor, and Michael prove a safe traversal/staging scheme: microtile traversal does not necessarily emit outputs in global element order.
 
 Distinguish the physical microtile from larger BRAM panels. Reusing panels across microtiles reduces repeated DDR reads. If multiple output microtiles are interleaved across K chunks, their partial sums need local save/restore storage; keeping only one microtile active avoids that requirement.
 
@@ -190,9 +192,11 @@ For that macro-operation, loading each operand panel once and writing INT8 outpu
 
 An 8×8 dense array needs simultaneous 64-bit A and 64-bit B streams; 8×16 needs 64-bit A and 128-bit B. At 100 MHz these represent 1.6 and 2.4 GB/s of local operand delivery. They do not specify the DMA bus width or predict sustained DDR bandwidth.
 
-A possible packed format is `A_panel[k][row_lane]` and `B_panel[k][column_lane]`. Ordinary row-major A needs packing, banking, or transposition to produce multiple rows at one k. A dual-port BRAM cannot supply eight unrelated scalar reads per cycle. Bank mapping, packing responsibility, refill ownership, and read latency must be agreed with Taylor.
+The selected GEMM frontend keeps A row-major and uses two local 8×16-byte buffers (256 bytes total, excluding control/tags). For each 16-K block it requests one aligned 128-bit word per valid output row, then emits one byte from each row at a common K index. Prefetch into the inactive buffer while the current buffer feeds the array. Eight sequential row-word reads supply sixteen full-block issue steps; read latency, initial fill, tails, and backpressure are still overhead to measure. Taylor supplies a logical 128-bit synchronous read interface with ordered valid/ready responses; Michael owns buffering, lane extraction, and paired A/B issue. This avoids assuming eight simultaneous BRAM addresses. See the [exact address and handshake contract](interfaces/RAVEN_INTERFACE_CONTRACT.md#1-operand-and-result-delivery).
 
-Nahjay proposes row-major GEMM A in the bank, with a compute-side frontend gathering eight rows at a common K index. Treat this as a candidate responsibility, not a verified eight-read memory interface. Agree the banking and frontend with Taylor before adopting it; packed A panels remain an alternative. Jackie prepares packed B weights offline. Either path must preserve the paired eight-byte A and eight-byte B delivery target, with stalls when operands are unavailable.
+Packed B is `B_panel[k][column_lane]`, eight bytes per reduction step. A 128-bit word supplies two B vectors through a register/unpacker. Panel pitch is a 16-byte multiple at least `round_up(8*K_chunk,16)`; for K=256 it is 2,048 bytes. Jackie packs weights offline. Mask M/N tails, stop at logical K, and validate physical wide-read spans and owned alignment padding as well as logical dimensions. The tiler includes padded pitches and all operand/PSUM/parameter footprints in bank-fit checks. The small local buffers are frontend storage, not extra scratchpad payload capacity.
+
+BRAM ports are synchronous and finite; physical packing and 100 MHz timing still need synthesis. [AMD BRAM data flow](https://docs.amd.com/r/en-US/ug573-ultrascale-memory-resources/Data-Flow), [primitive widths](https://docs.amd.com/r/en-US/ug573-ultrascale-memory-resources/Block-RAM-Library-Primitives). Packed A, extra banking, and replication remain alternatives if later measurements justify them.
 
 ## 8. Conv2D mapping
 
@@ -218,7 +222,7 @@ B[k,n] = weight[n,kh,kw,ci]
 
 Plain NHWC is the proposed baseline external layout; the packed compute-panel layout is a separate interface decision. Nahjay's baseline uses contiguous full-channel row bands where they fit, with software staging/repacking for channel-split output tiles that are not contiguous in full NHWC.
 
-His proposed hardware Conv window frontend is a compute-side candidate pending agreement with Taylor on bank ports, halo/padding delivery, and read latency. The alternatives below remain available while that choice is evaluated. Channel-blocked activations (`SRC_A_CB`, proposed block size/pitch) are optional and require an agreed frontend plus multi-segment adapter fills before use; they are not a baseline compute requirement.
+The compute-side Conv window gatherer is the baseline proposal: bounds-check NHWC addresses, supply the input zero-point for virtual padding, and fill local A vectors. Begin with a correct serialized gatherer and contiguous-word reuse. Filter/row crossings can require more reads than GEMM; measure refill stalls before promising II=1 or adding line buffers. The alternatives below remain for experiments. Channel-blocked SRC_A_CB and segmented fills are disabled in the baseline and require a later versioned capability/commit/layout contract before deployment.
 
 | Conv frontend | Tradeoff | Proposed use |
 |---|---|---|
@@ -226,7 +230,7 @@ His proposed hardware Conv window frontend is a compute-side candidate pending a
 | Tile-local window packing | Bounds staging storage while reusing the GEMM core | First Conv implementation candidate |
 | Streaming line/window buffers | Reuses overlapping pixels but needs deliberate banking and scheduling | Optimize after functional Conv |
 
-A 1×1 convolution uses `K=Cin` without spatial window expansion. A synthetic `Hout=Wout=16,Cin=16,Cout=32,Kh=Kw=3` layer maps to `M=256,N=32,K=144`: 1,179,648 MACs and 18,432 ideal issue cycles on 8×8.
+A 1×1 convolution uses `K=Cin` without spatial window expansion. A synthetic `Hout=Wout=16,Cin=16,Cout=32,Kh=Kw=3`, stride-1 SAME/pad-1 layer maps to `M=256,N=32,K=144`: 1,179,648 MACs and 18,432 ideal issue cycles on 8×8.
 
 Depthwise convolution operates per input channel. Treating its weights as a dense, mostly zero matrix wastes work. Jackie's DS-CNN, MobileNetV1, and Streaming DS-CNN inventories report it, so compatibility is required if those models are selected. Follow Quan and Nahjay's proposed CPU fallback for bring-up, then jointly compare a direct MAC-array mode with a dedicated operator using actual layer shapes, operand bandwidth, and measured fallback time. No depthwise hardware mode is selected here. FPGA work demonstrates configurable reductions for depthwise/pointwise computation, but its published implementation sizes and performance do not transfer directly to Ultra96. [Bai et al., 2018](https://users.wpi.edu/~xhuang/pubs/2018_bai_tcas2.pdf).
 
@@ -253,7 +257,7 @@ Keep vector mode as an experiment until model profiles and measured bottlenecks 
 ```mermaid
 flowchart TB
     CMD["Tile command interface"] --> CTRL["Compute controller<br/>M/N/K loops, masks, init/continue"]
-    AMEM["Activation tile in BRAM"] --> FRONT["Operand frontend<br/>proposed row gather / Conv window packing"]
+    AMEM["Activation tile in BRAM"] --> FRONT["Operand frontend<br/>8x16 row-block buffers / Conv window gather"]
     FRONT --> A["Packed activation stream"]
     A --> AF["A operand buffer"]
     B["Packed weight stream<br/>from BRAM"] --> BF["B operand buffer"]
@@ -294,10 +298,10 @@ Use the proposed register/opcode and command-field definitions in RISCV_Research
 
 1. Verify one PE against integer reference results, including signed extremes, initialization, bubbles, and accumulation across cycles.
 2. Verify the parameterized array with GEMMs covering incomplete M/N tiles, multiple K-chunk commands, zero-points, bias applied once with both PER_CHANNEL settings, BRAM save/restore via explicit PSUM source/pitch, and output backpressure with RESULT_LANES=1 and 4. Check that compute completion precedes command completion only when result storage is still pending, and that final writes use a distinct bank while holding the old context until retirement. Reject mismatched context shape/pitch and unsupported in-place narrowing.
-3. Verify Conv mapping with padding, stride, dilation, 1×1 and 3×3 kernels, using golden tensors from Jackie.
+3. Verify the row-block frontend with partial M/N/K, aligned pitches, K chunks, delayed read responses and stalls. Verify Conv mapping with padding, stride, dilation, 1×1/3×3 and DS-CNN 10×4 stride-2 filters using independent patches from Jackie; measure gather stalls. Recovery must invalidate cached operands/results. Privacy cleanup additionally uses CTRL.ZERO_LOCAL to erase local operand/product/accumulator/result storage, with bounded completion and RTL checks; valid-bit invalidation alone does not erase data.
 4. Synthesize for the actual Ultra96-V2 part. Confirm DSP inference, LUT/FF use, pipeline behavior, and timing; then check the integrated memory frontend and routed WNS.
 5. Compare 64 and 128 MACs using equivalent workloads and documented memory/output conditions. Record useful MACs, compute-active cycles, input/output stalls, and operation latency.
 
-For model-level validation, use version/hash-identified artifacts from Jackie's inventory with batch size, tensor layouts, and quantization recorded. Start with AD01 layer outputs against the agreed integer reference, including per-channel tags and stalled result transfers through Quan's tail. For DS-CNN/MobileNet, separate dense-core timing from depthwise/other CPU fallback time. AD01 reconstruction/anomaly metrics and classifier metrics remain separate model-level acceptance decisions; hardware bit-exactness is checked per tensor.
+For model-level validation, use version/hash-identified artifacts from Jackie's inventory with batch size, tensor layouts, and quantization recorded. Start with AD01 layer outputs against the agreed integer reference, including per-channel tags and stalled result transfers through Quan's tail. For DS-CNN/MobileNet, separate dense-core timing from depthwise/other CPU fallback time. AD01 reconstruction/ROC-AUC and classifier metrics follow the shared [acceptance table](PROJECT_PLAN.md#functional-and-model-acceptance); hardware conformance requires zero INT8 element mismatches on designated supported fixtures against the pinned arithmetic reference.
 
 Freeze the final array dimensions, interconnect, accumulator contract, panel layout, and result width only after these checks and candidate-model analysis. INT4 and more complex dataflows remain secondary extensions. This document records research, analytical estimates, and proposed behavior; it makes no claims of completed RTL or measured FPGA performance.
