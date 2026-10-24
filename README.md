@@ -18,7 +18,7 @@ The goal is to execute multiple supported model graphs using one FPGA bitstream 
 | RISC-V integration, MMIO, control, and runtime | Nahjay | [RISC-V integration and runtime](docs/RISCV_Research.md) |
 | Model analysis/export, tensor extraction, and golden-reference generation | Jackie | [Quantized-model research](docs/Quantized_Models.md) |
 
-The documents describe proposed behavior. Their interface sign-offs and open decisions remain part of the design process.
+The documents describe proposed behavior. The [shared interface contract](docs/interfaces/RAVEN_INTERFACE_CONTRACT.md) defines the current operand, DMA, mailbox, constant-format, and recovery baseline. The [project plan](docs/PROJECT_PLAN.md) holds shared acceptance goals and internal dates. Implementation, timing, and model-quality evidence remain to be collected.
 
 ## Proposed system architecture
 
@@ -51,7 +51,9 @@ Three blocks have separate responsibilities:
 - **AMD AXI DMA:** vendor MM2S/S2MM registers for DDR-to-stream and stream-to-DDR transfers.
 - **RAVEN stream adapter:** proposed fill/drain registers, scratchpad selection, byte counts, and bank ownership.
 
-Input ping-pong banks allow filling a FREE bank while another is in use. Typed READY/FULL rules govern source consumption; retained tensors and unfinished partial sums cannot be overwritten. A drained output bank is released after successful DMA and adapter completion. See the [memory proposal](docs/RAVEN_Memory_System_Research.md) for capacity, bandwidth, and ownership details.
+GEMM A stays row-major: two local 8×16-byte buffers turn sequential 128-bit row reads into eight activation lanes. Conv uses a bounds-checked window gatherer whose refill rate must be measured.
+
+Input ping-pong banks allow filling a FREE bank while another is in use. A received DMA packet stays DMA_FILLING until firmware checks successful MM2S completion and explicitly commits the bank to READY. Exact byte lengths and final byte masks support short model tensors. Typed READY/FULL rules govern source consumption; retained tensors and unfinished partial sums cannot be overwritten. A drained output bank is released after successful DMA and adapter completion. See the [memory proposal](docs/RAVEN_Memory_System_Research.md) for capacity, bandwidth, and ownership details.
 
 ## Initial design targets
 
@@ -104,7 +106,7 @@ Model files are present under [models/](models/). The [model inventory](docs/Qua
 
 ## Planned deployment and verification
 
-The deployment toolchain will inspect supported model graphs, extract and pack weights, prepare corrected bias and quantization records, plan tensor storage/tiling, and generate golden tensors. The runtime proposal starts with generated C layer tables and progresses to a validated data-driven model blob, allowing model changes without rebuilding the runtime.
+The deployment toolchain will inspect supported graphs, retain original CPU/reference weights and bias, add separately referenced packed NPU weights/corrected-bias records, prepare integer quantization parameters, plan storage/tiling, and generate golden tensors. Tensor scale bits are preserved separately from execution multipliers. The runtime proposal starts with generated C layer tables and progresses to a validated data-driven model blob, allowing model changes without rebuilding the runtime.
 
 Proposed driver entry points include `raven_dma_transfer()`, `raven_set_op()`, and `raven_start()`; these APIs are documented plans, not available code in this checkout.
 
@@ -123,7 +125,7 @@ Benchmarks will report inference latency, useful MAC activity, input/output stal
 | Beta | Demonstrate the agreed core features and selected models; collect baseline measurements |
 | Optimization and handoff | Improve bottlenecks, complete verification, document limits, and test reproducible setup |
 
-The [control research §§18–21](docs/RISCV_Research.md) contains proposed calendar dates, dependencies, and sign-offs. Those subsystem dates require team adoption before serving as the project-wide schedule.
+Use the [master internal schedule and acceptance table](docs/PROJECT_PLAN.md); the control research links to that same schedule. Internal beta is targeted for March 12, 2027, handoff reproduction for April 9, and the final package for April 16. Official course deadlines take precedence. These are planning dates, not completed milestones.
 
 ## Planned deliverables and limitations
 

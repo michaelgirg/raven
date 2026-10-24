@@ -26,6 +26,7 @@ raven/
 │   ├── Quantized_Models.md
 │   ├── RAVEN_Memory_System_Research.md
 │   ├── RISCV_Research.md
+│   ├── PROJECT_PLAN.md        # Shared targets, milestone leads, and dates
 │   ├── REPOSITORY_STRUCTURE.md
 │   ├── decisions/             # Architecture decision records
 │   ├── diagrams/              # Editable diagram sources and reviewable exports
@@ -101,10 +102,10 @@ The additional preset, dataset, debug, linker, decision, dependency, and automat
 | MMIO/queue/control RTL and register definition | `rtl/control/`, `tools/regs/`, `tests/rtl/control/` | Nahjay, with interface review by consumers |
 | RISC-V firmware, runtime, drivers, HAL | `software/` | Nahjay |
 | Model inspection/export, packing, golden generation | `tools/models/`, original artifacts in `models/` | Jackie |
-| Vivado/PS block design, vendor IP, board constraints | `hw/` | Taylor and Nahjay for their blocks; integration lead TBD |
-| Shared RTL, end-to-end checks, benchmark releases | `rtl/common/`, `rtl/top/`, `tests/integration/`, `benchmarks/` | Name an individual lead for each integration milestone |
+| Vivado/PS block design, vendor IP, board constraints | `hw/` | Taylor and Nahjay for their blocks; milestone leads in PROJECT_PLAN.md |
+| Shared RTL, end-to-end checks, benchmark releases | `rtl/common/`, `rtl/top/`, `tests/integration/`, `benchmarks/` | Leads in [PROJECT_PLAN.md](PROJECT_PLAN.md) |
 
-The named subsystem leads follow the research documents. Shared milestone ownership still needs team agreement.
+The named subsystem leads follow the research documents. Shared milestone leads are listed in [PROJECT_PLAN.md](PROJECT_PLAN.md); successor/maintenance commitments remain separate.
 
 ## Source and generated files
 
@@ -125,4 +126,4 @@ Keep the project overview in the root `README.md`. Store CI notes in `.github/AU
 
 Each top-level implementation area has a README describing its role. Keep setup/run commands with the actual working implementation and record tested dependencies when available. Add a root Makefile or CI jobs once their commands perform real checks; this skeleton supplies neither.
 
-The five research documents remain the current proposals. Put future reviewed interface contracts under `docs/interfaces/`, editable diagrams under `docs/diagrams/`, and setup/handoff material under `docs/guides/`, then link them from the relevant research document and root README. Until ratified, keep proposed choices labeled as proposals.
+The five research documents explain subsystem proposals. The [shared interface contract](interfaces/RAVEN_INTERFACE_CONTRACT.md) supplies common behavior, and the [project plan](PROJECT_PLAN.md) supplies targets/dates. Keep those definitions synchronized with the register proposal and future generated outputs. Additional reviewed interfaces belong under `docs/interfaces/`, editable diagrams under `docs/diagrams/`, and setup/handoff material under `docs/guides/`. Selected proposals remain distinct from verified implementations.
