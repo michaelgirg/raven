@@ -108,6 +108,8 @@ For a first GEMM validation, use C[M×N] = A[M×K] × B[K×N] with candidate til
 | C accumulator tile | 32 × 32 × INT32 | 4,096 bytes |
 | Total active tile set | 2,048 + 2,048 + 4,096 | 8 KiB, excluding bias, output staging and metadata |
 
+For Conv channel chunks, ACT residency keeps full C_in per stored pixel; splitting the weight reduction does not make that activation band smaller. Bound WGT storage by ceil(C_out_tile/8)×round_up(8×Kh×Kw×cin_count,16). P1.C_in is the stored pixel stride, P5 is cin_start, and CONV_CHUNK is cin_count; validate complete consecutive coverage with compute/control. [Chunk definition](interfaces/RAVEN_INTERFACE_CONTRACT.md#conv-channel-chunks).
+
 Tiling rules: reuse each weight tile across multiple output positions; reuse activation tiles across output channels; keep accumulators local across K chunks; write quantized outputs only when needed; and support partial edge tiles. For convolution, consider line/window buffering to reuse overlapping activation windows. Tune tile dimensions against the actual MAC-array shape, local-memory ports, and selected models.
 
 ## 7. Double buffering and control protocol
