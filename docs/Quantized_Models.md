@@ -4,6 +4,8 @@
 **Owner:** Jackie Wang - Quantized Models to Use.  
 **Target:** AMD/Avnet Ultra96-V2 (Zynq UltraScale+ MPSoC ZU3EG).  
 
+**Shared baseline:** export metadata and CPU/NPU constant semantics follow the [interface contract](interfaces/RAVEN_INTERFACE_CONTRACT.md#5-cpunpu-constants-and-numeric-metadata). Model goals, numerical conformance, dates, and measurement boundaries are maintained in the [project plan](PROJECT_PLAN.md). No host quality result or FPGA inference is claimed.
+
 ## Summary
 
 Five Example Models
@@ -47,7 +49,7 @@ All five `.tflite` source paths below were checked to exist at the pinned revisi
 - **Total parameters:** **265,864**, consistent with Netron's graph-level parameter count.
 - **Combined weight/bias storage:** **270,880 bytes** (~264.53 KiB), excluding FlatBuffer metadata, activation buffers, and runtime overhead.
 - **Computation:** **264,192 dense MACs per inference**, batch size 1; excludes bias addition, requantization, activation and transfer costs.
-- **Quantization:** All weight and bias tensors have zero-point **0**, with per-tensor linear scales (not per-channel). Input scale `0.391015232`, input zero-point **89**; output scale `0.364498466`, output zero-point **96**. Intermediate activations have varying per-tensor scales and zero-point **−128**. INT32 biases are confirmed; accumulator width/rounding on RAVEN remains a hardware implementation detail.
+- **Quantization:** All weight and bias tensors have zero-point **0**, with per-tensor linear scales (not per-channel). Input scale `0.391015232`, input zero-point **89**; output scale `0.364498466`, output zero-point **96**. Intermediate activations have varying per-tensor scales and zero-point **−128**. INT32 biases are confirmed; RAVEN selects architectural INT32 sums and the pinned single-rounding convention, while physical guard width and pipeline details require implementation verification.
 
 **Verified per-operator tensors and counts** (operator identifiers are zero-based):
 
@@ -95,7 +97,7 @@ https://github.com/mlcommons/tiny/blob/master/benchmark/training/anomaly_detecti
 - **Intermediate numerical tensors:** `INT8` for activation tensors; all learnable weights `INT8`; all learnable biases `INT32`. Some `INT32` shape tensors are metadata, not activations.
 - **Parameters:** **22,016 INT8 weights** (22,016 bytes); **588 INT32 bias values** (2,352 bytes); **22,604 parameter values**.
 - **Combined constant weight/bias storage:** **24,368 bytes** (~23.80 KiB), excluding graph metadata, activation buffers, runtime overhead.
-- **Dense MAC count:** **12,501,632 per batch-one inference** (standard convolution and fully connected operations; excludes non-MAC ops and padding optimizations).
+- **Total Conv/Depthwise/FC work:** **2,656,768 MACs per batch-one inference**: **2,368,768 standard Conv/FC MACs** plus **288,000 depthwise MACs**. Excludes non-MAC operations; not all work is initially executed on the NPU.
 
 - **Largest observed INT8 graph tensor (including input/output):** [1, 25, 5, 64] = 8,000 bytes (~7.81 KiB). This is not a calculated peak live-memory budget.
 - **Weight quantization:** 9 of 10 weighted operators use per-channel INT8 weight scales; remaining weighted operators use per-tensor scales. Weight and bias zero-points are 0 in the uploaded file.
@@ -296,28 +298,30 @@ Here every CPU entry means RISC-V. These are early functional partitions; averag
 
 **Proposed priority:** AD01 should be RAVEN's first end-to-end model because its TFLite graph contains only ten `FULLY_CONNECTED` operations. It avoids the depthwise convolution, pooling, residual addition, and softmax kernels required by other candidates. The initial bring-up can therefore focus on validating the model-loading/runtime path, memory transfers, INT8 multiplication, INT32 accumulation and bias, layer-specific requantization and zero-points, and fused ReLU against a TensorFlow Lite reference.
 
-**Performance limitation for the proposed 8×8 MAC array:** AD01 is evaluated at **batch size 1**, so each dense layer executes a *matrix-vector multiplication* rather than a large batched matrix-matrix multiplication. An array or scheduler optimized for matrix-matrix tiles may leave some processing elements idle because it cannot exploit parallelism across independent batch columns. The narrow `128 → 8` bottleneck layer also offers only eight simultaneous output neurons. However, **underutilization is not guaranteed**: a dataflow that parallelizes across output neurons and input reduction terms can use more of the 64 MAC units, even for batch-one inference. Actual utilization therefore depends on the RTL dataflow, mapping, and tile scheduling and must be measured after implementation.
+**Performance limitation for the selected baseline:** batch-one AD01 has M=1. Michael's output-stationary 8×8 mapping therefore uses one row, at most **12.5% geometric occupancy** when output channels fill the columns. The row-block operand buffer fixes delivery, not that occupancy. A K-parallel/vector mode could use more MACs, but is deferred and must not be assumed in baseline throughput estimates. Measure setup, DMA, output drain, and CPU costs as well as array utilization.
 
 **Planned bring-up acceptance checks (not yet performed):**
 
-1. Run each of the ten AD01 layers on the NPU and compare its INT8 output with a TFLite golden reference under identical quantization/rounding assumptions (allowed per-tensor difference: **TBD**).
+1. Run each of the ten AD01 layers on the NPU and compare its INT8 output with a TFLite golden reference under identical quantization/rounding assumptions (allowed difference: **zero INT8 element mismatches** on designated supported fixtures, using the pinned TFLM single-rounding configuration and prepared parameters).
 2. Confirm correct intermediate tensor storage, per-layer scales/zero-points, bias addition, fused ReLU and final `NONE` activation, and RISC-V/NPU data transfers and buffer synchronization.
-3. Measure end-to-end latency and 8×8 array utilization (active MACs / available MAC slots, using a consistently defined active-cycle window). Acceptance thresholds: **TBD**.
+3. Measure end-to-end latency and 8×8 array utilization (active MACs / available MAC slots, using a consistently defined active-cycle window). Goal: mean inference ≤50 ms / sequential rate ≥20/s, with the measurement window defined in the [project plan](PROJECT_PLAN.md). This is a target, not an observed result.
 4. Compare batch-one performance and utilization with convolution-based models after `CONV_2D` support is implemented.
 
 **Conclusion:** AD01 is the best initial **functional** bring-up workload, but it is not necessarily the best demonstration of the NPU's peak compute throughput.
 
 ## Proposed Datasets, Preprocessing, and Acceptance Metrics
 
-**Status:** Proposed evaluation methodology. Dataset versions, reference preprocessing scripts, numerical-error tolerances, and RAVEN-specific acceptance thresholds will be finalized during implementation. Evaluation should use the same **preprocessed INT8 input** for the TFLite baseline and the RAVEN implementation so that differences reflect computation rather than input preparation.
+**Status:** Proposed evaluation methodology. Pin dataset/split versions and executable preprocessing before application evaluation. Numerical conformance and the first-three-model quality/latency goals follow the shared [acceptance table](PROJECT_PLAN.md#functional-and-model-acceptance). Use identical preprocessed INT8 inputs and the same pinned arithmetic/preparation configuration; an arbitrary optimized TFLite build is not automatically bit-exact.
 
 | Model | Proposed evaluation dataset | Proposed preprocessing / input | Primary model-quality metric | RAVEN acceptance criterion |
 |---|---|---|---|---|
-| **AD01** | **ToyADMOS / DCASE 2020 Task 2, ToyCar** normal and anomalous machine-audio clips | Use the repository's reference audio feature-extraction pipeline to generate a 640-element vector, then quantize using the model's INT8 input scale and zero-point. Follow its window/recording aggregation method. | **Reconstruction error** for anomaly scoring; evaluate **ROC-AUC** (and pAUC as an additional DCASE measure) | AUC/pAUC agreement with TFLite within **TBD**; maximum output difference **TBD** |
-| **DS-CNN** | **Google Speech Commands v2**, reference 12-class split | Convert audio to the reference **49×10 MFCC** features; pack as `INT8 [1,49,10,1]` with the model's quantization parameters | **Top-1 classification accuracy** over 12 classes | Top-1 accuracy degradation versus TFLite ≤ **TBD**; output tolerance **TBD** |
-| **MobileNetV1 0.25x** | **Visual Wake Words**, derived from COCO person/no-person labels | Resize images to **96×96 RGB**, use the reference normalization (e.g. [0,1] before quantization), then produce `INT8 [1,96,96,3]` | **Binary top-1 accuracy** (person vs no-person) | Accuracy degradation versus TFLite ≤ **TBD**; output tolerance **TBD** |
+| **AD01** | **ToyADMOS / DCASE 2020 Task 2, ToyCar** normal/anomalous reference evaluation | Pin the reference 640-feature extraction, quantization, and window/recording aggregation | Reconstruction/anomaly score and **ROC-AUC** | Zero element mismatches on conformance fixtures; quality goal **AUC ≥0.85**, mean inference **≤50 ms** |
+| **DS-CNN** | **Google Speech Commands v2**, pinned reference 12-class split | Exact reference **49×10 MFCC** features and model quantization, `INT8 [1,49,10,1]` | **Top-1 accuracy** | Zero element mismatches on conformance fixtures; quality goal **≥90%**, mean inference **≤250 ms** |
+| **MobileNetV1 0.25x** | **Visual Wake Words**, pinned person/no-person evaluation | Exact reference resize/RGB normalization and model quantization, `INT8 [1,96,96,3]`; do not substitute a generic normalization | **Binary accuracy** | Zero element mismatches on conformance fixtures; quality goal **≥80%**, mean inference **≤1,000 ms** |
 | **ResNet-8** | **CIFAR-10** official test set or MLPerf Tiny supplied validation subset | Use **32×32 RGB** inputs and the exact reference model's scaling/quantization to produce `INT8 [1,32,32,3]` | **10-class top-1 accuracy** | Accuracy degradation versus TFLite ≤ **TBD**; output tolerance **TBD** |
 | **Streaming DS-CNN** | **MLPerf Tiny streaming wake-word custom test audio**, with annotated event windows | Use the reference audio front end and continuously updated **`INT8 [1,30,1,40]`** feature windows; preserve stream timing and detection-window rules | **False positives, false negatives**, and event-detection latency | FP/FN count not worse than reference by more than **TBD**; latency requirement **TBD** |
+
+Run the pinned host baseline before evaluating these quality floors. A baseline below a goal requires investigating model, preprocessing, and split compatibility; it is not evidence of hardware error. Retain original weights/bias alongside separately derived NPU constants, preserve scale_f32_bits (including ResNet input scale 1.0), and export CPU preparation parameters. Dataset/preprocessing pins and the byte-serialized blob schema/round-trip fixtures are M4 deliverables.
 
 ### AD01 Anomaly-Detection Scoring
 
