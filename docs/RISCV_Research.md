@@ -15,9 +15,9 @@ This document covers RAVEN's control plane:
 
 It builds directly on [NPU_ARCHITECTURE.md](NPU_ARCHITECTURE.md) (Michael, compute core) and [RAVEN_Memory_System_Research.md](RAVEN_Memory_System_Research.md) (Taylor, memory/DMA). Where those documents leave an interface to "agree with Nahjay," this document **proposes** a definition for the team to review.
 
-**Shared baseline revision 0.2 (2026-10-23).** The [interface contract](interfaces/RAVEN_INTERFACE_CONTRACT.md) defines selected proposed behavior for row-block operand delivery, DMA tails/COMMIT_FILL, capabilities, mailbox ownership, CPU/NPU constants, and cancellation/recovery. The [project plan](PROJECT_PLAN.md) owns common targets, dates, and milestone leads. This document supplies the detailed proposed register/driver view; it does not establish implemented RTL, working firmware, tested tool pins, or measured performance. §21 tracks implementation checkpoints. The vendor DMA map follows PG021.
+**Shared baseline revision 0.3 (2026-10-23).** The [interface contract](interfaces/RAVEN_INTERFACE_CONTRACT.md) defines selected proposed behavior for row-block operand delivery, DMA tails/COMMIT_FILL, capabilities, mailbox ownership, CPU/NPU constants, and cancellation/recovery. The [project plan](PROJECT_PLAN.md) owns common targets, dates, and milestone leads. This document supplies the detailed proposed register/driver view; it does not establish implemented RTL, working firmware, tested tool pins, or measured performance. §21 tracks implementation checkpoints. The vendor DMA map follows PG021.
 
-**Earlier shared-interface revision (2026-10-22, amended by revision 0.2).** The baseline keeps fallback kernels on the RISC-V, uses one result lane for bring-up with four lanes as an evaluation configuration, widens POOL strides, allocates EWADD's common pre-shift, and explicitly names a continuation's PSUM source and row pitch. Parameter records provide per-output bias even when requantization uses a shared scale. Implementation and verification remain outstanding; the current shared contract supersedes older conflicting descriptions.
+**Earlier shared-interface revision (2026-10-22, amended by the current shared contract).** The baseline keeps fallback kernels on the RISC-V, uses one result lane for bring-up with four lanes as an evaluation configuration, widens POOL strides, allocates EWADD's common pre-shift, and explicitly names a continuation's PSUM source and row pitch. Parameter records provide per-output bias even when requantization uses a shared scale. Implementation and verification remain outstanding; the current shared contract supersedes older conflicting descriptions.
 
 **Revision (2026-10-23).** Replaced next-run cleanup with explicit RECLAIM; retained output until acknowledgment; specified valid-byte DMA packets and a successful-MM2S commit before READY; added timer-driven waits, recovery-generation tickets, test capabilities, a measurable T5, and model-specific acceptance. These remain proposed implementation requirements.
 
@@ -448,7 +448,7 @@ Codes 10–15 are reserved.
 | Compute complete | Last product of the command committed in the MAC array | Internal only. A performance-counter boundary (`CYC_COMPUTE`). |
 | **Command complete** (`DONE`) | Every output element of the command is in the destination bank, and bank state transitions are applied | `DONE_SEQ` = this command's sequence number, `IRQ_STATUS.DONE` |
 | DMA complete | Fill: packet validated, successful MM2S observed, then COMMIT_FILL makes bank READY. Drain: successful S2MM and adapter stream completion checked. | Adapter FILL_DONE/AWAIT_COMMIT, DMA status, explicit commit/release |
-| Inference complete | Firmware has drained the final output to DDR | Mailbox `status = DONE` |
+| Inference measurement end | Firmware has drained the final output to DDR | Capture inference counters here; publish mailbox `DONE` only after required bank/local cleanup (§14). |
 
 Once an error halts the queue, later queued commands are **not** executed. CLEAR_ERR does not resume them. Cancel the software list and perform the coordinated recovery in the [shared contract](interfaces/RAVEN_INTERFACE_CONTRACT.md#6-timed-waits-recovery-and-completion-tickets); wait for QUIESCENT before storage reuse. A 1 ms timer drives bounded software waits for RUN/DRAIN and lost interrupts in addition to the dependency watchdog. SOFT_RESET cancels/quiesces active local execution before flushing and returning IDLE; it does not erase BRAM.
 
@@ -517,6 +517,7 @@ All registers are 32-bit, word-aligned, at offsets from `NPU_BASE = 0xA000_0000`
 | `0x0A4`/`0x0A8` | `MAC_COUNT_LO/HI` | RO | 0 | Useful MACs committed (masked lanes excluded) |
 | `0x0AC` | `CMD_COUNT` | RO | 0 | Commands retired |
 | `0x0B0` | `HW_FEATURES` | RO | build | [0] T_LOOPBACK, [1] T_FILL, [2] ACT destination writes, [3] OUT1 present; [31:4] reserved zero |
+| `0x0B4` | `CONV_CHUNK` | RW (staging) | 0 | [15:0] input channels in this Conv reduction chunk; [31:16] reserved zero. Explicit count, distinct from stored pixel stride C_in in P1 and starting channel in P5. Zero for other opcodes. |
 
 The quantization fields (`Q_*`) follow Quan's proposed TFLM commit `c051fea55c4a6b4464186e1bb126708bea50f32e` with `TFLITE_SINGLE_ROUNDING=1` (operators research §§4–5). Positive signed Q_SHIFT scales up; multiplier ties follow that helper, not pooling's division rule. The EWADD common pre-shift is allocated to P1[7:0] (§6.4), separately from the three multiplier shifts. This reference/configuration and the fields remain subject to joint review; no golden execution is claimed here.
 
@@ -572,12 +573,14 @@ BYTE_OFFSET must be 16-byte aligned. Validate IDs against the versioned bank/pre
 | Opcode | P0 | P1 | P2 | P3 | P4 | P5 |
 |---|---|---|---|---|---|---|
 | `GEMM` | `[15:0]` M, `[31:16]` N | `[15:0]` K (this chunk) | `[15:0]` A row pitch (bytes) | `[15:0]` B panel pitch (bytes) | `[15:0]` OUT row pitch | 0 |
-| `CONV2D` | `[15:0]` H_in, `[31:16]` W_in (tile, including halo) | `[15:0]` C_in, `[31:16]` C_out (tile) | `[7:0]` Kh, `[15:8]` Kw, `[19:16]` stride_h, `[23:20]` stride_w, `[27:24]` dil_h, `[31:28]` dil_w | `[7:0]` pad_top, `[15:8]` pad_bottom, `[23:16]` pad_left, `[31:24]` pad_right | `[15:0]` H_out, `[31:16]` W_out (tile) | `[15:0]` C_in chunk offset (K chunking over channels), `[31:16]` channel block size `cb` when `SRC_A_CB=1`, else 0 (optional C2, §9.2) |
+| `CONV2D` | `[15:0]` H_in, `[31:16]` W_in (resident valid tile/halo) | `[15:0]` C_in_full (stored NHWC pixel stride), `[31:16]` C_out tile | `[7:0]` Kh, `[15:8]` Kw, `[19:16]` stride_h, `[23:20]` stride_w, `[27:24]` dil_h, `[31:28]` dil_w | `[7:0]` pad_top, `[15:8]` pad_bottom, `[23:16]` pad_left, `[31:24]` pad_right | `[15:0]` H_out, `[31:16]` W_out | `[15:0]` cin_start; `[31:16]` reserved zero in the baseline. CONV_CHUNK supplies cin_count. |
 | `POOL` | `[15:0]` H_in, `[31:16]` W_in | `[15:0]` C | `[7:0]` window_h, `[15:8]` window_w, `[23:16]` stride_h, `[31:24]` stride_w (8-bit strides) | pads as CONV2D | `[15:0]` H_out, `[31:16]` W_out | 0 |
 | `EWADD` | `[23:0]` element count | `[7:0]` Q_EWADD_LEFT_SHIFT (unsigned 0–20); upper bits 0 | 0 | 0 | 0 | 0 |
 | `RELU` / `REQUANT` | `[23:0]` element count | `[15:0]` channels (per-channel requant) | 0 | 0 | 0 | 0 |
 | `T_LOOPBACK` | `[23:0]` byte count | 0 | 0 | 0 | 0 | 0 |
 | `T_FILL` | `[7:0]` fill byte | `[23:0]` byte count | 0 | 0 | 0 | 0 |
+
+For Conv, CONV_CHUNK.cin_count is required and positive; P1.C_in_full remains the stored full-channel pixel stride. Compute K_chunk=Kh*Kw*cin_count and gather channel cin_start+ci within that stride. Check cin_start/count without overflow, full padded B-panel fit, and consecutive complete channel coverage. Context metadata retains full stride, geometry and expected next channel. ACC_INIT begins at zero; ACC_LAST ends at C_in_full. Single-chunk Conv sets count=C_in_full. [Shared channel-chunk definition](interfaces/RAVEN_INTERFACE_CONTRACT.md#conv-channel-chunks).
 
 Bit-level picture of the CONV2D `P2` geometry word:
 
@@ -610,8 +613,8 @@ Mask M/N tails and stop at logical K. Include padded physical read spans in rang
 
 ```mermaid
 flowchart LR
-    FW["Firmware writes<br/>OPCODE, OP_FLAGS, SRC/DST,<br/>P0-P5, Q_*"] --> STG["Staging register set<br/>(one copy, RW)"]
-    STG -->|"CTRL.START: snapshot + seq++"| Q["Command FIFO<br/>depth 4, about 26 words per entry"]
+    FW["Firmware writes<br/>OPCODE, OP_FLAGS, SRC/DST,<br/>P0-P5, Q_*, CONV_CHUNK"] --> STG["Staging register set<br/>(one copy, RW)"]
+    STG -->|"CTRL.START: snapshot + seq++"| Q["Command FIFO<br/>depth 4, 21 staging words plus sequence per entry"]
     Q --> DISP["Dispatch + dependency check"]
     DISP --> EXEC["Compute core / output operators"]
     EXEC --> RET["Retire: DONE_SEQ, bank RELEASE, IRQ"]
@@ -619,10 +622,10 @@ flowchart LR
 
 *Figure 4: staging registers and command queue.*
 
-- Each snapshot includes all staging fields, including PSUM_SRC and PSUM_PITCH; restoring a parked command must restore those fields too.
-- The staging registers keep their values after START. **Firmware only rewrites fields that changed** ("register write elision"). Consecutive tiles of one layer usually differ only in `SRC_A`, `DST`, `OP_FLAGS`, and one geometry word, so 4–5 writes instead of about 20 (§11.2).
+- Each snapshot includes all 21 staging words, including PSUM_SRC, PSUM_PITCH and CONV_CHUNK, plus its 16-bit sequence. Restoring a parked command must restore these fields too.
+- The staging registers keep their values after START. **Firmware only rewrites fields that changed** ("register write elision"). Consecutive tiles of one layer usually differ only in `SRC_A`, `DST`, `OP_FLAGS`, and one geometry word, so about 4–5 writes instead of the full 22-write program (§11.2).
 - START while `Q_FULL=1` does not enqueue. It sets `ERR_CODE=ERR_Q_OVERFLOW` and halts, so the bug cannot go unnoticed. The driver checks `Q_FULL` before START.
-- Depth 4 (proposed; `HW_CONFIG` reports the built value) is enough to hold "current + next + one DMA-waiting tile" with margin. Each entry is about 26 × 32-bit words: about 832 bits × 4, implemented in LUTRAM.
+- Depth 4 (proposed; `HW_CONFIG` reports the built value) is enough to hold "current + next + one DMA-waiting tile" with margin. Each entry contains 21 × 32 staging bits + 16 sequence bits = 688 bits; four entries contain 2,752 payload bits before FIFO/control metadata. LUTRAM is a candidate; synthesis confirms cost.
 
 ### 6.6 Command granularity and partial-sum context
 
@@ -725,6 +728,7 @@ The intermediate (OUT0) is **consumed** at step 5 and **released** at step 6, wh
 | `0x08` | `ERR_ACC_RANGE` | Accumulator range violation, if Michael's datapath implements a detector |
 | `0x09` | `ERR_UNIT` | Compute or operator unit reported an internal error |
 | `0x0A` | `ERR_ABORTED` | Firmware ABORT |
+| `0x0B` | `ERR_BAD_FLAGS` | Inconsistent first/last/chunk/context flags, including incomplete or overlapping Conv channel coverage |
 
 ### 6.9 Single source of truth: SystemRDL
 
@@ -791,7 +795,7 @@ Base `DMA_BASE = 0xA001_0000`. Offsets and bit positions below match PG021 v7.1.
 - Scatter-gather disabled for bring-up.
 - Address width 32.
 - MM and stream data width 128.
-- **"Width of Buffer Length Register" set explicitly to 23 bits; never below 15.** The byte limit is `2^width − 1`, and the field ranges from 8 to 26 bits ([PG021 field descriptions](https://docs.amd.com/r/en-US/pg021_axi_dma/Field-Descriptions), [MM2S_LENGTH](https://docs.amd.com/r/en-US/pg021_axi_dma/MM2S_LENGTH-MM2S-DMA-Transfer-Length-Register-Offset-28h)). At 14 bits a transfer caps at 16,383 bytes, **one byte short of a 16 KiB bank fill**. Why 23: it is the value the Linux `xilinx_dma` binding uses as its fallback and describes as supported by all IP versions ([binding patch](https://lkml.iu.edu/1811.2/04166.html)), and it allows 8 MiB transfers. Do not rely on the IP GUI default; set the value in the block-design Tcl and check it in M5.
+- **"Width of Buffer Length Register" set explicitly to 23 bits; never below 15.** The byte limit is `2^width − 1`, and the field ranges from 8 to 26 bits ([PG021 field descriptions](https://docs.amd.com/r/en-US/pg021_axi_dma/Field-Descriptions), [MM2S_LENGTH](https://docs.amd.com/r/en-US/pg021_axi_dma/MM2S_LENGTH-MM2S-DMA-Transfer-Length-Register-Offset-28h)). At 14 bits a transfer caps at 16,383 bytes, **one byte short of a 16 KiB bank fill**. Why 23: it is the value the Linux `xilinx_dma` binding uses as its fallback and describes as supported by all IP versions ([binding patch](https://lkml.iu.edu/1811.2/04166.html)), and it allows up to 8 MiB minus one byte per transfer. Do not rely on the IP GUI default; set the value in the block-design Tcl and check it in M5.
 - **Data Re-Alignment Engine off.** Without DRE, PG021 requires aligned addresses ("undefined results" otherwise). RAVEN's 16-byte alignment rule for 128-bit transfers already satisfies this.
 - **Not "Micro DMA" mode.** PG021 notes Micro DMA "does not take care of the 4K boundary." The full direct-register mode is used instead.
 
@@ -921,7 +925,7 @@ typedef enum { RAVEN_BANK_ACT0, RAVEN_BANK_ACT1, RAVEN_BANK_WGT0, RAVEN_BANK_WGT
                RAVEN_BANK_OUT0, RAVEN_BANK_OUT1, RAVEN_BANK_PRM } raven_bank_t;
 
 typedef struct { raven_bank_t bank; uint32_t offset; } raven_spad_t;
-typedef struct { uint32_t generation; uint16_t sequence; } raven_ticket_t;
+typedef struct { uint32_t generation; uint64_t command_id; } raven_ticket_t;
 typedef enum { RAVEN_DDR_TO_SPAD, RAVEN_SPAD_TO_DDR } raven_dir_t;
 
 typedef struct {
@@ -931,6 +935,7 @@ typedef struct {
     raven_spad_t psum_src;         /* continuation's explicit INT32 context */
     uint32_t psum_pitch;           /* byte pitch, PSUM_PITCH[15:0] */
     uint32_t p[6];                 /* packed per §6.4; use raven_pack_*() helpers */
+    uint32_t conv_chunk;           /* positive Conv channel count; 0 for other opcodes */
     uint32_t q_zp, q_mult, q_shift, q_clamp, q_mult_a, q_mult_b;
 } raven_op_t;
 
@@ -948,7 +953,7 @@ raven_status_t raven_set_op(const raven_op_t *op);       /* copies op into the d
                                                             command; no MMIO (see below)        */
 raven_status_t raven_start(raven_ticket_t *ticket_out);           /* submit: issue now or park in order;
                                                             never fails on Q_FULL (parks)       */
-raven_status_t raven_wait(raven_ticket_t ticket, uint32_t timeout_us); /* generation + wrap check */
+raven_status_t raven_wait(raven_ticket_t ticket, uint32_t timeout_us); /* generation + full-ID completion */
 
 /* Parameter packing helpers: the only place bit layouts of §6.4 are encoded */
 uint32_t raven_pack_gemm_p0(uint16_t m, uint16_t n);
@@ -972,14 +977,14 @@ raven_status_t raven_recover(void); /* cancel pending work; ABORT/quiesce; reset
                                       after quiescence; advance generation or fault */
 ```
 
-`raven_wait` first rejects an old-generation ticket as CANCELED, then compares `(int16_t)(done - ticket.sequence) >= 0`. Keep fewer than 32,768 commands outstanding for that half-range comparison. Every wait checks a deadline with the event loop/timer; WFI alone supplies no timeout. Recovery invalidates pending tickets, the write-elision shadow, cached operands/results and PSUM contexts; it resynchronizes NEXT_SEQ before a fresh operation. See the [ordered recovery contract](interfaces/RAVEN_INTERFACE_CONTRACT.md#6-timed-waits-recovery-and-completion-tickets).
+`raven_wait` checks generation and assigned-ID validity, then compares the ticket's full 64-bit command_id with a valid completed watermark. It does not compare an old ticket directly with 16-bit DONE_SEQ. The driver reaps its issued-ID FIFO using a bounded modulo delta from the last observed hardware completion; fewer than 32,768 issued-not-reaped commands may accumulate. Hardware sees command_id's low 16 bits, while software IDs remain unique across hardware wraps. A sequencer reset advances generation and cancels old tickets. See the [exact completion-extension/recovery contract](interfaces/RAVEN_INTERFACE_CONTRACT.md#6-timed-waits-recovery-and-completion-tickets). Every wait checks a timer-driven deadline; WFI alone supplies no timeout.
 
 **Command submission and parking.** The hardware staging registers are shared, so a parked command must not depend on them:
 
 1. `raven_set_op()` only copies the `raven_op_t` into the driver's *pending command* in LMB. It writes no MMIO.
 2. `raven_start()` copies the **complete** command (all fields of `raven_op_t`) into a slot of the ordered pending list (§9.3) and returns. The caller may then reuse or change its `op` and call `raven_set_op()` again without affecting the submitted command.
 3. When the command's preconditions hold (every required fill armed or earlier producer queued, `Q_FULL = 0`, and every earlier pending command issued), the event loop **restores** that slot into the staging registers, then `fence iorw,iorw`, then `CTRL.START`. Write elision (§6.5) compares against a driver shadow of what the hardware staging registers currently hold, not against the previous `raven_set_op()` call, so a restore always leaves the full command in staging.
-4. **`ticket_out` is valid when `raven_start()` returns.** Its generation identifies the current recovery session; its sequence is assigned at submission. The driver keeps a software counter that it assigns in submission order. Commands reach the hardware queue strictly in that order, and the driver is the only writer of `CTRL.START`, so the software number equals the hardware sequence number. Before each `START` the driver checks `NEXT_SEQ` against the slot's number; a mismatch is reported as `RAVEN_E_HW`. `raven_wait(ticket)` on a still-parked command keeps running the event loop until the command has been issued and `DONE_SEQ` reaches it.
+4. **ticket_out is valid on successful return.** Assign its generation and monotonically increasing 64-bit command_id at accepted submission. Commands reach hardware in that order. Before START, check NEXT_SEQ equals command_id & 0xFFFF; mismatch is RAVEN_E_HW. Preserve the full ID in pending/issued records, reap completions into the full-width watermark, and keep old completed tickets distinguishable after 65,536 submissions. A parked ticket runs the event loop until issued/completed or timed out.
 5. **`Q_FULL` parks; it does not fail.** `raven_start()` returns `RAVEN_E_BUSY` only when the software pending list itself is full (sized at compile time). The hardware `ERR_Q_OVERFLOW` (§6.5) remains as a check that the driver never pushes `START` with the queue full.
 
 ### 8.3 Model blob format (interface with Jackie's export tool)
@@ -1063,13 +1068,15 @@ Tiles must fit Taylor's banks (16 KiB ACT and WGT, 8–16 KiB OUT, 4 KiB PRM). F
 ```text
 h_in(h_out)   = (h_out − 1)·stride_h + (Kh − 1)·dil_h + 1
 ACT bytes     = h_in · W_in · C_in                         ≤ 16384
-WGT bytes     = Kh · Kw · C_in · c_out                     ≤ 16384   (else chunk C_in → K-chunks)
+WGT bytes     = ceil(c_out/8) · align16(8·Kh·Kw·cin_count) ≤ 16384
+CONV_CHUNK    = cin_count > 0; P1.C_in = full resident pixel stride
+P5[15:0]      = cin_start; channel chunks cover full C_in exactly once
 OUT bytes     = h_out · W_out · c_out    (INT8, ACC_LAST)  ≤ OUT bank
 PSUM bytes    = 4 · h_out · W_out · c_out (if K-chunked)   ≤ OUT bank
 PRM bytes     = 16 · c_out                                 ≤ 4096
 ```
 
-**Why full-width row bands.** In NHWC, a band of full rows is **one contiguous DDR range**, so each activation fill is a single direct-mode DMA transfer. A width-split tile would need one DMA transfer per row, or scatter-gather or 2-D descriptors, multiplying MMIO and IOC handling. Layers too wide for one band at `h_out = 1` fall back to multi-transfer fills, which is a measured cost and an argument for scatter-gather.
+**Why full-width row bands.** In NHWC, a band of full rows is **one contiguous DDR range**, so each activation fill is a single direct-mode DMA transfer. A width-split tile would need one DMA transfer per row, or scatter-gather or 2-D descriptors, multiplying MMIO and IOC handling. If even the smallest valid full-width band exceeds ACT capacity, the baseline uses a supported CPU fallback or rejects the layer. Multiple transfers cannot solve that capacity failure; width-subtiling/repacking requires a separately implemented layout/addressing path.
 
 **Output-channel tiles and the DDR layout.** A Conv output tile with `c_out < C_out` is **not** one contiguous range in a plain NHWC tensor: each pixel's `c_out` bytes sit at a stride of `C_out`. Firmware places channel tiles by these rules, in order of preference:
 
@@ -1093,6 +1100,10 @@ The row-band ACT formula is a conservative halo footprint; clip actual reads to 
 /* Simplified: OUT1 present, one c_out group, n bands, single K chunk.
    Without OUT1 reserve a supported ACT destination before prefetch. */
 raven_ticket_t tickets[MAX_BANDS];
+/* Other shared geometry/quantization fields are prepared before this loop. */
+op.p[1] = (c_out << 16) | C_in;  /* full stored NHWC channel stride */
+op.p[5] = 0;                    /* first and only channel chunk */
+op.conv_chunk = C_in;
 raven_dma_transfer(RAVEN_DDR_TO_SPAD, w_addr,   (raven_spad_t){RAVEN_BANK_WGT0, 0}, w_bytes);
 raven_dma_transfer(RAVEN_DDR_TO_SPAD, prm_addr, (raven_spad_t){RAVEN_BANK_PRM,  0}, prm_bytes);
 raven_dma_transfer(RAVEN_DDR_TO_SPAD, band_addr(0), act(0), band_bytes(0));
@@ -1104,7 +1115,7 @@ for (int b = 0; b < n_bands; b++) {
               | (b == n_bands - 1 ? RELEASE_B | RELEASE_PARAM : 0);
     op.p[0]   = raven_pack_conv_p0(band_h_in(b), W_in);
     raven_set_op(&op);                            /* copy into driver; no MMIO yet    */
-    raven_start(&tickets[b]);                     /* full snapshot + generation/seq */
+    raven_start(&tickets[b]);                     /* full snapshot + generation/command_id */
                                                   /* issued (~4-5 writes) or parked  */
 
     if (b + 1 < n_bands)                          /* prefetch next band while b runs */
@@ -1118,7 +1129,7 @@ drain_when_done(tickets[n_bands - 1], out((n_bands - 1) & 1), out_addr(n_bands -
 
 `raven_dma_transfer`, `raven_start`, and `drain_when_done` do not spin. When a precondition is unmet (MM2S busy, target bank not FREE, output not FULL), they **park the request in a small ordered pending-action list** that the event loop (§9.4) retries on each interrupt.
 
-**Ordering rule.** The pending list is FIFO per resource and preserves program order between a fill and the commands that read its bank. `raven_start` checks every source bank (references actually used by its opcode/flags (§6.7)): if a required fill is still parked, the command is parked behind it. A source produced by an earlier command follows that producer dependency instead of requiring a DMA fill; opcode/source-type readiness is defined in §6.7. It is pushed with CTRL.START only when each required fill is armed, or its earlier producer is already queued, and the queue has space. A parked command holds its own saved copy of every command field and its sequence number, and these are restored into staging immediately before its `START` (§8.2). Hardware then applies the typed-source checks in WAIT_DEP. A source can still be FREE at submission if its producer is earlier in the queue; it must be valid when the consumer reaches dispatch, or ERR_BANK_STATE reports the broken dependency (§6.7). In the loop above, START for band *b+1* can be parked behind the ACT fill for *b+1*, which in turn waits for band *b−1*'s `RELEASE_A` to free that bank.
+**Ordering rule.** The pending list is FIFO per resource and preserves program order between a fill and the commands that read its bank. `raven_start` checks every source bank (references actually used by its opcode/flags (§6.7)): if a required fill is still parked, the command is parked behind it. A source produced by an earlier command follows that producer dependency instead of requiring a DMA fill; opcode/source-type readiness is defined in §6.7. It is pushed with CTRL.START only when each required fill is armed, or its earlier producer is already queued, and the queue has space. A parked command holds its own saved copy of every command field and its full command ID, and these are restored into staging immediately before its `START` (§8.2). Hardware then applies the typed-source checks in WAIT_DEP. A source can still be FREE at submission if its producer is earlier in the queue; it must be valid when the consumer reaches dispatch, or ERR_BANK_STATE reports the broken dependency (§6.7). In the loop above, START for band *b+1* can be parked behind the ACT fill for *b+1*, which in turn waits for band *b−1*'s `RELEASE_A` to free that bank.
 
 ### 9.4 Event loop, interrupts vs. polling
 
@@ -1149,7 +1160,7 @@ sequenceDiagram
     FW->>ADP: ARM_FILL ACT1 (band 1)
     FW->>DMA: MM2S band 1
     FW->>NPU: changed fields + START (seq 1, src ACT1)
-    Note over FW: deadline checks; wfi until completion or 1 ms timer IRQ
+    Note over FW: deadline checks, wfi until completion or 1 ms timer IRQ
     NPU-->>FW: DONE irq (DONE_SEQ=0, ACT0 released, OUT0 FULL)
     FW->>DMA: S2MM_DA, S2MM_LENGTH
     FW->>ADP: DRAIN_SRC=OUT0, ARM_DRAIN
@@ -1265,7 +1276,7 @@ Use NPU/rdcycle counters for applicable durations; T5 uses ILA/entry-marker inst
 |---|---|---|---|
 | T1 | Control clock | 100 MHz, same domain as the NPU, non-negative WNS | Vivado timing report |
 | T2 | Single AXI4-Lite CSR write / read latency (RISC-V → NPU CSR) | ≤ 20 cycles each | `rdcycle` (Zicntr, no bus access) around 1,000 back-to-back accesses |
-| T3 | Command issue cost, full program (≈ 20 writes) | ≤ 4 µs | Timer from first staging write to START |
+| T3 | Command issue cost, full program (21 staging words + START = 22 writes) | ≤5 µs (proposed) | Timer from first staging write through START, including fences; measure actual cost |
 | T4 | Command issue cost with write elision (≈ 5 writes) | ≤ 1 µs | Same |
 | T5 | IRQ assertion to observed ISR GPIO marker | ≤2 µs (proposed) | Same-clock ILA probes of npu_irq and a dedicated entry-stub marker on an isolated NOP. Includes marker/MMIO overhead; CYC_TOTAL is not a latched DONE timestamp. |
 | T6 | Queue-empty idle fraction: delta CYC_IDLE_PENDING / delta CYC_TOTAL for each Conv/GEMM layer window | ≤ 5% (proposed) | Window from first tile preparation to last command retirement; report raw counters and correlate DMA, CPU-fallback, and command-issue events before attributing causes |
@@ -1280,12 +1291,12 @@ The T6 ratio measures all queue-empty idle within its stated window. It is not a
 
 Let `t_mmio` be cycles per CSR write (15, inside the T2 budget), `w` writes per command, and `C` the command's compute cycles. Serialized overhead fraction ≈ `w·t_mmio / (w·t_mmio + C)`. With a queue, overhead is hidden whenever `w·t_mmio + t_irq < C`.
 
-| Command granularity (8×8 array) | Compute cycles C | MMIO cycles (w=20 / w=5) | Serialized overhead | Hidden with queue? |
+| Command granularity (8×8 array) | Compute cycles C | MMIO cycles (w=22 / w=5) | Serialized overhead | Hidden with queue? |
 |---|---:|---:|---:|---|
-| One microtile, K=64 | 64 | 300 / 75 | 82% / 54% | **No.** Firmware cannot keep up. |
-| 32×32 panel, K=64 | 1,024 | 300 / 75 | 23% / 7% | Yes |
-| Compute doc synthetic conv layer as one tile (M=256, N=32, K=144) | 18,432 | 300 / 75 | 1.6% / 0.4% | Yes |
-| Batch-one FC, M=1, N=64, K=512 | 4,096 | 300 / 75 | 6.8% / 1.8% | Yes |
+| One microtile, K=64 | 64 | 330 / 75 | 84% / 54% | **No.** Firmware cannot keep up. |
+| 32×32 panel, K=64 | 1,024 | 330 / 75 | 24% / 7% | Yes |
+| Compute doc synthetic conv layer as one tile (M=256, N=32, K=144) | 18,432 | 330 / 75 | 1.8% / 0.4% | Yes |
+| Batch-one FC, M=1, N=64, K=512 | 4,096 | 330 / 75 | 7.5% / 1.8% | Yes |
 
 The synthetic SAME Conv layer (16×16×16 → 16×16×32, 3×3, stride 1, one virtual padding element on each edge) fits in banks; gather supplies virtual padding without fetching out-of-range rows:
 
@@ -1295,7 +1306,7 @@ The synthetic SAME Conv layer (16×16×16 → 16×16×32, 3×3, stride 1, one vi
 | WGT | 3·3·16·32 | 4,608 B |
 | OUT | 16×16×32 | 8 KiB INT8 |
 
-With the same illustrative 14 command writes as §10, three fills/commits and one drain/release total 38 writes. Adding 16 illustrative status reads at 15 cycles/access gives 810 control cycles versus 18,432 ideal compute issue cycles, **about 4.2% serialized overhead before gather/pipeline costs**. Actual command/poll counts and Conv refill stalls must be measured.
+Using an illustrative 15 Conv command writes (the §10 pattern plus explicit CONV_CHUNK=16), three fills/commits and one drain/release total 39 writes. Adding 16 illustrative status reads at 15 cycles/access gives 825 control cycles versus 18,432 ideal compute issue cycles, **about 4.3% serialized overhead before gather/pipeline costs**. Actual command/poll counts and Conv refill stalls must be measured.
 
 The table is the quantitative basis for:
 
@@ -1348,7 +1359,7 @@ The team freezes them in `tools/VERSIONS.md` at milestone M1 (§18), and every b
 | Host GCC/Clang + a unit-test framework (Unity or a plain `assert` harness) | Distribution default, recorded | Host-side driver and runtime tests with the mock HAL |
 | Git + GitHub | Current | Tagged releases, CI for host tests and register generation |
 
-All subsystems use the same Vivado/Vitis version. Exact Python package versions live in `tools/requirements.txt`. CI runs host tests and register generation on GitHub Actions; Vivado builds run on a lab workstation, since Vivado is too large for hosted CI.
+The proposed build uses one Vivado/Vitis version across subsystems. Exact tested Python package versions will be recorded in `tools/requirements.txt` at M1; that dependency file and executable CI are not present yet. Planned GitHub Actions cover host tests and register generation once those commands exist. Vivado implementation is planned for a lab workstation unless a suitable runner is configured.
 
 ---
 
@@ -1448,7 +1459,7 @@ This makes the "lasting educational tool" claim concrete and checkable.
 2. **Handoff acceptance test (M11).** A teammate other than Nahjay, followed by the designated successor, starts from a clean clone and a fresh tool install. Using only the repository documentation, they build the bitstream and firmware and pass M5 (self-test) and M6 (GEMM bit-exact). Every point where they needed help becomes a doc fix, then the test is repeated.
 3. **Successor package.** Release tag, a list of open issues ranked by severity, and a 30-minute recorded walkthrough of the control path.
 
-The handoff recipient is the next RAVEN senior-design cohort, through the faculty advisor. Before graduation the repository moves to a GitHub organization account the advisor controls, so it outlives personal accounts. The team names the maintenance owner at M1 (§21).
+The handoff recipient and any post-graduation maintenance commitment remain unconfirmed. A successor cohort or faculty-managed repository is an option to discuss with the stakeholder, not an existing agreement. Michael coordinates that discussion before M9 (§21); record the actual recipient, hosting arrangement and maintenance scope. Deliver the tagged source, tested instructions and limitations regardless of whether ongoing maintenance is accepted.
 
 ---
 
@@ -1519,7 +1530,7 @@ Required work avoids Thanksgiving, fall exams/winter interval, and March 13–20
 | Golden tensors for M6/M7/M9 | Jackie | Nahjay |
 | Control-plane documentation, tutorial, handoff test | **Nahjay** | The tester is a teammate who is not Nahjay |
 
-**Integration leads.** Each shared milestone has one accountable lead. Nahjay leads M6, because first integration starts from the control path. The team assigns the M9 and final-handoff leads at M1 (§21).
+**Integration leads.** The [master schedule](PROJECT_PLAN.md#master-internal-schedule) is authoritative: Michael leads M6 synthetic compute integration, M9 three-model beta and the final package; Taylor leads M11 handoff reproduction. Nahjay owns control integration and its tests within those milestones. These assignments do not imply a post-graduation maintenance commitment.
 
 ---
 

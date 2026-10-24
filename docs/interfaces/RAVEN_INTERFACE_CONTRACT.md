@@ -1,6 +1,6 @@
 # RAVEN shared interface contract
 
-**Revision:** 0.2, October 23, 2026. **Status:** selected design proposal for implementation; no working RTL/firmware or measured FPGA result is implied. Michael owns compute, Taylor memory/adapter, Quan output arithmetic, Nahjay control/runtime, and Jackie export/reference data.
+**Revision:** 0.3, October 23, 2026. **Status:** selected design proposal for implementation; no working RTL/firmware or measured FPGA result is implied. Michael owns compute, Taylor memory/adapter, Quan output arithmetic, Nahjay control/runtime, and Jackie export/reference data.
 
 This document defines shared behavior used by the five research documents. The register tables in [RISC-V research](../RISCV_Research.md) provide the detailed proposed map. Change both together when revising an interface. Generated SystemRDL/RTL/C definitions remain future implementation work. [Project targets and dates](../PROJECT_PLAN.md) are separate from interface semantics.
 
@@ -22,13 +22,21 @@ A_vector[r] = cache[r][j]           # one common j per accepted reduction step
 
 Skip invalid M rows and mask their MACs. Stop at logical K, including a partial last block. Prefetch into the inactive buffer while the current buffer emits vectors. Eight sequential word reads provide sixteen full-block reduction steps; this makes overlap possible without eight simultaneous BRAM addresses. Initial fill, read latency, tails, and stalls remain measured overhead. Reset local K to zero for each resident K chunk and retain the chunk's global reduction position in the controller.
 
-Validate both logical footprints and the rounded physical span of every wide read. The last row has owned padding through `round_up(K,16)`; padding bytes are ignored, never issued as real K terms. The tiler includes pitches/padding in bank-capacity checks. These local buffers are additional frontend storage, not a change to the 74–88 KiB base scratchpad payload budget. Synthesis determines their register/LUTRAM/BRAM cost.
+Validate both logical footprints and the rounded physical span of every wide read. The last row has owned padding through `round_up(K,16)`; padding bytes are ignored, never issued as real K terms. The exporter/runtime packs row padding into owned storage when canonical source rows are not aligned to the required pitch; it must not reinterpret an unpadded DDR tensor as padded A. Charge any runtime repacking to inference time and reject or use a supported CPU fallback if the required staging is unavailable. The tiler includes pitches/padding in bank-capacity checks. These local buffers are additional frontend storage, not a change to the 74–88 KiB base scratchpad payload budget. Synthesis determines their register/LUTRAM/BRAM cost.
 
 ### B panels and Conv windows
 
 For an eight-column panel, lane `n` at reduction index `k` has byte address `SRC_B.offset + panel_index*panel_pitch + 8*k + n`. For GEMM, `panel_pitch=P3`, a 16-byte multiple at least `round_up(8*K,16)`; for Conv, use that minimum pitch for its resident flattened reduction. Mask/pad unused output columns with zero weights. For K=256 the minimum panel pitch is **2,048 bytes**, not 256. A 128-bit read supplies two 64-bit B vectors through a word register/unpacker. Pair A/B acceptance and preserve data, masks, channel tags, and K position on stalls.
 
 Conv activations remain packed NHWC row bands. The compute-side window gatherer maps output position and `(kh,kw,ci)` to input addresses, supplies the input zero-point outside the valid input, and fills local A vectors. Start with a correct serialized gatherer with contiguous-word reuse. Its refill cost can exceed GEMM's eight word reads: filter/row crossings and small channel counts change locality. Hardware line buffers, packed A deployment formats, and extra banking remain later optimizations. Software-created patches are useful independent test fixtures. Do not infer one-cycle Conv gathering or model-level 6.4 GMAC/s from the array ceiling.
+
+### Conv channel chunks
+
+For CONV2D, P1[15:0] is **C_in_full**, the channel stride of each stored NHWC input pixel; it is not the chunk count. P5[15:0] is **cin_start** and P5[31:16] stays zero. Add the RW staging register **CONV_CHUNK at NPU offset 0x0B4**: [15:0] is **cin_count**, [31:16] reserved zero. Require cin_count>0 and cin_count<=C_in_full-cin_start after checking cin_start<C_in_full. For other opcodes CONV_CHUNK is unused/reserved zero. Include it in queue snapshots and saved software commands.
+
+The local reduction has K_chunk=Kh*Kw*cin_count. For a local channel index ci, gather `(ih*W_in+iw)*C_in_full + cin_start + ci`; virtual padding supplies z_a. Pack only those selected channels into B, using its padded eight-column panels. ACT residency still covers full-channel row bands, so channel splitting does not reduce the stored activation stride or automatically shrink ACT capacity.
+
+ACC_INIT starts at channel zero and applies the full-layer corrected bias once. Continuations keep the same full input stride, window geometry, output tile and bias/PSUM context, and start at the saved next channel. ACC_LAST ends exactly at C_in_full; a nonfinal chunk must end earlier. Validate nonoverlapping complete coverage in the exporter/runtime and expected next channel/full stride in PSUM metadata. Reject zero/out-of-range counts with ERR_BAD_DIM, reserved bits with ERR_RSVD, and inconsistent first/last/context flags with ERR_BAD_FLAGS. A single-chunk Conv explicitly uses cin_start=0 and cin_count=C_in_full.
 
 ### Result destinations
 
@@ -85,6 +93,7 @@ Proposed additions occupy unused fields of the reviewed map:
 | NPU STATUS[12] | QUIESCENT: no active local memory requests/writes or pending responses; does not imply queue empty |
 | NPU CTRL[5] / STATUS[13] | ZERO_LOCAL / LOCAL_ZERO_BUSY: explicit erasure of local operand/product/accumulator/result storage |
 | ADP_CTRL[4] / ADP_STATUS[3] | COMMIT_FILL / AWAIT_COMMIT (§2) |
+| NPU CONV_CHUNK, offset 0x0B4 | RW staging: [15:0] cin_count; [31:16] reserved zero; non-Conv value zero |
 
 Validate bank IDs against the versioned bank/presence table, not BANK_ID < bank_count: PRM remains ID 6 when optional OUT1/ID 5 is absent. Include full padded B-panel spans (ceil(N/8) panels), A pitches, PARAM records, PSUM and destination storage in capacity checks.
 
@@ -151,7 +160,9 @@ Recover by canceling the failed execution:
 5. Reclaim bank metadata only after all owners quiesce, perform required cleanup, and reinitialize DMA/IRQs. Invalidate the MMIO write-elision shadow.
 6. Resynchronize NEXT_SEQ, increment a software recovery generation, and return to usable state only after success.
 
-Software tickets contain `{uint32 generation, uint16 sequence}`; old-generation waits return CANCELED. Hardware sequences remain 16-bit. Limit outstanding work to fewer than 32,768 commands for signed-half-range comparisons. Specify in the codec/C API the ticket's logical fields rather than assuming a packed wire struct.
+Software tickets contain `{uint32 generation, uint64 command_id}`. Assign monotonically increasing command IDs from zero within a generation; hardware receives the low 16 bits. Increment generation on every sequencer reset/recovery, cancel old-generation tickets, and reject counter exhaustion instead of reusing an ID. Hardware sequence wrap alone does not reuse a software ticket.
+
+Keep a FIFO of issued but not yet reaped IDs, plus the last observed 16-bit DONE_SEQ (initially 0xFFFF). On a status sample, delta=(DONE_SEQ-last_seen_done)&0xFFFF; advance only when delta is within the known issued-not-reaped count, otherwise report a hardware-state error. Reap that many entries and retain their highest 64-bit ID as a completed watermark with an explicit initially-false valid flag. Bound issued-not-reaped work below 32,768 and sample/reap before that bound, including with lost interrupts. A wait checks generation, assigned-ID validity, then the full-width completed watermark; it never compares an arbitrarily old ticket directly with 16-bit DONE_SEQ. Specify logical ticket fields rather than assuming a packed wire struct.
 
 If quiescence/reset fails, remain in terminal fault and use documented board/system recovery; never mark a bank FREE while a writer might remain active. Timer-driven recovery assumes an operational CPU/MMIO/timer path. It does not guarantee recovery from a completely blocked interconnect. T10's ≤20 ms reporting target applies to listed recoverable fixtures configured with 10 ms deadlines; successful restart is checked separately. Other operations use their declared deadline plus timer/handler overhead.
 
@@ -167,7 +178,7 @@ Required acceptance evidence:
 - DMA: 1/2/3/10/12/15/16/17/490-byte packets and bank boundaries; guard bytes, final-beat stalls, adapter-before-DMA completion, error-before-commit, and rejected oversized requests.
 - Ownership: retained READY/FULL sources, typed PSUM continuation, ACT destination reservations, and rejection of unsupported routes/segmented layouts.
 - Mailbox: two distinct consecutive inputs, delayed output acknowledgment, duplicate IDs, invalid-state requests, shutdown, cache-enabled host staging, and cleanup readback.
-- Recovery: lost IRQ, never-done compute, stuck output, malformed packet, DMA fault, abort in every active phase, late completion, sequence wraparound, stale ticket, and a fresh successful operation afterward.
+- Recovery: lost IRQ, never-done compute, stuck output, malformed packet, DMA fault, abort in every active phase, late completion, sequence wraparound, old completed tickets across 32,768/65,536 subsequent commands, stale reset-generation tickets, and a fresh successful operation afterward.
 - Export/numerics: raw/derived constant round-trip, scale 1.0/per-axis scales, zero-point correction and bias applied once, and zero element mismatches against the pinned reference on designated supported fixtures.
 
 Host feasibility work on October 23 passed 60 GEMM layout cases, 28 accumulation cases using all 14 committed FC operators, four Conv-window cases, and eleven packet-length expectations. These were arithmetic/address checks, not RTL, DMA-IP, timing, full-inference, or quality results. The host FC chunk choices did not establish bank fit; the deployed tiler must validate all padded operand, PARAM, PSUM, and destination footprints.
