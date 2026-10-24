@@ -10,6 +10,8 @@ Ultra96-V2 memory resources, DDR/AXI paths, DMA, tiling, and double buffering
 
 *Also important distinction after updating: the new BRAM bandwidth figures are theoretical compute-facing requirements, not measured DDR bandwidth. Likewise, the proposed banking arrangement and memory totals still need synthesis and team review before they can be treated as final*
 
+**Shared definitions:** the [interface contract](interfaces/RAVEN_INTERFACE_CONTRACT.md) selects the baseline ports, DMA packets/commit, ACT destination capability, and recovery. The [project plan](PROJECT_PLAN.md) holds master dates and model targets. The definitions below are proposed behavior, not implemented hardware.
+
 ## Summary
 
 RAVEN is a RISC-V-controlled programmable FPGA NPU intended to execute multiple quantized neural-network models on the Ultra96-V2. The feedback document makes the memory subsystem more concrete: it calls for measurable acceptance criteria for DMA, explicit DMA control/interface documentation, defined register fields and completion behavior, and subsystem ownership. It also proposes an 8×8 array of 64 INT8 MAC units with INT32 accumulation and a minimum 100 MHz target. These are design targets, not verified implementation results.
@@ -39,7 +41,7 @@ Use three logically separate interfaces. AXI4-Lite carries low-bandwidth control
 
 1. AXI DMA MM2S reads model/input bytes from DDR through a configured Zynq PS–PL AXI path and streams them to a stream-to-scratchpad adapter.
 
-1. The adapter writes the tile into a selected BRAM bank and marks that bank READY only after the complete expected byte count is received.
+1. The adapter writes the tile into a selected BRAM bank and keeps that bank DMA_FILLING after packet validation; firmware marks it READY with COMMIT_FILL only after successful MM2S completion as well.
 
 1. The NPU consumes READY activation/weight tiles and writes results into output/accumulator storage.
 
@@ -55,11 +57,13 @@ Important integration point: AXI DMA stream ports do not by themselves define a 
 | Memory-mapped width | 128 bits preferred; 64-bit fallback | At 100 MHz, theoretical one-beat-per-cycle payload ceiling is 1.6 GB/s at 128 bits and 0.8 GB/s at 64 bits. |
 | Stream width | 128 bits initially, if adapter/NPU supports it | 16 INT8 values per full beat; add unpacking/lane distribution if compute interface differs. |
 | Control | AXI4-Lite, 32-bit register accesses | Keep register access out of the high-volume tensor path. |
-| Mode | Direct-register mode for bring-up; evaluate scatter-gather later | Direct mode is simpler and lower resource; scatter-gather queues descriptors and offloads CPU work. [3] |
+| Mode | Direct-register mode; Micro DMA disabled; DRE disabled; length width explicitly 23 | Direct mode is simpler and lower resource; scatter-gather queues descriptors and offloads CPU work. [3] |
 | Burst | Start with up to 16 beats, then measure | Candidate setting only; validate IP limits, 4 KiB boundaries, timing, and PS–PL path. |
-| Alignment | Prefer 16-byte-aligned buffers/sizes for 128-bit transfers | Simplifies packing and burst behavior; define tail handling for nonmultiples. |
+| Alignment | 16-byte-aligned addresses/starts; exact nonmultiple byte lengths supported | Final TKEEP/TLAST and valid-byte writes follow the shared packet contract; storage padding is separate from transfer length. |
 
 Bandwidth arithmetic: bytes/cycle = width/8. At 100 MHz, 64 bits gives 8 × 100 million = 0.8 GB/s; 128 bits gives 16 × 100 million = 1.6 GB/s. These are theoretical interface ceilings, not measured DDR throughput. Read and write channels may be independent, but they still contend for DDR and interconnect resources.
+
+See the [DMA packet contract](interfaces/RAVEN_INTERFACE_CONTRACT.md#2-dma-packets-and-bank-commit): 2/12/490-byte packets use final TKEEP 0x0003/0x0FFF/0x03FF. Invalid lanes are not written. COMMIT_FILL is ADP_CTRL[4], AWAIT_COMMIT is ADP_STATUS[3], and FILL_BUSY remains asserted through commit. Check availability before modifying active configuration. Baseline FILL_SEGS=1; segmented fills remain disabled.
 
 ## 5. Scratchpad organization
 
@@ -85,9 +89,11 @@ Nahjay’s RISC-V/control proposal assigns bank IDs `ACT0=0`, `ACT1=1`, `WGT0=2`
 
 The proposed 8×8 MAC array needs **eight INT8 activation bytes and eight INT8 weight bytes simultaneously on every active compute cycle**: 8 bytes/cycle from the activation operand path and 8 bytes/cycle from the weight operand path. At 100 MHz, that is 0.8 GB/s of activation data plus 0.8 GB/s of weight data at the compute-facing interface, or 1.6 GB/s combined when both streams are active. This is a local BRAM-to-compute requirement, not the same thing as the AXI DMA’s DDR-to-stream width or bandwidth.
 
-**Proposed BRAM organization for evaluation:** bank or replicate memories so the compute frontend can obtain an eight-byte activation vector and an eight-byte weight vector each active cycle without conflicting reads. A candidate is eight byte-wide logical lanes/banks per operand, with the address mapping distributing the eight values needed for one cycle across independent banks; another implementation may use a suitably wide BRAM word plus lane extraction. The correct organization depends on the actual packed layout, BRAM primitive widths, whether read ports are true dual-port or replicated, and the frontend’s access pattern. A conventional single-port byte-wide memory will not supply eight independent bytes per cycle. Taylor and Michael must agree the read-port/banking contract and verify it in synthesis and timing; no final bank mapping is claimed here.
+**Selected logical port/frontend proposal:** provide a 128-bit synchronous ACT read port with explicit request/response valid/ready, ordered responses, documented latency, and pipelined-request capacity. Michael uses two local 8×16-byte buffers (256 bytes excluding metadata) to fetch one word from each valid row of a row-major GEMM tile and emit eight row values at one K index per accepted compute cycle. A double-buffered block can overlap eight row-word reads with sixteen full-block issue steps. This is an analytical opportunity, not a timing result. WGT exposes a logical 128-bit read port feeding two packed 64-bit B vectors per word. Physical BRAM primitives and inferred ports must be checked by synthesis.
 
-The adapter’s 128-bit AXI4-Stream path describes transfer beats into or out of scratchpad storage (16 bytes per full beat). It does **not** by itself guarantee the compute core’s eight-lane read bandwidth. The BRAM-to-compute interface must separately define operand word width, addresses/strides, read latency, valid/ready behavior, and how an A row-major tile is gathered into eight activation lanes. Nahjay’s proposal assigns GEMM A gathering to Michael’s compute frontend and proposes pre-packed B/weight panels; the packed layout and ownership of convolution tile/window preparation remain shared decisions (see `RISCV_Research.md` §6.4 and §9.2).
+The [shared port/address contract](interfaces/RAVEN_INTERFACE_CONTRACT.md#1-operand-and-result-delivery) defines padded read bounds, lane masks, and ownership. Conv retains NHWC with Michael's bounds-checked window gatherer; its fragmented accesses can refill more slowly. The DMA beat width does not establish Conv gathering bandwidth. Account for the compute-local buffers separately from the scratchpad allocation.
+
+The one-lane result writer is proposed to use byte enables for OUT or ACT destinations under exclusive ownership. Advertise ACT writes with HW_FEATURES[2], reserve the destination before prefetch, and reject unsupported plans. RESULT_LANES=4 needs its own verified port/write-combining arrangement.
 
 Use INT8 storage for quantized activations and weights, but wider accumulators. INT32 is the proposed accumulation format. Keep partial sums on-chip across reduction-dimension chunks when possible; repeatedly writing partial sums to DDR wastes bandwidth. Separate logical buffers even if synthesis packs them into fewer physical memories.
 
@@ -117,7 +123,7 @@ Optional `OUT1` can enable output double buffering but increases the capacity bu
 | State / event | Meaning | Proposed transition / rule |
 | --- | --- | --- |
 | `FREE` | Bank available for a new transfer or initial output | A DMA fill may move it to `DMA_FILLING`; a compute destination may be claimed under the agreed output protocol |
-| `DMA_FILLING` | DMA/adapter owns the destination bank; bytes are arriving | `READY` only after exact expected bytes and packet-end validation; protocol/length error moves to `ERROR` |
+| `DMA_FILLING` | Adapter/DMA owns the fill bank, including its awaiting-commit phase | Packet-valid FILL_DONE alone does not release it; successful MM2S plus COMMIT_FILL makes READY. Any error quarantines it as ERROR. |
 | `READY` | Complete input/weight tile, retained bank, or tagged INT32 partial sum | Can be consumed by compute; retained inputs may return to `READY` after use, and PSUM remains `READY` between K chunks |
 | `COMPUTING` | NPU is consuming a source bank | Retained READY inputs return to READY; retained FULL INT8 outputs return to FULL. Explicit release frees a source; final PSUM consumption releases it only after destination writes finish (§6.6 of the control document). |
 | `NPU_WRITING` | Compute/operator is writing a destination | INT32 intermediate partial sum returns to `READY` + PSUM tag; completed INT8 output becomes `FULL` |
@@ -125,7 +131,7 @@ Optional `OUT1` can enable output double buffering but increases the capacity bu
 | `DRAINING` | Adapter owns output while supplying S2MM | Conservative proposal: hold ownership until expected bytes/TLAST are valid and AXI DMA reports successful S2MM completion; firmware then uses BANK_RELEASE to return FREE |
 | `ERROR` | Transfer, length, range, or protocol fault | Recover/reset and release only through the agreed error-recovery path |
 
-DMA completion and compute completion are separate events. For a fill, the adapter should assert completion and mark a bank `READY` only when the configured byte count has arrived and the final `TLAST` position is valid. For a drain, adapter stream completion means the requested bytes were emitted with valid TLAST; it does not establish DDR completion. Keep the bank DRAINING until both completions are checked; firmware then writes BANK_RELEASE, as in Nahjay's §7.3. An error follows recovery rather than silently freeing the bank.
+DMA completion and compute completion are separate events. For a fill, FILL_DONE means the expected valid bytes and final TLAST were received; the bank stays DMA_FILLING/AWAIT_COMMIT until firmware checks successful MM2S completion and writes COMMIT_FILL. This prevents a queued consumer from reading a packet whose DMA later reports failure. For a drain, adapter stream completion means the requested bytes were emitted with valid TLAST; it does not establish DDR completion. Keep the bank DRAINING until both completions are checked; firmware then writes BANK_RELEASE, as in Nahjay's §7.3. An error follows recovery rather than silently freeing the bank.
 
 **Register-map source of truth:** use Nahjay’s proposed driver-side register reference in `RISCV_Research.md` §7.1 (AMD AXI DMA PG021 direct-register registers) and §7.2 (RAVEN adapter/bank CSR, proposed base `ADP_BASE = 0xA002_0000`) rather than inventing a second adapter map in this document. Treat adapter offsets/fields as proposals until Taylor and Nahjay agree and the RTL/driver definitions are generated or verified together. AMD AXI DMA’s vendor register map is separate from the RAVEN adapter CSR.
 
@@ -141,9 +147,9 @@ Measure required bandwidth from real transfers: (DDR bytes read + DDR bytes writ
 
 ## 9. Verification and acceptance criteria
 
-- DMA integrity: known byte patterns match exactly for aligned and unaligned lengths supported by the chosen configuration, including final partial beats.
+- DMA integrity: exact round trips for lengths 1/2/3/10/12/15/16/17/490 and each bank's supported boundaries, with final masks, byte counts, guard bytes, and backpressure. Successful lengths cannot exceed capacity minus offset; PRM is 4 KiB. Zero length is a no-op. Reject oversized/unaligned requests before programming DMA. Test adapter completion before MM2S success/error and require commit before READY.
 
-- Boundary safety: no transfer crosses an unsupported 4 KiB boundary behavior; confirm AXI DMA configuration and descriptors.
+- Boundary safety: test normal AXI DMA transfers crossing 4 KiB boundaries with the chosen configuration, and validate wide-read/padded storage bounds. Micro DMA is disabled; do not apply its limitations to the baseline.
 
 - Buffer protocol: assertions/testbench prove DMA fills claim only FREE banks and NPU reads obey the opcode-specific READY/FULL tensor-type rules. Test retained FULL sources returning to FULL, unfinished PSUM rejection by standalone operators, explicit continuation source/pitch validation, distinct final-output ownership, and DRAINING retention until successful S2MM completion.
 
@@ -170,14 +176,13 @@ Severity and likelihood use a proposed 1–5 scale (5 = highest severity / most 
 | PS–PL connectivity/cache policy causes stale or contended DDR data | 4 | 2 | Select the HP/HPC route and document cache/coherency handling; benchmark concurrent read/write traffic. |
 | DMA mode/register configuration differs from software assumptions | 3 | 3 | Pin the AXI DMA IP version/configuration; use PG021 for vendor registers and Nahjay’s §7.2 only for RAVEN adapter CSRs; test direct-register completion and errors. |
 
-### Shared decisions still open
+### Implementation evidence still needed
 
-- **BRAM-to-compute contract:** eight activation bytes and eight weight bytes per active cycle; agree banking, physical word width, read latency, lane order, and valid/ready semantics with Michael.
-- **Packed operand layout:** Nahjay’s proposal is row-major GEMM A gathered by Michael’s frontend and pre-packed B/weights from Jackie’s export tool; final layout/stride/alignment contract remains subject to compute review.
-- **Convolution preparation:** decide who creates convolution tiles/windows and whether window generation is performed in Michael’s frontend or by an offline/software packer; do not assume Taylor owns compute-side transformation.
-- **Bank ownership:** align input retention/release with `READY` reuse, and separately define `OUT0`/optional `OUT1` and INT32 PSUM lifecycle with Nahjay, Michael, and Quan.
-- **Adapter registers:** use `RISCV_Research.md` §§7.1–7.2 as the current proposed reference; agree the interface once, rather than maintaining duplicate register maps. Confirm the adapter base address in Vivado and ensure the implementation matches the driver header.
-- **Physical capacity and timing:** validate actual BRAM count, port inference, timing slack, and overlap with synthesis/implementation reports; all capacity figures above are logical proposals until then.
+- Synthesize the selected logical 128-bit read ports and row-block frontend; record latency, request capacity, physical primitive use, and routed timing.
+- Verify Conv window gathering, B-panel pitch, tails, and one-lane byte-masked writes to advertised destinations.
+- Verify commit-gated READY, retained typed sources, PSUM continuation, and quiescence before recovery releases banks.
+- Generate/verify the adapter map with Nahjay, including COMMIT_FILL/AWAIT_COMMIT and the disabled segmented-fill extension.
+- Measure overlap and stalls; use the [project dates and targets](PROJECT_PLAN.md) rather than a second memory-subsystem calendar.
 
 ## References
 
