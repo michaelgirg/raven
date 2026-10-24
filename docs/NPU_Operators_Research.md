@@ -6,6 +6,8 @@
 
 **Target:** AMD/Avnet Ultra96-V2 (Zynq UltraScale+ MPSoC ZU3EG).
 
+**Shared baseline:** the [interface contract](interfaces/RAVEN_INTERFACE_CONTRACT.md) defines one-lane destination routing, per-output records, canonical CPU constants, and recovery. [Project acceptance](PROJECT_PLAN.md) specifies numerical and application checks. These are design requirements pending implementation verification.
+
 ## 1. Summary
 
 RAVEN's proposed compute core produces signed INT32 completed dot-product results from signed INT8 operands. This document plans the supporting operators that turn those results into usable INT8 feature maps and handle model operations outside dense Conv2D/GEMM: requantization, ReLU/clamps, pooling, element-wise addition, and depthwise convolution.
@@ -73,7 +75,7 @@ Per-tensor parameters are sufficient for activations and pool outputs in the Lit
 
 ReLU implements `max(real_x, 0)`. In quantized storage, real zero is represented by `z_out`, not necessarily integer zero, so a standard ReLU after requantization is `max(q, z_out)`, followed by the normal INT8 upper bound. ReLU6 or a model-specific fused activation additionally uses a quantized upper clamp derived from the output scale and zero-point. The clamp must be applied in output quantization before values are committed to the INT8 tensor.
 
-Fusing ReLU with final requantization avoids writing and rereading an intermediate INT8 tensor. `RELU_EN` should mean that output clamp policy is applied only on the final result of a GEMM/Conv command (`ACC_LAST`), not to intermediate INT32 partial sums. A standalone `RELU` command remains useful for a graph boundary or an externally produced tensor; it is a comparator/mux per lane and needs no DSP. ReLU compatibility is high; a standalone dedicated unit is low priority because the requantizer can perform the fused form.
+Fusing ReLU with final requantization avoids writing and rereading an intermediate INT8 tensor. `RELU_EN` should mean that output clamp policy is applied only on the final result of a GEMM/Conv command (`ACC_LAST`), not to intermediate INT32 partial sums. For final or standalone writes, reserve a distinct FREE destination and check OUT1/ACT-route capabilities. The selected one-lane ACT write proposal uses byte enables and exclusive bank ownership; four lanes need verified write combining/ports. A standalone `RELU` command remains useful for a graph boundary or an externally produced tensor; it is a comparator/mux per lane and needs no DSP. ReLU compatibility is high; a standalone dedicated unit is low priority because the requantizer can perform the fused form.
 
 ### Max and average pooling
 
@@ -121,6 +123,8 @@ Three paths should be evaluated, not silently chosen:
 
 Initial recommendation: reserve `DWCONV` as Nahjay proposes, retain a software fallback for bring-up, and decide on direct-array versus dedicated hardware after M7-style measurements and actual layer dimensions. A depthwise output can share the completed INT32 requantize/activation pipeline in all three cases.
 
+CPU fallback/reference kernels receive original TFLite-order weights and original bias. NPU execution receives separately referenced packed B and corrected bias. Never apply the activation zero-point correction twice. Export prepared integer parameters for the pinned CPU kernels; source scales use scale_f32_bits, distinct from Q31 execution multipliers. PARAM records remain 16 bytes/channel with int32 bias at 0, int32 multiplier at 4, int8 shift at 8, and seven zero bytes. See the [constant/numeric contract](interfaces/RAVEN_INTERFACE_CONTRACT.md#5-cpunpu-constants-and-numeric-metadata).
+
 ## 6. Proposed Operator Table
 
 “Compatibility” is workload importance; “dedicated hardware” is whether a separate unit is justified immediately.
@@ -155,15 +159,16 @@ Use trusted LiteRT/TFLite or independently written integer golden references wit
 - Max and average pool match golden tensors for 1×1, normal, global, stride-greater-than-one, and edge/padded windows; average cases include negative sums and non-power-of-two divisors.
 - EWADD matches the pinned TFLM ADD sequence when inputs share quantization and when both scale and zero-point differ; test pre-shift behavior, each multiplier rounding stage, saturation, and tensor-shape mismatch errors.
 - Depthwise convolution matches golden output for multiple channels, depth multiplier greater than one if supported, padding, stride, nonzero activation zero-point, INT32 bias, and distinct per-output-channel scales.
+- Verify canonical CPU and derived NPU constants, bias/correction once across K chunks, scale 1.0/per-axis metadata, and supported ACT/OUT destination routes.
 - Inject downstream `ready` stalls and scratchpad/DMA delays. Every accepted output appears once at its intended address; no output is reordered beyond the documented tagged order, dropped, or overwritten.
 
 Before claiming hardware support, run those vectors through the selected implementation and record mismatch count, command errors, and stall behavior. No simulation, synthesis, or FPGA measurement has been completed by this research.
 
 ## 9. Outstanding Decisions
 
-1. Ratify TFLM commit `c051fea55c4a6b4464186e1bb126708bea50f32e` with `TFLITE_SINGLE_ROUNDING=1` as the golden arithmetic reference, including its signed-shift, tie, overflow, and clamp behavior.
-2. Ratify per-channel parameter record fields, logical output-channel indexing, and corrected-bias range with Michael, Nahjay, Taylor, and Jackie.
-3. Confirm whether actual model files use only the reported operators and determine exact pooling/window, activation, quantization, and depthwise depth-multiplier parameters by inspecting the selected `.tflite` artifacts.
+1. Implement and verify the selected TFLM commit `c051fea55c4a6b4464186e1bb126708bea50f32e` with `TFLITE_SINGLE_ROUNDING=1` as the golden arithmetic reference, including its signed-shift, tie, overflow, and clamp behavior.
+2. Implement the shared 16-byte parameter record and logical output-channel indexing; verify corrected-bias ranges with Michael and Jackie.
+3. Generate reproducible fixtures from Jackie's artifact-specific inventory; preserve hashes, exact operator settings, prepared parameters, and pinned rounding configuration.
 4. Ratify unsigned EWADD P1[7:0] for Q_EWADD_LEFT_SHIFT (supported 0–20) and the widened POOL P2 stride bytes; verify DS-CNN's stride 25 and ADD stage ordering.
 5. Select a depthwise fallback/direct-array/dedicated-unit path after measured model profiling and BRAM-port analysis.
 6. Ratify the common RESULT_LANES parameter (one-lane bring-up, four-lane evaluation), tags/order, and II; in-place aliasing remains deferred. Agree typed-bank ownership and explicit PSUM source/destination references.
