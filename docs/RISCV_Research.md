@@ -15,11 +15,11 @@ This document covers RAVEN's control plane:
 
 It builds directly on [NPU_ARCHITECTURE.md](NPU_ARCHITECTURE.md) (Michael, compute core) and [RAVEN_Memory_System_Research.md](RAVEN_Memory_System_Research.md) (Taylor, memory/DMA). Where those documents leave an interface to "agree with Nahjay," this document **proposes** a definition for the team to review.
 
-**Status of decisions.** Shared decisions in this document are **proposals until ratified at the sign-offs in §21**. These include MicroBlaze V as the core, the Vivado/Vitis 2024.2 pin, command-queue depth 4, the new 4 KiB PRM bank, hardware Conv window generation, the partial-sum bank protocol, the tensor-layout contract, three-model acceptance, and the calendar dates. The DMA register map in §7.1 follows PG021; Taylor's memory document remains the reference for the DMA and adapter configuration, and §7 should be read as the driver-side view of it.
+**Shared baseline revision 0.2 (2026-10-23).** The [interface contract](interfaces/RAVEN_INTERFACE_CONTRACT.md) defines selected proposed behavior for row-block operand delivery, DMA tails/COMMIT_FILL, capabilities, mailbox ownership, CPU/NPU constants, and cancellation/recovery. The [project plan](PROJECT_PLAN.md) owns common targets, dates, and milestone leads. This document supplies the detailed proposed register/driver view; it does not establish implemented RTL, working firmware, tested tool pins, or measured performance. §21 tracks implementation checkpoints. The vendor DMA map follows PG021.
 
-**Shared-interface revision (proposed, 2026-10-22).** The baseline keeps fallback kernels on the RISC-V, uses one result lane for bring-up with four lanes as an evaluation configuration, widens POOL strides, allocates EWADD's common pre-shift, and explicitly names a continuation's PSUM source and row pitch. Parameter records provide per-output bias even when requantization uses a shared scale. These definitions require the existing subsystem sign-offs; they are not implemented register changes.
+**Earlier shared-interface revision (2026-10-22, amended by revision 0.2).** The baseline keeps fallback kernels on the RISC-V, uses one result lane for bring-up with four lanes as an evaluation configuration, widens POOL strides, allocates EWADD's common pre-shift, and explicitly names a continuation's PSUM source and row pitch. Parameter records provide per-output bias even when requantization uses a shared scale. Implementation and verification remain outstanding; the current shared contract supersedes older conflicting descriptions.
 
-**Revision (2026-10-22, zeroization).** Made zeroization optional in general and required for demos, and split it into two stages so the output is never cleared before the consumer reads it: banks before DONE, arena after SHUTDOWN or the next run (§14).
+**Revision (2026-10-23).** Replaced next-run cleanup with explicit RECLAIM; retained output until acknowledgment; specified valid-byte DMA packets and a successful-MM2S commit before READY; added timer-driven waits, recovery-generation tickets, test capabilities, a measurable T5, and model-specific acceptance. These remain proposed implementation requirements.
 
 **Revision (2026-10-22).** Defined how a completed `FULL` output bank becomes a source for POOL, RELU, or EWADD, with ownership rules and a Conv → Pool → DMA command/state example (§5.1, §6.7, §6.8); made in-place INT32 → INT8 conversion conditional on the compute/output traversal agreement, with a staging fallback (§6.6).
 
@@ -49,9 +49,9 @@ It builds directly on [NPU_ARCHITECTURE.md](NPU_ARCHITECTURE.md) (Michael, compu
 
 ## 1. Role of the control plane and design summary
 
-The RISC-V core is the **control plane**: it decides what the NPU and DMA do and when. It is **not on the data path**. Tensor bytes move DDR → DMA → scratchpad → compute → scratchpad → DMA → DDR without passing through the processor. This rule keeps a modest soft core from becoming the bandwidth bottleneck, and it is the main constraint on every design decision below.
+The RISC-V core is the **control plane**: it decides what the NPU and DMA do and when. It is **not on the data path**. Bulk NPU operand/result transfers follow DDR → DMA → scratchpad → compute → scratchpad → DMA → DDR. CPU fallback, C3 repacking, and cleanup do access tensor bytes on the RISC-V; include their cost in model latency rather than extending the bulk-path claim to them.
 
-All rows below are this subsystem's **proposals**; the shared ones are ratified in §21.
+All rows below describe the selected **design proposal**; §21 records the implementation/evidence checkpoints.
 
 | Decision | Proposed choice | Section |
 |---|---|---|
@@ -329,13 +329,17 @@ flowchart TB
     BIT --> HOLD["RISC-V held in reset by GPIO"]
     HOLD --> LOAD{"Load mode"}
     LOAD -->|"Bring-up: JTAG"| XSDB["XSDB: dow firmware.elf<br/>dow -data model.bin 0x60100000"]
-    LOAD -->|"Demo: SD card"| A53L["A53 bare-metal loader<br/>copies model and input files to arena,<br/>flushes A53 D-cache,<br/>writes mailbox"]
+    LOAD -->|"Demo: SD card"| A53L["A53 bare-metal loader<br/>copies model file, initializes mailbox INIT,<br/>then releases RISC-V"]
     XSDB --> REL["Release RISC-V reset"]
     A53L --> REL
     REL --> INIT["Firmware raven_init():<br/>check NPU ID and VERSION, reset DMA and adapter,<br/>self-test LOOPBACK opcode"]
-    INIT --> MB["Validate model blob<br/>magic, version, CRC32, bounds"]
+    INIT --> READY["Publish READY; host may now stage input,<br/>clean caches, publish RUN_MODEL request ID"]
+    READY --> MB["Validate model blob and request<br/>magic, version, CRC32, bounds, execution capabilities"]
     MB --> RUN["Run inference, write results and profile to arena"]
-    RUN --> DONE["Set mailbox status = DONE, print summary over JTAG-UART"]
+    RUN --> DONE["Output committed to DDR; clear banks/local state;<br/>publish DONE and matching completion ID"]
+    DONE --> ACK["Host invalidates/reads output, then RECLAIM"]
+    ACK --> CLEAR["Clear used activation/workspace allocations"]
+    CLEAR --> READY
 ```
 
 *Figure 2: boot and handoff sequence.*
@@ -345,18 +349,23 @@ Mailbox (control block at `0x6000_0000`):
 ```c
 typedef struct {
     uint32_t magic;          // 0x5241564E 'RAVN'
-    uint32_t version;        // mailbox layout version
-    volatile uint32_t cmd;   // 0 idle, 1 RUN_MODEL, 2 SELF_TEST, 3 SHUTDOWN
-    volatile uint32_t status;// 0 idle, 1 busy, 2 done, 0x8000_0000 | err on failure
+    uint32_t version;        // mailbox ABI version (revision 0.2 definitions)
+    volatile uint32_t cmd;   // 0 idle, 1 RUN_MODEL, 2 SELF_TEST, 3 SHUTDOWN, 4 RECLAIM
+    volatile uint32_t status;// 0 READY, 1 BUSY, 2 DONE, 3 CLEARING, 4 STOPPED, 5 INIT; high bit = terminal fault
     uint32_t model_addr;     // DDR address of model blob
     uint32_t input_addr;     // DDR address of input tensor
     uint32_t output_addr;    // DDR address for output tensor
     uint32_t output_bytes;   // filled by RISC-V
     uint32_t cycles_lo, cycles_hi; // total inference cycles
     uint32_t profile_addr;   // DDR address of per-layer profile records
-    uint32_t reserved[5];
+    volatile uint32_t request_id;           // host publishes last
+    volatile uint32_t completed_request_id; // runtime publishes last
+    uint32_t response_code;                 // request error; separate from lifecycle
+    uint32_t reserved[2];
 } raven_mailbox_t;           // 64 bytes, cache-line aligned
 ```
+
+The loader initializes INIT; only firmware publishes READY after initialization. One request is outstanding at a time. RUN_MODEL is legal only in READY. After reading output, RECLAIM clears used allocations and returns READY; SHUTDOWN clears them and enters STOPPED. Invalid-state requests return response_code without changing lifecycle/ownership. Match request/completion IDs, publish IDs after ordered payload/status writes, and invalidate old IDs on a new runtime session. See the [mailbox/cache contract](interfaces/RAVEN_INTERFACE_CONTRACT.md#4-mailbox-ownership-and-cleanup).
 
 **Ultra96-V2 detail.** The board has no on-board JTAG header connector for debug. RISC-V download and debug need the Avnet JTAG/UART pod (AES-ACC-U96-JTAG), listed in §12. The PL clock and DDR come from the PS, so **the PS must always be booted first**, either by FSBL from SD or by `psu_init` through XSDB.
 
@@ -407,10 +416,15 @@ stateDiagram-v2
     RETIRE --> IDLE: queue empty
     RETIRE --> FETCH: queue not empty
     ERROR --> HALTED: set ERR_CODE, ERR_SEQ, raise IRQ
-    HALTED --> IDLE: CTRL.SOFT_RESET or CTRL.CLEAR_ERR
+    HALTED --> IDLE: coordinated quiescence and CTRL.SOFT_RESET
+    HALTED --> HALTED: CTRL.CLEAR_ERR clears diagnostics only
     IDLE --> IDLE: ABORT has no effect
     RUN --> HALTED: CTRL.ABORT
     WAIT_DEP --> HALTED: CTRL.ABORT
+    FETCH --> HALTED: CTRL.ABORT
+    CHECK --> HALTED: CTRL.ABORT
+    ISSUE --> HALTED: CTRL.ABORT
+    DRAIN --> HALTED: CTRL.ABORT
 ```
 
 *Figure 3: NPU command FSM.*
@@ -433,10 +447,10 @@ Codes 10–15 are reserved.
 |---|---|---|
 | Compute complete | Last product of the command committed in the MAC array | Internal only. A performance-counter boundary (`CYC_COMPUTE`). |
 | **Command complete** (`DONE`) | Every output element of the command is in the destination bank, and bank state transitions are applied | `DONE_SEQ` = this command's sequence number, `IRQ_STATUS.DONE` |
-| DMA complete | MM2S: expected bytes accepted by the adapter and the bank marked `READY`. S2MM: bytes written to DDR. | Adapter `FILL_DONE`, DMA `DMASR.IOC_Irq` |
+| DMA complete | Fill: packet validated, successful MM2S observed, then COMMIT_FILL makes bank READY. Drain: successful S2MM and adapter stream completion checked. | Adapter FILL_DONE/AWAIT_COMMIT, DMA status, explicit commit/release |
 | Inference complete | Firmware has drained the final output to DDR | Mailbox `status = DONE` |
 
-Once an error halts the queue, later queued commands are **not** executed. This prevents a cascade of commands consuming bad data.
+Once an error halts the queue, later queued commands are **not** executed. CLEAR_ERR does not resume them. Cancel the software list and perform the coordinated recovery in the [shared contract](interfaces/RAVEN_INTERFACE_CONTRACT.md#6-timed-waits-recovery-and-completion-tickets); wait for QUIESCENT before storage reuse. A 1 ms timer drives bounded software waits for RUN/DRAIN and lost interrupts in addition to the dependency watchdog. SOFT_RESET cancels/quiesces active local execution before flushing and returning IDLE; it does not erase BRAM.
 
 ---
 
@@ -470,8 +484,8 @@ All registers are 32-bit, word-aligned, at offsets from `NPU_BASE = 0xA000_0000`
 | `0x004` | `VERSION` | RO | build | `[31:24]` major, `[23:16]` minor, `[15:0]` build/patch. Firmware refuses to run if the major version differs from its header. |
 | `0x008` | `HW_CONFIG` | RO | build | `[7:0]` array rows R, `[15:8]` array cols S, `[19:16]` number of banks, `[23:20]` log2(nominal ACT/WGT bank KiB; other bank capacities follow the versioned build table in §6.4), `[27:24]` command queue depth, `[31:28]` reserved |
 | `0x00C` | `HW_LIMITS` | RO | build | `[15:0]` max dimension per field, `[31:16]` supported-opcode bitmap for `0x00–0x0F` |
-| `0x010` | `CTRL` | W1S | 0 | `[0]` START (push staging set into the queue), `[1]` SOFT_RESET (flush queue, return FSM to IDLE, clear counters; does **not** touch bank contents), `[2]` ABORT (stop the current command, go to HALTED), `[3]` CLEAR_ERR, `[4]` CNT_CLEAR |
-| `0x014` | `STATUS` | RO | 0 | `[0]` BUSY, `[1]` HALTED, `[2]` ERROR, `[3]` Q_FULL, `[4]` Q_EMPTY, `[8:5]` FSM state (4-bit encoding, §5.1), `[11:9]` queue occupancy (0–4), `[31:16]` sequence number of the currently executing command |
+| `0x010` | `CTRL` | W1S | 0 | [0] START; [1] SOFT_RESET cancels/quiesces and flushes queue, staging/IRQs/errors/counters and sequence state (no BRAM erase); [2] ABORT from any active phase; [3] CLEAR_ERR (diagnostics only, stays halted); [4] CNT_CLEAR; [5] ZERO_LOCAL (§14) |
+| `0x014` | `STATUS` | RO | build | [0] BUSY, [1] HALTED, [2] ERROR, [3] Q_FULL, [4] Q_EMPTY, [8:5] FSM, [11:9] queue occupancy, [12] QUIESCENT, [13] LOCAL_ZERO_BUSY, [15:14] reserved, [31:16] executing sequence. Quiescent does not imply empty queue. |
 | `0x018` | `IRQ_ENABLE` | RW | 0 | `[0]` DONE, `[1]` ERROR, `[2]` Q_SPACE (queue went from full to not full), `[3]` DEP_WAIT (debug) |
 | `0x01C` | `IRQ_STATUS` | W1C | 0 | Same bits. The `npu_irq` output = OR of (IRQ_STATUS & IRQ_ENABLE). |
 | `0x020` | `NEXT_SEQ` | RO | 0 | Sequence number the next START will receive (16-bit, wraps) |
@@ -502,8 +516,11 @@ All registers are 32-bit, word-aligned, at offsets from `NPU_BASE = 0xA000_0000`
 | `0x0A0` | `CYC_IDLE_PENDING` | RO | 0 | Cycles idle with the queue empty. This raw idle counter can include DMA waits, fallback work, and workload boundaries; it does not by itself attribute idle time to firmware (§11). |
 | `0x0A4`/`0x0A8` | `MAC_COUNT_LO/HI` | RO | 0 | Useful MACs committed (masked lanes excluded) |
 | `0x0AC` | `CMD_COUNT` | RO | 0 | Commands retired |
+| `0x0B0` | `HW_FEATURES` | RO | build | [0] T_LOOPBACK, [1] T_FILL, [2] ACT destination writes, [3] OUT1 present; [31:4] reserved zero |
 
 The quantization fields (`Q_*`) follow Quan's proposed TFLM commit `c051fea55c4a6b4464186e1bb126708bea50f32e` with `TFLITE_SINGLE_ROUNDING=1` (operators research §§4–5). Positive signed Q_SHIFT scales up; multiplier ties follow that helper, not pooling's division rule. The EWADD common pre-shift is allocated to P1[7:0] (§6.4), separately from the three multiplier shifts. This reference/configuration and the fields remain subject to joint review; no golden execution is claimed here.
+
+Validate 0x00–0x0F against HW_LIMITS and 0x80/0x81 against HW_FEATURES[0]/[1]; other opcodes are illegal. CPU fallback support uses a separate compiled kernel registry. SOFT_RESET sets NEXT_SEQ=0 and DONE_SEQ=0xFFFF and invalidates execution context. ZERO_LOCAL is legal only with QUIESCENT and Q_EMPTY; otherwise reject the action with AXI SLVERR. It blocks START until LOCAL_ZERO_BUSY clears and erases local operand/product/accumulator/result storage, preserving performance counters. Its completion must be bounded and verified in simulation.
 
 ### 6.3 Opcode table (adds Element-wise Add)
 
@@ -536,7 +553,7 @@ With CONV2D, GEMM, RELU, POOL, REQUANT, and EWADD, the hardware covers the READM
 +------------+------------+----------------------------------------+
 ```
 
-`BYTE_OFFSET` must be 16-byte aligned for 128-bit stream compatibility. The bank IDs follow Taylor's buffer plan, plus one PARAM bank:
+BYTE_OFFSET must be 16-byte aligned. Validate IDs against the versioned bank/presence table, not ID < number-of-banks: PRM stays ID 6 even when OUT1/ID 5 is absent. Include padded physical read spans and full B panels in bank-fit checks. The bank IDs follow Taylor's buffer plan plus PARAM:
 
 | BANK_ID | Bank | Size (memory doc) | Contents |
 |---|---|---|---|
@@ -546,7 +563,7 @@ With CONV2D, GEMM, RELU, POOL, REQUANT, and EWADD, the hardware covers the READM
 | 3 | `WGT1` | 16 KiB | Weight pong |
 | 4 | `OUT0` | 8–16 KiB | INT8 output or INT32 partial sums (`DST_ACCUM`) |
 | 5 | `OUT1` | optional | Output pong, if output double-buffering fits (Taylor) |
-| 6 | `PRM` | **4 KiB (proposed additional allocation in Taylor's budget)** | Per-output records `{int32 bias_corrected, int32 multiplier, int8 shift, 7 B pad}` = 16 B/channel, so 256 output channels per tile. Bias is needed even when scales are per tensor; final record layout requires Quan's review. |
+| 6 | `PRM` | **4 KiB (proposed additional allocation in Taylor's budget)** | Per-output records `{int32 bias_corrected, int32 multiplier, int8 shift, 7 B pad}` = 16 B/channel, so 256 output channels per tile. Bias is needed even when scales are per tensor; record byte offsets are defined in the shared contract; implementation must match. |
 
 **Bias versus scale granularity (proposed).** GEMM/CONV2D ACC_INIT always reads one corrected-bias record per logical output channel from PARAM. PER_CHANNEL selects only the requant multiplier/shift source: record fields when 1, Q_MULT/Q_SHIFT when 0. Shared scale does not imply shared bias. AD01 therefore still supplies its per-neuron bias vector with PER_CHANNEL=0. Continuation does not add bias again; standalone REQUANT ignores bias fields. The exporter supplies validated INT32 seeds and zero seeds for a bias-free layer.
 
@@ -578,16 +595,16 @@ The 16-bit dimensions allow up to 65,535 per field. The hardware advertises its 
 
 EWADD P1[7:0] names the common pre-shift before the two input rescalings. Its proposed RAVEN-supported range is 0–20, so centered INT8 values times 2^left_shift fit INT32. The exporter must derive matching multiplier/shift pairs from the pinned reference preparation; firmware must reject out-of-range fields or intermediate ranges. The pinned ADD path uses SmallerThanOneExp at all three scaling stages, so each EWADD multiplier shift must be in [-31, 0], with a nonnegative multiplier. Other requantization paths support the general helper's [-31, 30] range. This pre-shift is distinct from the signed input A/B and output multiplier shifts in Q_SHIFT. Other opcodes retain their own P1 meanings.
 
-**Operand layouts in the bank (interface contract, proposed).** The array consumes, each cycle, the A values of **eight different rows at the same K index**. A row-major M×K A tile does not provide that as one contiguous word, so one component must gather or pack it. The proposed split:
+**Operand layouts (selected proposal).** Use the [shared port/address contract](interfaces/RAVEN_INTERFACE_CONTRACT.md#1-operand-and-result-delivery).
 
-| Operand | Layout in DDR and in the bank | Who makes it consumable by the array |
+| Operand | Resident layout | Frontend owner/behavior |
 |---|---|---|
-| GEMM A (activations) | Row-major M×K, row pitch `P2` (16-byte aligned) | **Compute A-operand frontend** (Michael) reads 8 rows at stride `P2` and assembles the 8-lane K-slice. Firmware and DMA do not reformat A. |
-| GEMM B / Conv weights | Pre-packed panel layout (compute doc §7), pitch `P3` | Jackie's export tool, offline |
-| Conv activations | NHWC row band (§9.2), or channel-blocked NHWC (§9.2, rule C2) | Conv window frontend (Michael), proposed hardware window generation |
-| Outputs | Row-major M×N (GEMM) / NHWC tile (Conv), pitch `P4` | Output operators (Quan) |
+| GEMM A | Row-major M×K, 16-byte-aligned P2/base | Michael: two 8×16-byte buffers; sequential 128-bit row reads, common-K lane extraction; Taylor: ordered logical read interface |
+| B / Conv weights | Eight-column B panels, panel pitch at least round_up(8×K_chunk,16) | Jackie packs offline; Michael unpacks two 64-bit vectors per 128-bit word. GEMM P3 is panel pitch, not byte-per-K stride. |
+| Conv A | Packed NHWC row band | Michael: bounds-checked serialized window gatherer with input-zero-point padding and word reuse; refill bandwidth measured |
+| Outputs | Row-major M×N / packed NHWC tile | Quan/Taylor: tagged one-lane byte writes; ACT route requires HW_FEATURES[2] and a reserved FREE bank |
 
-The hardware side of this (bank port width or banking needed to read 8 rows per cycle without stalls) needs agreement between Michael and Taylor. If it cannot be met, the fallback is that Jackie's tool and the output operators write activations in a K-interleaved "A-panel" layout, at the cost of a second activation layout in the tensor table (§8.3).
+Mask M/N tails and stop at logical K. Include padded physical read spans in range/capacity checks. Local buffers are 256 bytes excluding metadata, not another scratchpad bank. Full-block GEMM refill can overlap sixteen issue steps, but this does not establish one-cycle Conv gathering or batch-one AD01 full-array occupancy. Packed A and channel-blocked activations are not baseline formats.
 
 ### 6.5 Staging registers and command queue
 
@@ -660,7 +677,7 @@ The memory doc defines the per-bank states FREE → DMA_FILLING → READY → CO
 stateDiagram-v2
     [*] --> FREE
     FREE --> DMA_FILLING: firmware arms adapter fill
-    DMA_FILLING --> READY: adapter receives FILL_BYTES
+    DMA_FILLING --> READY: validated packet plus successful MM2S then COMMIT_FILL
     DMA_FILLING --> ERROR: length mismatch or stream error
     READY --> COMPUTING: NPU dispatch references bank
     COMPUTING --> READY: command retires, no RELEASE flag
@@ -691,14 +708,14 @@ stateDiagram-v2
 | 6 | seq 1 retires (`DONE_SEQ=1`) | FREE | READY | **FREE** (released by `RELEASE_A`) | FULL |
 | 7 | Drain OUT1; check both completions and BANK_RELEASE (§7.3) | FREE | READY | FREE | DRAINING → FREE |
 
-The intermediate (OUT0) is **consumed** at step 5 and **released** at step 6, when seq 1 retires; it never goes to DDR, so OUT0 is free for the next tile's Conv. Steps 2 and 3 are issued back to back; the queue and `WAIT_DEP` order them without CPU polling. If `OUT1` is not built, the pool writes to a FREE ACT bank instead, at the cost of that bank's ping-pong slot for the tile. If the Conv output were also needed in DDR, seq 1 would omit `RELEASE_A` and firmware would drain OUT0 after `DONE_SEQ=1` (rule 3).
+The intermediate (OUT0) is **consumed** at step 5 and **released** at step 6, when seq 1 retires; it never goes to DDR, so OUT0 is free for the next tile's Conv. Steps 2 and 3 are issued back to back; the queue and `WAIT_DEP` order them without CPU polling. If OUT1 is absent, reserve a FREE ACT destination and require HW_FEATURES[2] before choosing that schedule; otherwise reject or reschedule. The route costs that bank's ping-pong slot and does not permit arbitrary FULL-source Conv/GEMM chaining. If the Conv output were also needed in DDR, seq 1 would omit `RELEASE_A` and firmware would drain OUT0 after `DONE_SEQ=1` (rule 3).
 
 ### 6.8 Error codes
 
 | Code | Name | Raised when |
 |---|---|---|
 | `0x00` | `ERR_NONE` | |
-| `0x01` | `ERR_ILLEGAL_OP` | Opcode reserved or not in the `HW_LIMITS` bitmap |
+| `0x01` | `ERR_ILLEGAL_OP` | Reserved opcode or absent support: HW_LIMITS for 0x00–0x0F; HW_FEATURES for 0x80/0x81 |
 | `0x02` | `ERR_BAD_DIM` | A required dimension is 0 or exceeds `HW_LIMITS` |
 | `0x03` | `ERR_BANK_RANGE` | `BANK_ID` invalid, or offset + implied size exceeds the bank |
 | `0x04` | `ERR_BANK_STATE` | Referenced source bank FREE, DRAINING, or ERROR at dispatch; a `FULL` source on an opcode other than POOL/RELU/EWADD; unsupported DST/source aliasing (the middle-chunk PSUM exception is in §6.6); or destination bank not writable under those partial-sum rules |
@@ -787,41 +804,45 @@ Base `ADP_BASE = 0xA002_0000`. The RTL is owned by Taylor; this field definition
 | Offset | Name | Access | Fields |
 |---|---|---|---|
 | `0x00` | `ADP_ID` | RO | `0x5241_4450` (`RADP`) |
-| `0x04` | `ADP_CTRL` | W1S | `[0]` ARM_FILL, `[1]` ARM_DRAIN, `[2]` SOFT_RESET, `[3]` CLEAR_ERR |
-| `0x08` | `ADP_STATUS` | RO | `[0]` FILL_BUSY, `[1]` DRAIN_BUSY, `[2]` ERROR, `[15:8]` last filled bank, `[23:16]` last drained bank |
+| `0x04` | `ADP_CTRL` | W1S | [0] ARM_FILL, [1] ARM_DRAIN, [2] SOFT_RESET, [3] CLEAR_ERR, [4] COMMIT_FILL |
+| `0x08` | `ADP_STATUS` | RO | [0] FILL_BUSY (through commit), [1] DRAIN_BUSY, [2] ERROR, [3] AWAIT_COMMIT, [15:8] last filled bank, [23:16] last drained bank |
 | `0x10` | `FILL_DST` | RW | Scratchpad reference (§6.4) for the incoming MM2S stream |
-| `0x14` | `FILL_BYTES` | RW | Expected bytes. The bank goes READY only when exactly this many bytes arrive and TLAST is seen (on the last segment, if `FILL_SEGS > 1`). |
-| `0x18` | `FILL_SEGS` | RW | **Optional, proposed for C2 (§9.2).** Segments per bank fill, default 1. Not required for the baseline. |
+| `0x14` | `FILL_BYTES` | RW | Exact packet bytes. Validated reception raises FILL_DONE/AWAIT_COMMIT; successful MM2S plus COMMIT_FILL alone makes READY. |
+| `0x18` | `FILL_SEGS` | RW | Baseline value 1 only; reject other values. Multi-segment fills require a later versioned commit/capability contract. |
 | `0x20` | `DRAIN_SRC` | RW | Scratchpad reference to stream out to S2MM |
 | `0x24` | `DRAIN_BYTES` | RW | Bytes to emit. TLAST is asserted on the final beat. |
 | `0x30` | `BANK_STATE` | RO | 3 bits per bank × 8 banks: 0 FREE, 1 DMA_FILLING, 2 READY, 3 COMPUTING, 4 NPU_WRITING, 5 FULL, 6 DRAINING, 7 ERROR |
 | `0x34` | `BANK_RELEASE` | W1S | One bit per bank: release to FREE after owners are quiescent. Normal drain release follows successful S2MM plus adapter stream completion (§7.3); recovery must stop all active readers/writers first |
 | `0x38` | `ADP_IRQ_ENABLE` | RW | `[0]` FILL_DONE, `[1]` DRAIN_DONE, `[2]` ERROR |
 | `0x3C` | `ADP_IRQ_STATUS` | W1C | Same bits |
-| `0x40` | `ADP_ERR` | RO | `[7:0]` code: 1 length mismatch (TLAST early or late), 2 arm into non-FREE bank, 3 range, 4 stream protocol |
+| `0x40` | `ADP_ERR` | RO | [7:0]: 1 length/TLAST mismatch, 2 arm into owned bank, 3 range, 4 stream protocol, 5 illegal commit, 6 active fill configuration write |
 
 ### 7.3 Driver programming sequences
+
+**Packet/size contract.** DDR/scratchpad starts are 16-byte aligned; lengths need not be. Define logical, storage, and transfer byte counts separately. The [shared packet subset](interfaces/RAVEN_INTERFACE_CONTRACT.md#2-dma-packets-and-bank-commit) specifies contiguous low TKEEP on the final TLAST beat, valid-byte writes, rounded owned storage, exact S2MM actual length, and bank-aware bounds. Zero length is a driver no-op. DS-CNN input/output are 490/12 bytes; VWW output is 2 bytes.
 
 **Fill (DDR → bank):**
 
 ```text
-1. require BANK_STATE[bank] == FREE                     (adapter would reject otherwise;
-                                                         optional C2: later segments of a
-                                                         multi-segment fill, §9.2)
-2. ADP.FILL_DST   = {bank, offset}
-3. ADP.FILL_BYTES = n
-4. ADP.CTRL       = ARM_FILL                            (bank -> DMA_FILLING)
-5. ordered read/check ADP.STATUS.FILL_BUSY              (HAL fences; bounded poll, §4.5)
-6. require MM2S not busy (software flag, cleared by IOC/Idle; Idle is 0 before 1st use)
-7. DMA.MM2S_SA     = ddr_addr                           (allowlist-checked)
-8. DMA.MM2S_LENGTH = n                                  (starts transfer; last write)
-   completion: ADP FILL_DONE irq/poll  -> bank READY
+1. require MM2S software busy == false, adapter fill slot idle, bank FREE
+   validate aligned starts, exact length, bank/DDR bounds and owned padded storage
+2. ADP.FILL_DST = {bank, offset}; ADP.FILL_BYTES = n
+3. ADP.CTRL = ARM_FILL                                  (bank -> DMA_FILLING)
+4. fence / ordered bounded read-check FILL_BUSY
+5. DMA.MM2S_SA = ddr_addr
+6. DMA.MM2S_LENGTH = n                                  (starts transfer; last DMA write)
+7. event loop waits for validated FILL_DONE/AWAIT_COMMIT AND successful MM2S IOC/status
+   error: bank ERROR, recover; never commit failed data
+8. ADP.CTRL = COMMIT_FILL                               (0x10; bank -> READY)
+9. ordered read/check commit visible before another ARM_FILL
 ```
+
+FILL_BUSY stays asserted and the latched bank/reference stays stable through step 8. Reject active fill-configuration writes and illegal commits. A queued consumer can wait in WAIT_DEP throughout reception/commit. The baseline uses FILL_SEGS=1; optional C2 is disabled.
 
 **Drain (bank → DDR).** Arm S2MM **before** the adapter starts streaming, so the stream is never back-pressured into a stall that looks like a hang:
 
 ```text
-1. require BANK_STATE[bank] == FULL
+1. require BANK_STATE[bank] == FULL, S2MM and adapter drain slots idle; check bounds
 2. DMA.S2MM_DA     = ddr_addr
 3. DMA.S2MM_LENGTH = n                                  (S2MM now waiting for stream)
 4. ADP.DRAIN_SRC   = {bank, offset}; ADP.DRAIN_BYTES = n
@@ -830,7 +851,7 @@ Base `ADP_BASE = 0xA002_0000`. The RTL is owned by Taylor; this field definition
 6. ADP.BANK_RELEASE = 1 << bank                         (DRAINING -> FREE after both completions)
 ```
 
-That is 5 MMIO writes plus at least one status read per fill, and 6 writes per drain including the explicit bank release. Extra polling, IRQ acknowledgments, and error recovery add accesses. MM2S/S2MM `DMACR` is written once at init: `RS | IOC_IrqEn | Err_IrqEn = 0x0000_5001`. Writing 0 to the threshold field is harmless because PG021 says threshold and delay "are not used" in direct-register mode. The driver then waits for `DMASR.Halted = 0`, per PG021's start-up sequence.
+That is **6 MMIO writes per fill**, including COMMIT_FILL, plus ordered status/completion reads, and **6 writes per drain** including BANK_RELEASE. Extra polling, IRQ acknowledgments, and error recovery add accesses. MM2S/S2MM `DMACR` is written once at init: `RS | IOC_IrqEn | Err_IrqEn = 0x0000_5001`. Writing 0 to the threshold field is harmless because PG021 says threshold and delay "are not used" in direct-register mode. The driver then waits for `DMASR.Halted = 0`, per PG021's start-up sequence.
 
 ---
 
@@ -893,13 +914,14 @@ The README's `raven_dma_transfer()`, `raven_set_op()`, and `raven_start()` are k
 
 typedef enum {
     RAVEN_OK = 0, RAVEN_E_TIMEOUT = -1, RAVEN_E_BOUNDS = -2, RAVEN_E_HW = -3,
-    RAVEN_E_BUSY = -4, RAVEN_E_BLOB = -5, RAVEN_E_UNSUPPORTED = -6, RAVEN_E_VERSION = -7
+    RAVEN_E_BUSY = -4, RAVEN_E_BLOB = -5, RAVEN_E_UNSUPPORTED = -6, RAVEN_E_VERSION = -7, RAVEN_E_CANCELED = -8
 } raven_status_t;
 
 typedef enum { RAVEN_BANK_ACT0, RAVEN_BANK_ACT1, RAVEN_BANK_WGT0, RAVEN_BANK_WGT1,
                RAVEN_BANK_OUT0, RAVEN_BANK_OUT1, RAVEN_BANK_PRM } raven_bank_t;
 
 typedef struct { raven_bank_t bank; uint32_t offset; } raven_spad_t;
+typedef struct { uint32_t generation; uint16_t sequence; } raven_ticket_t;
 typedef enum { RAVEN_DDR_TO_SPAD, RAVEN_SPAD_TO_DDR } raven_dir_t;
 
 typedef struct {
@@ -924,9 +946,9 @@ raven_status_t raven_dma_wait(raven_dir_t dir, uint32_t timeout_us);
 /* Compute (README: raven_set_op, raven_start) */
 raven_status_t raven_set_op(const raven_op_t *op);       /* copies op into the driver's pending
                                                             command; no MMIO (see below)        */
-raven_status_t raven_start(uint16_t *seq_out);           /* submit: issue now or park in order;
+raven_status_t raven_start(raven_ticket_t *ticket_out);           /* submit: issue now or park in order;
                                                             never fails on Q_FULL (parks)       */
-raven_status_t raven_wait(uint16_t seq, uint32_t timeout_us);  /* wraps-aware DONE_SEQ compare */
+raven_status_t raven_wait(raven_ticket_t ticket, uint32_t timeout_us); /* generation + wrap check */
 
 /* Parameter packing helpers: the only place bit layouts of §6.4 are encoded */
 uint32_t raven_pack_gemm_p0(uint16_t m, uint16_t n);
@@ -945,18 +967,19 @@ raven_status_t raven_run_model(raven_model_t *m, uint32_t in_addr, uint32_t out_
                                raven_profile_t *prof);
 
 /* Recovery */
-void raven_recover(void);   /* ABORT, DMA core reset (DMACR.Reset hits both channels),
-                               re-init DMACR, adapter reset, BANK_RELEASE all */
+raven_status_t raven_recover(void); /* cancel pending work; ABORT/quiesce; reset both DMA
+                                      channels; reset adapter/NPU queues; reclaim only
+                                      after quiescence; advance generation or fault */
 ```
 
-`raven_wait` compares sequence numbers modulo 2^16 using `(int16_t)(done - seq) >= 0`, so it is correct across wraparound.
+`raven_wait` first rejects an old-generation ticket as CANCELED, then compares `(int16_t)(done - ticket.sequence) >= 0`. Keep fewer than 32,768 commands outstanding for that half-range comparison. Every wait checks a deadline with the event loop/timer; WFI alone supplies no timeout. Recovery invalidates pending tickets, the write-elision shadow, cached operands/results and PSUM contexts; it resynchronizes NEXT_SEQ before a fresh operation. See the [ordered recovery contract](interfaces/RAVEN_INTERFACE_CONTRACT.md#6-timed-waits-recovery-and-completion-tickets).
 
 **Command submission and parking.** The hardware staging registers are shared, so a parked command must not depend on them:
 
 1. `raven_set_op()` only copies the `raven_op_t` into the driver's *pending command* in LMB. It writes no MMIO.
 2. `raven_start()` copies the **complete** command (all fields of `raven_op_t`) into a slot of the ordered pending list (§9.3) and returns. The caller may then reuse or change its `op` and call `raven_set_op()` again without affecting the submitted command.
 3. When the command's preconditions hold (every required fill armed or earlier producer queued, `Q_FULL = 0`, and every earlier pending command issued), the event loop **restores** that slot into the staging registers, then `fence iorw,iorw`, then `CTRL.START`. Write elision (§6.5) compares against a driver shadow of what the hardware staging registers currently hold, not against the previous `raven_set_op()` call, so a restore always leaves the full command in staging.
-4. **`seq_out` is valid when `raven_start()` returns.** The driver keeps a software counter that it assigns in submission order. Commands reach the hardware queue strictly in that order, and the driver is the only writer of `CTRL.START`, so the software number equals the hardware sequence number. Before each `START` the driver checks `NEXT_SEQ` against the slot's number; a mismatch is reported as `RAVEN_E_HW`. `raven_wait(seq)` on a still-parked command keeps running the event loop until the command has been issued and `DONE_SEQ` reaches it.
+4. **`ticket_out` is valid when `raven_start()` returns.** Its generation identifies the current recovery session; its sequence is assigned at submission. The driver keeps a software counter that it assigns in submission order. Commands reach the hardware queue strictly in that order, and the driver is the only writer of `CTRL.START`, so the software number equals the hardware sequence number. Before each `START` the driver checks `NEXT_SEQ` against the slot's number; a mismatch is reported as `RAVEN_E_HW`. `raven_wait(ticket)` on a still-parked command keeps running the event loop until the command has been issued and `DONE_SEQ` reaches it.
 5. **`Q_FULL` parks; it does not fail.** `raven_start()` returns `RAVEN_E_BUSY` only when the software pending list itself is full (sized at compile time). The hardware `ERR_Q_OVERFLOW` (§6.5) remains as a check that the driver never pushes `START` with the queue full.
 
 ### 8.3 Model blob format (interface with Jackie's export tool)
@@ -968,7 +991,7 @@ The README states that the toolchain produces "a sequential C-based execution sc
 | A. Generated C code per model | Tool emits `model_x.c` with explicit `raven_*` calls | Trivial to read and debug, good for the first model | One firmware build per model, which undercuts the "programmable / multi-model" claim |
 | **B. Data-driven blob** | Tool emits a binary layer table + packed weights; firmware interprets it | **One firmware binary runs every model**; the model is swapped by loading a file | Firmware needs a loader and validator |
 
-**Choice: B, with A as a stepping stone.** The tool emits the **same `raven_layer_t` structures** either as a C `const` array (`model_x_table.h`, linked in for bring-up) or as a binary blob (demo). The executor code is identical in both cases. The "C-based execution schedule" from the README is the C array form.
+**Choice: B, with A as a stepping stone.** Generated C tables and a versioned little-endian blob decoder populate the same logical executor records; do not serialize native C struct padding. The exact byte-offset/record-size schema and round-trip fixtures are M4 deliverables with Jackie, before exporter/runtime integration. Shared field types and constant semantics are defined in the [interface contract](interfaces/RAVEN_INTERFACE_CONTRACT.md#5-cpunpu-constants-and-numeric-metadata).
 
 ```text
 RAVEN model blob (little-endian, every section 16-byte aligned)
@@ -982,15 +1005,19 @@ RAVEN model blob (little-endian, every section 16-byte aligned)
 | tensor table [n_tensors] raven_tensor_t                     |
 |   id, dtype(INT8/INT32), layout(NHWC), shape[4],            |
 |   arena_offset (activations) or blob_offset (constants),    |
-|   bytes, scale_q31, zero_point                              |
+|   logical_bytes, storage_bytes, scale_f32_bits, zero_point   |
+|   byte strides, per-axis scales/axis metadata               |
 +------------------------------------------------------------+
 | layer table [n_layers] raven_layer_t                        |
-|   opcode, flags, in0_tid, in1_tid, w_tid, prm_tid, out_tid, |
+|   opcode/kernel ID, flags, in0/in1/out references,          |
+|   raw_weight_ref, original_bias_ref,                       |
+|   packed_weight_ref, npu_param_ref, cpu_preparation_ref     |
 |   geometry (P0-P5 source values), per-tensor quant,         |
 |   tiling hint {tile_h_out, tile_c_out, k_chunk},            |
 |   exec: NPU | CPU_FALLBACK                                  |
 +------------------------------------------------------------+
-| weights: pre-packed panel layout (compute doc §7, B_panel)  |
+| canonical raw TFLite-order weights + original INT32 bias  |
+| derived NPU packed B panels + corrected parameter records |
 +------------------------------------------------------------+
 | params: per-output {bias_corrected, mult, shift} records    |
 +------------------------------------------------------------+
@@ -998,11 +1025,13 @@ RAVEN model blob (little-endian, every section 16-byte aligned)
 +------------------------------------------------------------+
 ```
 
+CPU kernels receive original weights/bias; the raw-INT8 NPU receives separately referenced packed weights and corrected bias. Preserve tensor scale bits as uint32 IEEE-754 binary32 (1.0 = 0x3F800000), separate from execution Q31 multipliers/signed shifts. Host preparation exports per-channel and CPU-kernel parameters. Validate layouts, checked sizes, finite positive scales, and capabilities before DMA; CPU_FALLBACK uses the compiled CPU registry, not HW_LIMITS. CRC detects corruption, not authenticity.
+
 **Responsibility split.**
 
-- **Jackie's tool** (offline, Python): quantization, bias correction (`bias − z_a·Σw`, compute doc §5), **weight packing into the compute panel layout**, the activation arena plan (liveness-based offsets), tiling hints, golden tensors, and the CRC.
+- **Jackie's tool** (offline, Python): quantization preparation, retention of original weights/bias, separately derived bias correction (`bias − z_a·Σw`, compute doc §5), **weight packing into the compute panel layout**, the activation arena plan (liveness-based offsets), tiling hints, golden tensors, and the CRC.
 - **Nahjay's firmware** (online): validation, tile-loop expansion, DMA and NPU programming, fallback ops, profiling.
-- Weight packing is offline, so **the RISC-V does not reformat tensor data on the normal path**. Activations are NHWC in DDR (or channel-blocked NHWC when a layer must split output channels, §9.2 rule C2). The tensor table's `layout` field records which, as `NHWC` or `NHWC_CB(cb)`. GEMM A stays row-major and is gathered by the compute A-operand frontend (§6.4). The NPU's conv window frontend forms panels from the bank (compute doc §8; hardware window generation is proposed, pending Michael's agreement).
+- Weight packing is offline; the normal NPU path does not repack weights on the RISC-V. Baseline activations are NHWC, GEMM A is row-major with the local row-block frontend, and Conv uses the measured window gatherer. C3 channel-tile placement does repack activation outputs on the CPU and is included in latency. NHWC_CB remains unsupported until a later contract revision.
 
 ---
 
@@ -1012,10 +1041,10 @@ RAVEN model blob (little-endian, every section 16-byte aligned)
 
 ```mermaid
 flowchart TB
-    S["raven_run_model"] --> V["Validate blob<br/>CRC, bounds, opcodes vs HW_LIMITS"]
+    S["raven_run_model"] --> V["Validate blob<br/>CRC, bounds, NPU capabilities or CPU kernel registry"]
     V -->|"fail"| E["return RAVEN_E_BLOB"]
     V --> L{"Next layer?"}
-    L -->|"no"| F["Drain final output, write mailbox, return"]
+    L -->|"no"| F["Drain output, capture profile, clear banks/local storage;<br/>publish DONE; await RECLAIM before input reuse"]
     L -->|"yes"| X{"exec = NPU?"}
     X -->|"CPU_FALLBACK"| C["Run C reference kernel on DDR tensors<br/>cache maintenance if D-cache on"]
     C --> L
@@ -1052,20 +1081,18 @@ PRM bytes     = 16 · c_out                                 ≤ 4096
 
 Jackie's tool picks the layout per tensor from the tiling hints and writes it to the tensor table. The final model output is always plain NHWC.
 
-**Baseline: C1, then C3.** C2 is optional. Until its interface below is agreed by Michael (window frontend) and Taylor (adapter) and verified, the tool never emits `NHWC_CB`, and any layer that does not fit C1 uses the C3 CPU repack. The capability-reporting field for C2 is still TBD: HW_LIMITS currently allocates its bits to dimensions and opcodes. Until a versioned capability field and implementation are agreed, firmware rejects NHWC_CB blobs (RAVEN_E_UNSUPPORTED).
+**Baseline: C1, then C3.** NHWC_CB/SRC_A_CB and segmented fills remain disabled: FILL_SEGS must be 1 and P5[31:16] must be zero. The [DMA commit contract](interfaces/RAVEN_INTERFACE_CONTRACT.md#2-dma-packets-and-bank-commit) supersedes the earlier automatic/per-segment READY sketch. A later extension must define segment commit, capability reporting, padded pitches, and CPU/layout compatibility together before the exporter emits it.
 
-**Proposed C2 interface (pending agreement).**
-
-- *Multi-segment fill (adapter, Taylor).* New adapter register `FILL_SEGS` (`0x18`, RW, default 1): the number of DMA transfers that make up one bank fill. The first `ARM_FILL` requires the bank `FREE` and moves it to `DMA_FILLING` with a segment counter of `FILL_SEGS`. Each later `ARM_FILL` to the same bank, with a new `FILL_DST` offset and `FILL_BYTES`, is accepted **only while that bank is `DMA_FILLING` with segments remaining**; any other arm into a non-`FREE` bank is still `ERR_BANK_BUSY`. The bank becomes `READY` only when the **last** segment completes (exact byte count and TLAST). Until then it stays `DMA_FILLING`, so a queued compute command waits in `WAIT_DEP` and cannot read a partial tile. `FILL_DONE` is raised per segment for the driver's MM2S serialization; `ADP_STATUS` reports segments remaining. With `FILL_SEGS = 1` this is exactly the current §7.3 behavior.
-- *Layout in the command (control, Nahjay; consumer, Michael).* New `OP_FLAGS[7]` `SRC_A_CB`: `SRC_A` holds channel-blocked activations. For CONV2D, `P5[31:16]` (currently reserved) carries the block size `cb` in channels. The block pitch is derived rather than a separate field: `block_pitch = align16(H_in · W_in · cb)` bytes, so block *j* starts at `SRC_A + j · block_pitch` and `C_in / cb` blocks are expected. Dispatch rejects `SRC_A_CB` with `cb = 0`, `C_in` not a multiple of `cb`, or blocks overrunning the bank (`ERR_BAD_DIM` / `ERR_BANK_RANGE`). With `SRC_A_CB = 0`, `P5[31:16]` must be 0 and the layout is plain NHWC.
-- *Driver.* For an `NHWC_CB` band, `raven_dma_transfer` is called once per channel block; the driver programs `FILL_SEGS = C_in / cb` on the first segment and keeps the segments contiguous in the pending list so no other fill interleaves on MM2S.
+The row-band ACT formula is a conservative halo footprint; clip actual reads to valid input rows and synthesize virtual padding as the input zero-point. If even one valid band does not fit the ACT bank, use an explicitly implemented/validated alternative (for example CPU Conv on canonical DDR tensors) or reject the layer. Do not assume multi-segment filling creates more bank capacity. Include padded A/B panel/PSUM/parameter spans in all bank-fit checks.
 
 **Loop order.** Weight bank outer, activation bands inner. Each weight tile is loaded once per `c_out` group and reused across every band (memory doc §6). Activation bands alternate ACT0/ACT1.
 
 ### 9.3 Software pipeline (double buffering through the control plane)
 
 ```c
-/* Conv/GEMM layer, simplified: one c_out group, n bands, single K chunk */
+/* Simplified: OUT1 present, one c_out group, n bands, single K chunk.
+   Without OUT1 reserve a supported ACT destination before prefetch. */
+raven_ticket_t tickets[MAX_BANDS];
 raven_dma_transfer(RAVEN_DDR_TO_SPAD, w_addr,   (raven_spad_t){RAVEN_BANK_WGT0, 0}, w_bytes);
 raven_dma_transfer(RAVEN_DDR_TO_SPAD, prm_addr, (raven_spad_t){RAVEN_BANK_PRM,  0}, prm_bytes);
 raven_dma_transfer(RAVEN_DDR_TO_SPAD, band_addr(0), act(0), band_bytes(0));
@@ -1077,16 +1104,16 @@ for (int b = 0; b < n_bands; b++) {
               | (b == n_bands - 1 ? RELEASE_B | RELEASE_PARAM : 0);
     op.p[0]   = raven_pack_conv_p0(band_h_in(b), W_in);
     raven_set_op(&op);                            /* copy into driver; no MMIO yet    */
-    raven_start(&seq[b]);                         /* saved in full; seq valid now;   */
+    raven_start(&tickets[b]);                     /* full snapshot + generation/seq */
                                                   /* issued (~4-5 writes) or parked  */
 
     if (b + 1 < n_bands)                          /* prefetch next band while b runs */
         raven_dma_transfer(RAVEN_DDR_TO_SPAD, band_addr(b + 1), act((b + 1) & 1),
                            band_bytes(b + 1));    /* event loop waits for bank FREE   */
     if (b > 0)
-        drain_when_done(seq[b - 1], out((b - 1) & 1), out_addr(b - 1)); /* overlap store */
+        drain_when_done(tickets[b - 1], out((b - 1) & 1), out_addr(b - 1)); /* overlap store */
 }
-drain_when_done(seq[n_bands - 1], out((n_bands - 1) & 1), out_addr(n_bands - 1));
+drain_when_done(tickets[n_bands - 1], out((n_bands - 1) & 1), out_addr(n_bands - 1));
 ```
 
 `raven_dma_transfer`, `raven_start`, and `drain_when_done` do not spin. When a precondition is unmet (MM2S busy, target bank not FREE, output not FULL), they **park the request in a small ordered pending-action list** that the event loop (§9.4) retries on each interrupt.
@@ -1109,16 +1136,20 @@ sequenceDiagram
     FW->>DMA: MM2S_SA, MM2S_LENGTH
     DMA->>DDR: read weights
     DMA->>ADP: stream 128-bit beats
-    ADP-->>FW: FILL_DONE irq (WGT0 READY)
+    ADP-->>FW: FILL_DONE / AWAIT_COMMIT (still DMA_FILLING)
+    DMA-->>FW: MM2S successful completion
+    FW->>ADP: COMMIT_FILL (WGT0 READY)
     FW->>ADP: arm PRM, then ACT0 fills (serialized on MM2S)
     FW->>NPU: staging regs + START (seq 0, src ACT0)
     Note over NPU: WAIT_DEP until ACT0 READY
-    ADP-->>FW: FILL_DONE (ACT0 READY)
+    ADP-->>FW: FILL_DONE (ACT0 awaiting commit)
+    DMA-->>FW: MM2S successful completion
+    FW->>ADP: COMMIT_FILL (ACT0 READY)
     NPU->>NPU: RUN band 0
     FW->>ADP: ARM_FILL ACT1 (band 1)
     FW->>DMA: MM2S band 1
     FW->>NPU: changed fields + START (seq 1, src ACT1)
-    Note over FW: wfi until next irq
+    Note over FW: deadline checks; wfi until completion or 1 ms timer IRQ
     NPU-->>FW: DONE irq (DONE_SEQ=0, ACT0 released, OUT0 FULL)
     FW->>DMA: S2MM_DA, S2MM_LENGTH
     FW->>ADP: DRAIN_SRC=OUT0, ARM_DRAIN
@@ -1138,20 +1169,20 @@ sequenceDiagram
 | **Polling** (`STATUS`, `DMASR`, `ADP_STATUS` reads) | Bring-up, single-op tests, tiny layers | Each poll is an AXI4-Lite read (≤ 20 cycles, T2). The CPU is busy and cannot plan ahead. | Simplest. Lowest latency for very short ops. Deterministic. |
 | **Interrupt + `wfi` event loop** | Pipelined model execution | IRQ entry, INTC claim, and register save/restore (within the T5 budget) | The CPU plans and issues the next tile instead of spinning. Event-driven by construction. |
 
-Both are built. Polling is milestone M3; interrupts are M6. **Measure both** on the same layers and keep the faster mode per layer class. The decision rule is recorded in §11.
+Both modes are planned. Polling supports the M5/M6 bring-up; the interrupt pipeline is M8. **Measure both** on the same layers and keep the faster mode per layer class. The decision rule is recorded in §11.
 
-Interrupt sources into AXI INTC: `npu_irq` (DONE, ERROR, Q_SPACE), `mm2s_introut`, `s2mm_introut`, `adapter_irq`. One handler drains all pending causes; the event loop then retries the pending-action list.
+Interrupt sources into AXI INTC: `npu_irq` (DONE, ERROR, Q_SPACE), `mm2s_introut`, `s2mm_introut`, `adapter_irq`, and the AXI Timer tick. One handler drains all pending causes; the event loop checks deadlines/completion status and retries pending actions. Keep the timer enabled during waits; an IRQ can be lost without hanging the runtime.
 
 ### 9.5 CPU fallback operators
 
-Some operators the NPU does not support run as C reference kernels on the RISC-V, directly on DDR tensors. They must match the pinned golden integer reference; planned byte-for-byte tests, not the use of C alone, establish bit-exactness.
+Some operators the NPU does not support run as C reference kernels on the RISC-V, directly on DDR tensors using original constants and exported prepared parameters, not corrected NPU seeds. They must match the pinned golden integer reference; planned byte-for-byte tests, not the use of C alone, establish bit-exactness.
 
 | Operator | Why CPU | Expected cost |
 |---|---|---|
 | Softmax (final layer, ≤ ~12 classes) | Small vector; proposed CPU implementation | Measure its cycles and include them in inference time. Preserve quantized graph output; dequantize only for display. |
 | Reshape / flatten | Metadata only (NHWC contiguous) | Zero: pointer aliasing in the arena plan |
 | Depthwise conv (until `0x07` is decided) | See compute doc §8 | Example: a DS-CNN-like layer of 25×5×64 outputs with a 3×3 kernel is about 72k MACs. At about 10 cycles per MAC for an RV32IM inner loop (two loads, multiply, add, index updates), that is ~0.7 M cycles ≈ 7 ms at 100 MHz. **Acceptable for correctness, poor for throughput.** Measuring this is what decides the `DWCONV` hardware question. |
-| Any opcode not in `HW_LIMITS` | Graceful degradation | Reported in the profile as CPU time |
+| A layer deliberately assigned CPU_FALLBACK with an implemented CPU kernel | Explicit supported fallback | Reported in the profile as CPU time |
 
 The CPU path is also the **reference oracle on the board**. A verification build can run any layer on both the NPU and the CPU and compare byte-for-byte without a host PC.
 
@@ -1167,7 +1198,7 @@ This is the compute doc's example, `M=24, N=16, K=256`, per-channel requant with
 
 | Tensor | Size | Location |
 |---|---|---|
-| A (activations, row-major 24×256, row pitch 256 B; gathered 8 rows per K step by the compute A-operand frontend, §6.4) | 6,144 B | DDR `0x6400_0000` → `ACT0+0` |
+| A (activations, row-major 24×256, row pitch 256 B; prefetched into 8×16-byte row-block buffers by the compute A frontend, §6.4) | 6,144 B | DDR `0x6400_0000` → `ACT0+0` |
 | B (weights, pre-packed 256×16) | 4,096 B | DDR `0x6010_0400` → `WGT0+0` |
 | Params (16 channels × 16 B) | 256 B | DDR `0x6010_1400` → `PRM+0` |
 | C (INT8 24×16) | 384 B | `OUT0+0` → DDR `0x6400_2000` |
@@ -1182,7 +1213,10 @@ W 0xA0020004 = 0x00000001   ARM_FILL
 R 0xA0020008                (ordered HAL read; check FILL_BUSY=1)
 W 0xA0010018 = 0x60100400   MM2S_SA
 W 0xA0010028 = 0x00001000   MM2S_LENGTH -> transfer starts
-... wait FILL_DONE, then the same 5 writes + read-back for PRM (256 B) and ACT0 (6144 B) ...
+... wait validated FILL_DONE/AWAIT_COMMIT AND successful MM2S completion ...
+W 0xA0020004 = 0x00000010   COMMIT_FILL -> WGT0 READY
+R 0xA0020008                (ordered check fill slot released)
+... repeat the same 6 writes plus checks for PRM (256 B) and ACT0 (6144 B) ...
 
 # --- NPU command (base 0xA000_0000) ---
 W 0xA0000030 = 0x00000002   OPCODE   = GEMM
@@ -1193,7 +1227,7 @@ W 0xA000003C = 0x20000000   SRC_B    = WGT0+0
 W 0xA0000040 = 0x00100018   P0       = N=16 | M=24
 W 0xA0000044 = 0x00000100   P1       = K=256
 W 0xA0000048 = 0x00000100   P2       = A row pitch 256 B
-W 0xA000004C = 0x00000100   P3       = B panel pitch (tool-defined)
+W 0xA000004C = 0x00000800   P3       = B panel pitch 8*256 = 2048 B
 W 0xA0000050 = 0x00000010   P4       = OUT row pitch 16 B
 W 0xA0000058 = 0x40000000   DST      = OUT0+0
 W 0xA000005C = 0x60000000   PARAM    = PRM+0
@@ -1213,9 +1247,9 @@ W 0xA0020004 = 0x00000002   ARM_DRAIN
 W 0xA0020034 = 0x00000010   BANK_RELEASE = 1 << OUT0 (bank 4)
 ```
 
-**Counts:** 15 fill writes + 14 NPU writes + 6 drain/release writes = **35 MMIO writes**, plus read-backs and status reads. This excludes initialization, extra polls, and IRQ acknowledgments.
+**Counts:** 18 fill writes + 14 NPU writes + 6 drain/release writes = **38 MMIO writes**, plus read-backs and status reads. This excludes initialization, extra polls, and IRQ acknowledgments.
 
-**Cost.** Illustratively, with 8 reads and 15 cycles per AXI4-Lite access (inside the T2 budget), 43 accesses cost ≈ 645 cycles of control. The NPU's ideal issue time for this GEMM is 1,536 cycles (compute doc §7). With no overlap, control would be ≈ 30% of this tiny, single-tile layer before further overhead. This is why §11 targets overhead **across a model with overlap**, not per isolated small op, and why small layers are a known weak spot (§17).
+**Cost.** Illustratively, with an illustrative 16 status reads and 15 cycles per AXI4-Lite access (inside the T2 budget), 54 accesses cost ≈ 810 cycles of control. Actual polling/IRQ reads must be counted from the trace. The NPU's ideal issue time for this GEMM is 1,536 cycles (compute doc §7). With no overlap, control would be ≈ 35% of this tiny, single-tile layer before further overhead. This is why §11 targets overhead **across a model with overlap**, not per isolated small op, and why small layers are a known weak spot (§17).
 
 This trace format is the planned **golden register trace** (§13). The host unit test asserts that `raven_*` emits exactly this sequence, and the RTL testbench replays it.
 
@@ -1225,7 +1259,7 @@ This trace format is the planned **golden register trace** (§13). The host unit
 
 ### 11.1 Targets
 
-Each target is measured with the NPU counters (§6.2) and the core's `rdcycle` counter.
+Use NPU/rdcycle counters for applicable durations; T5 uses ILA/entry-marker instrumentation. Whole-model targets and measurement windows are in the [project plan](PROJECT_PLAN.md#functional-and-model-acceptance).
 
 | # | Metric | Target | How measured |
 |---|---|---|---|
@@ -1233,12 +1267,12 @@ Each target is measured with the NPU counters (§6.2) and the core's `rdcycle` c
 | T2 | Single AXI4-Lite CSR write / read latency (RISC-V → NPU CSR) | ≤ 20 cycles each | `rdcycle` (Zicntr, no bus access) around 1,000 back-to-back accesses |
 | T3 | Command issue cost, full program (≈ 20 writes) | ≤ 4 µs | Timer from first staging write to START |
 | T4 | Command issue cost with write elision (≈ 5 writes) | ≤ 1 µs | Same |
-| T5 | IRQ latency (NPU DONE asserted → first handler instruction) | ≤ 2 µs | A `NOP` command raises DONE at a cycle logged by `CYC_TOTAL`; the handler's first instruction reads `rdcycle`. Both counters run on the same 100 MHz clock, so they are aligned once at init. |
+| T5 | IRQ assertion to observed ISR GPIO marker | ≤2 µs (proposed) | Same-clock ILA probes of npu_irq and a dedicated entry-stub marker on an isolated NOP. Includes marker/MMIO overhead; CYC_TOTAL is not a latched DONE timestamp. |
 | T6 | Queue-empty idle fraction: delta CYC_IDLE_PENDING / delta CYC_TOTAL for each Conv/GEMM layer window | ≤ 5% (proposed) | Window from first tile preparation to last command retirement; report raw counters and correlate DMA, CPU-fallback, and command-issue events before attributing causes |
 | T7 | Firmware footprint (`.text + .rodata + .data + .bss + stack`) | ≤ 48 KiB of 64 KiB LMB | `size firmware.elf` |
 | T8 | Boot: RISC-V reset release → mailbox ready | ≤ 100 ms | Timer / GPIO toggle on a scope |
 | T9 | Model switch: load a different blob without re-synthesis or firmware rebuild | Required; 3 models | Demo procedure |
-| T10 | Error containment: every injected fault (§13) ends in a reported error code within 20 ms, never a hang | 100% of injected cases | Fault-injection tests |
+| T10 | Recoverable-fault reporting and restart | Error ≤20 ms for listed fixtures with 10 ms deadlines; restart checked separately | 1 ms timer/status polling, operational CPU/MMIO path; other work uses declared deadlines. Failed quiescence/reset enters terminal fault, never unsafe bank reuse. |
 
 The T6 ratio measures all queue-empty idle within its stated window. It is not a pure firmware-cost measurement; use the event trace to identify intervals when a ready command could have been submitted. Report CPU fallback and whole-model latency separately.
 
@@ -1253,7 +1287,7 @@ Let `t_mmio` be cycles per CSR write (15, inside the T2 budget), `w` writes per 
 | Compute doc synthetic conv layer as one tile (M=256, N=32, K=144) | 18,432 | 300 / 75 | 1.6% / 0.4% | Yes |
 | Batch-one FC, M=1, N=64, K=512 | 4,096 | 300 / 75 | 6.8% / 1.8% | Yes |
 
-The synthetic conv layer (16×16×16 → 16×16×32, 3×3) fits entirely in banks:
+The synthetic SAME Conv layer (16×16×16 → 16×16×32, 3×3, stride 1, one virtual padding element on each edge) fits in banks; gather supplies virtual padding without fetching out-of-range rows:
 
 | Bank | Contents | Size |
 |---|---|---|
@@ -1261,7 +1295,7 @@ The synthetic conv layer (16×16×16 → 16×16×32, 3×3) fits entirely in bank
 | WGT | 3·3·16·32 | 4,608 B |
 | OUT | 16×16×32 | 8 KiB INT8 |
 
-The whole layer is 3 fills + 1 command + 1 drain/release ≈ 35 writes + an illustrative 8 reads ≈ 645 cycles of control against 18,432 compute cycles, **≈ 3% before overlap**.
+With the same illustrative 14 command writes as §10, three fills/commits and one drain/release total 38 writes. Adding 16 illustrative status reads at 15 cycles/access gives 810 control cycles versus 18,432 ideal compute issue cycles, **about 4.2% serialized overhead before gather/pipeline costs**. Actual command/poll counts and Conv refill stalls must be measured.
 
 The table is the quantitative basis for:
 
@@ -1330,22 +1364,22 @@ All subsystems use the same Vivado/Vitis version. Exact Python package versions 
 | L4 Trace replay | The same golden traces from L3 drive the L1/L2 RTL testbench | cocotb trace player | **Firmware/RTL disagreement on the register contract** |
 | L5 Firmware-in-the-loop sim | Real firmware ELF on a CPU model against RAVEN RTL (PicoRV32 in Verilator, or MicroBlaze V in xsim) | Verilator / xsim | Ordering, interrupt, and timing interactions |
 | L6 On-board | Self-test, DMA benchmarks, single ops vs. golden, full models | Ultra96-V2 + XSDB | Real integration, measured performance |
-| L7 Fault injection | Bad blob (CRC, offset out of range), DMA address outside the arena, opcode illegal, length mismatch, starved bank (watchdog), ABORT mid-run | On-board + host | T10 error containment |
+| L7 Fault injection | Bad blob/scale/layout, bad DMA bounds/length/mask, uncommitted bank, lost IRQ, stuck RUN/DRAIN, abort in every active phase, late completion, wraparound/stale ticket, repeated-run cleanup | On-board + host + RTL | T10 containment and successful fresh execution after recoverable faults |
 
 ### 13.2 Milestones with acceptance criteria
 
 | ID | Milestone | Pass condition (measurable) |
 |---|---|---|
-| M1 | Core and tools frozen | MicroBlaze V config documented. `VERSIONS.md` committed. Block design recreated from Tcl on a second machine with zero manual steps. |
+| M1 | Core/tools and shared contract | Config and tested-version status documented; block design recreated from Tcl on a second machine; shared fields reviewed for implementation |
 | M2 | RISC-V alive on the Ultra96-V2 | Firmware prints the build hash over JTAG-UART, toggles an LED, and reads/writes the arena at `0x6000_0000` with a 1 MiB pattern test passing 100/100 runs |
 | M3 | CSR + queue RTL verified (sim) | L1 and L2 suites pass, covering every register field and every error code in §6.8. Functional coverage report shows 100% of the listed bins. |
-| M4 | Drivers verified on host | L3 suite passes. Golden traces committed for fill, drain, GEMM, CONV2D, EWADD, T_LOOPBACK. L4 replay passes on RTL. |
-| M5 | Control path on board (no compute) | `raven_selftest()` passes: ID/VERSION match; T_FILL and T_LOOPBACK on every bank; DMA DDR → bank → DDR round-trip bit-exact for lengths {16, 4096, 16384} B and 1,000 random 16-byte-multiple lengths ≤ 16 KiB (joint with Taylor) |
+| M4 | Drivers verified on host | L3 suite passes. Golden traces committed for fill/commit, drain, GEMM, CONV2D, EWADD, T_LOOPBACK. L4 replay passes; blob byte schema and CPU/NPU constant round-trips verified with Jackie. |
+| M5 | Control path on board (no compute) | ID/VERSION/capabilities; T_FILL/T_LOOPBACK on each present bank; exact round trips for 1/2/3/10/12/15/16/17/490 B and valid bank boundaries, 1,000 random supported lengths; guard bytes/commit gating pass; oversized/unaligned requests rejected before DMA (Taylor + Nahjay) |
 | M6 | First integration: synthetic GEMM/Conv on NPU | GEMM (24×16×256) and compute doc's synthetic conv match Jackie's integer golden **bit-exactly**, launched by RISC-V via the API, polling mode |
-| M7 | Model executor | First real model end-to-end from a blob. Every layer's output matches the per-layer golden bit-exactly. Final output matches the reference top-1 on the agreed test set. |
+| M7 | AD01 model executor | All ten layers/reconstructed INT8 outputs match pinned goldens; reference anomaly scores/ROC-AUC and latency reported against the shared goals. Top-1 applies to classifiers, not AD01. |
 | M8 | Interrupt-driven pipeline | Overlap demonstrated: per-layer deltas of CYC_DEP_WAIT + CYC_IDLE_PENDING measurably lower than in polling mode within identical layer windows, with causes checked against the event trace. T2–T5 measured and reported. |
-| M9 | Beta: 3 models, one binary | One firmware ELF and one bitstream run all 3 models by swapping blobs only (T9). Bit-exact layer checks pass. T6, T7, T8 reported. |
-| M10 | Robustness | All L7 fault-injection cases produce the expected error code and recover with `raven_recover()` without a power cycle (T10) |
+| M9 | Beta: 3 models, one binary | AD01/DS-CNN/VWW run from one firmware/bitstream; bit-exact fixture checks and application-quality/latency results reported against PROJECT_PLAN.md; no threshold represented as measured before execution |
+| M10 | Robustness | Listed recoverable L7 fixtures report expected errors within declared bounds and restart via raven_recover without a power cycle; failed reset/quiescence uses documented terminal/system recovery |
 | M11 | Handoff verified | A teammate other than Nahjay builds from a clean clone using only the docs and passes M5 and M6 (§15.3) |
 
 ---
@@ -1361,15 +1395,15 @@ The instructor's point is that the **hardware itself** carries misuse and privac
 3. **Surveillance enablement.** A programmable, low-power, always-on inference engine is exactly the component used for continuous camera or microphone analysis. Local processing reduces cloud exposure, but **it does not by itself guarantee privacy**: whoever controls the device controls the data.
 4. **Debug access.** JTAG can read all memory and alter firmware. Anyone with physical access and the pod has full control.
 
-**Controls this subsystem implements.**
+**Controls proposed for implementation and verification.**
 
 | Control | Mechanism | Verified by |
 |---|---|---|
 | DMA address allowlist | `raven_dma_transfer` rejects any `[addr, addr+len)` not fully inside `[0x6000_0000, 0x7000_0000)`, with an overflow-safe check (`len ≤ end − addr`). The DMA registers are written only by the driver. | L3 unit tests, L7 fault injection |
 | Optional CPU-side PMP | MicroBlaze V supports up to 64 PMP entries (`C_PMP_ENTRIES`, UG1629). Firmware can lock its own `.text` read-only/execute and limit CPU data access to LMB, CSRs, and the arena. This protects against firmware bugs on the CPU side only; **PMP does not constrain the DMA master**, which is why the next row exists. | Fault-injection: a deliberate out-of-arena CPU store must trap |
 | Optional hardware window check (stretch, joint with Taylor) | A small AXI address checker on the DMA's AR/AW channels returns DECERR outside the arena. It protects even against firmware bugs. | L2-style RTL test |
-| Model blob validation | Magic, version, CRC32, every offset and size bounds-checked against the blob and arena, every opcode checked against `HW_LIMITS`, before any DMA is programmed. Invalid → `RAVEN_E_BLOB`, nothing executed. | L7: corrupted and out-of-range blobs |
-| Zeroization | Configurable `RAVEN_CFG_ZEROIZE`, optional in general and required for demonstrations. Two stages, so results are never cleared before they are read: (1) after the final output drain, `T_FILL` 0x00 over all banks, then mailbox `status = DONE`; (2) after the consumer has read the output and writes mailbox `cmd = SHUTDOWN` or the next `RUN_MODEL`, DMA-zero the activation arena, including the output buffer. Reported in the profile (cost is measured, not hidden). | On-board readback test: banks read zero at DONE, output still intact; arena reads zero after SHUTDOWN |
+| Model blob validation | Magic, version, CRC32, every offset and size bounds-checked against the blob and arena, NPU opcodes checked against HW_LIMITS/HW_FEATURES and CPU fallback kernels against the compiled CPU registry, before any DMA is programmed. Invalid → `RAVEN_E_BLOB`, nothing executed. | L7: corrupted and out-of-range blobs |
+| Zeroization | RAVEN_CFG_ZEROIZE is required for demos. After final DDR output, quiesce owners, release retained banks, T_FILL each bank with raw zero and release it, then CTRL.ZERO_LOCAL clears local operand/product/accumulator/result storage. Capture inference counters before cleanup and publish DONE after cleanup. Only RECLAIM/SHUTDOWN clears all used DDR activation/workspace allocations and owned padding; measured CPU stores are the initial path. | Two consecutive distinct inputs; output preserved until acknowledgment; bank/local-storage assertions and used-range readback zero afterward |
 | No network or persistence in firmware | Firmware has no network stack and writes nothing to non-volatile storage. Outputs only go to the mailbox and console. | Code review |
 | Logging minimization | Logs and profiles record layer IDs, counters, and error codes, **not tensor contents**. Tensor dumps need an explicit debug build flag. | Code review, build-flag test |
 | Demo data policy | Demonstrations use **prerecorded public datasets** (e.g., CIFAR-10, Speech Commands) loaded from SD, not live camera or microphone capture of people | Team policy |
@@ -1379,7 +1413,7 @@ The instructor's point is that the **hardware itself** carries misuse and privac
 **Demo policy.**
 
 - The final demo uses prerecorded public datasets, not live capture.
-- `RAVEN_CFG_ZEROIZE` is enabled. Inputs are not retained after a session: banks are cleared before DONE, and the arena (including the output) is cleared only after the consumer acknowledges with SHUTDOWN or the next run.
+- RAVEN_CFG_ZEROIZE is enabled. Banks and local datapath storage are cleared before DONE; DDR output remains available until explicit RECLAIM/SHUTDOWN. Clear every used activation/workspace allocation and padding before reuse. RUN_MODEL never triggers cleanup. This policy does not claim erasure of untouched 64 MiB arena space; measure cleanup separately.
 - The demo board and JTAG pod stay in team custody in the lab.
 - The hardware window checker is a stretch goal after M9.
 
@@ -1461,49 +1495,11 @@ Severity and likelihood are rated on a 1–5 scale (5 = worst or most likely).
 
 ---
 
-## 18. Target dates (control-plane subsystem)
+## 18. Target dates
 
-Dates are **proposed** against the Fall 2026 and Spring 2027 semesters. They become final once the team master schedule adopts them; the three-model acceptance target (M9) is likewise pending the team's choice of models (§21).
+Use the [master internal schedule](PROJECT_PLAN.md#master-internal-schedule) as the single source of dates and milestone leads. These internal targets are subordinate to official course deadlines.
 
-```mermaid
-gantt
-    title RAVEN control plane schedule
-    dateFormat YYYY-MM-DD
-    axisFormat %b %d
-    section Fall 2026
-    M1 core + tool pin decision           :m1, 2026-10-26, 2026-11-06
-    M2 RISC-V alive on Ultra96-V2         :m2, 2026-11-02, 2026-11-13
-    SystemRDL register spec review        :rdl, 2026-11-09, 2026-11-20
-    M3 CSR + queue RTL verified in sim    :m3, 2026-11-16, 2026-12-04
-    M4 drivers + golden traces on host    :m4, 2026-11-23, 2026-12-11
-    M5 control path on board self-test    :m5, 2026-12-07, 2026-12-18
-    section Spring 2027
-    M6 first integration synthetic ops    :m6, 2027-01-18, 2027-02-05
-    M7 model executor, first real model   :m7, 2027-02-01, 2027-02-26
-    M8 interrupt pipeline + measurements  :m8, 2027-02-22, 2027-03-12
-    M9 beta 3 models one binary           :m9, 2027-03-08, 2027-03-26
-    M10 robustness + doc freeze           :m10, 2027-03-29, 2027-04-09
-    M11 handoff test                      :m11, 2027-04-12, 2027-04-23
-```
-
-*Figure 9: control-plane schedule.*
-
-| Milestone | Completion date |
-|---|---|
-| M1 Core/tools frozen | Fri 2026-11-06 |
-| M2 RISC-V alive on board | Fri 2026-11-13 |
-| Register spec (SystemRDL) reviewed with Michael, Taylor, Quan | Fri 2026-11-20 |
-| M3 CSR + queue RTL verified | Fri 2026-12-04 |
-| M4 Drivers + traces on host | Fri 2026-12-11 |
-| M5 Control path on board | Fri 2026-12-18 |
-| M6 First integration (synthetic GEMM/Conv) | Fri 2027-02-05 |
-| M7 First real model end-to-end | Fri 2027-02-26 |
-| M8 Interrupt-driven pipeline + T2–T5 measured | Fri 2027-03-12 |
-| M9 Beta: 3 models, one binary | Fri 2027-03-26 |
-| M10 Fault-injection pass + doc freeze | Fri 2027-04-09 |
-| M11 Handoff acceptance test | Fri 2027-04-23 |
-
-M6 depends on compute RTL (Michael), adapter RTL (Taylor), and golden vectors (Jackie).
+Required work avoids Thanksgiving, fall exams/winter interval, and March 13–20 spring break. The master table includes the fall checkpoint, spring restart, acceptance conditions and April contingency; do not maintain a second dated Gantt/table here. M6 depends on Michael's compute, Taylor's adapter, Quan's numeric tail and Jackie's golden fixtures.
 
 ---
 
@@ -1541,27 +1537,26 @@ All figures are Mermaid source. They render as SVG on GitHub and are exported fo
 | 6 | Firmware software stack | §8.1 |
 | 7 | Model execution flow | §9.1 |
 | 8 | Tensor dataflow / control sequence for one layer | §9.4 |
-| 9 | Schedule | §18 |
+| Schedule | Master internal milestone/acceptance table | [Project plan](PROJECT_PLAN.md#master-internal-schedule) |
 | Tables | Full NPU register map, opcode table, per-opcode packing, DMA and adapter registers, register-level GEMM trace | §6, §7, §10 |
 
 ---
 
-## 21. Cross-team sign-off schedule
+## 21. Cross-team implementation checkpoints
 
-| Sign-off | Owner | By |
+| Checkpoint | Accountable owners | Target |
 |---|---|---|
-| Ratify MicroBlaze V as the control core (§3) | Team | M1, 2026-11-06 |
-| Ratify the Vivado/Vitis 2024.2 pin (§12) | Team | M1 |
-| Command-queue depth 4, calendar dates (§18), three-model acceptance target (M9) | Team | M1 |
-| HP port assignment, 23-bit DMA length width, OUT1 bank, 4 KiB PRM bank, scratchpad budget (§11.3) | Taylor | Register review, 2026-11-20 |
-| Command field set, completion semantics, `ERR_ACC_RANGE` detector, hardware Conv window generation | Michael | Register review |
-| Partial-sum source/pitch registers, typed context, destination and release rules (§6.6) | Michael + Taylor + Nahjay | Register review |
-| Tensor-layout contract: GEMM A gather, channel-blocked NHWC (§6.4, §9.2) | Michael + Taylor + Jackie + Nahjay | Register review |
-| Pinned single-rounding reference, bias records independent of scale granularity, EWADD P1 pre-shift, 8-bit POOL strides | Quan + Nahjay + Jackie | Register review |
-| RESULT_LANES=1 bring-up / 4-lane evaluation, II and memory-write contract; DWCONV hardware vs. RISC-V fallback | Michael + Quan + Taylor (+ Nahjay for fallback) | Register review; DWCONV after M7 measurement |
-| Blob format details, the 3 models, input sizes, accuracy thresholds | Jackie + team | Before M7 |
-| Ratify the demo policy (§14) | Team | Before M9 |
-| M9 and final-handoff leads, maintenance owner | Team | M1 |
+| Core/tool config, tested pins and shared proposal | Nahjay | M1 |
+| HP path, DMA configuration, padded bank capacities, COMMIT_FILL and byte masks | Taylor + Nahjay | Register review before Thanksgiving; integration M5 |
+| Row-block memory frontend, B pitch, Conv windows, local clear, ACT destination capability | Michael + Taylor + Quan | Register review; integration M6 |
+| PSUM source/pitch/context, generation tickets, quiescence and reset | Michael + Taylor + Nahjay | M3/M4 verification, M6 integration |
+| Pinned arithmetic, PARAM bias, POOL/EWADD fields and CPU constants | Quan + Jackie + Nahjay | M4 fixtures |
+| Exact blob byte schema, codec round-trip, prepared CPU parameters and dataset/preprocessing pins | Jackie + Nahjay | M4, before exporter/runtime integration |
+| Depthwise hardware decision after fallback profiling | Michael + Quan + Nahjay | After M7 measurements |
+| Timer, ILA T5, error/recovery and repeat-run cleanup | Nahjay + Taylor | M8 / M10 |
+| Demo privacy policy, handoff recipient and real maintenance commitment | Michael coordinates stakeholder discussion | Before M9; do not invent a successor commitment |
+
+Model targets, calendar dates and integration leads are in [PROJECT_PLAN.md](PROJECT_PLAN.md). Checkpoint completion requires evidence; documenting a selected baseline does not claim it has passed.
 
 ---
 
