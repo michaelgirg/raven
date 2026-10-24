@@ -110,7 +110,7 @@ The deployment toolchain will inspect supported graphs, retain original CPU/refe
 
 Proposed driver entry points include `raven_dma_transfer()`, `raven_set_op()`, and `raven_start()`; these APIs are documented plans, not available code in this checkout.
 
-Verification will compare integer outputs against the agreed reference at PE, tile, operator, layer, and model levels. Tests must cover edge tiles, K-chunk continuation, bias applied once, zero-points, rounding/clamping, backpressure, bank ownership, DMA integrity, and error recovery. Model-level accuracy or task-quality thresholds remain team decisions.
+Verification will compare integer outputs against the agreed reference at PE, tile, operator, layer, and model levels. Tests must cover edge tiles, K-chunk continuation, bias applied once, zero-points, rounding/clamping, backpressure, bank ownership, DMA integrity, and error recovery. Proposed numerical, model-quality and latency targets are in the [shared acceptance table](docs/PROJECT_PLAN.md#functional-and-model-acceptance); they still require measurement against pinned evaluation pipelines.
 
 Benchmarks will report inference latency, useful MAC activity, input/output stalls, transfer bandwidth, FPGA resources, timing, and power where measured. Reports must include CPU fallback and data movement, and distinguish analytical ceilings from measured results.
 
