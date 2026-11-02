@@ -1,8 +1,8 @@
 {
-  "started_utc": "2026-11-01T19:50:11.290696+00:00",
+  "started_utc": "2026-11-02T01:16:30.393139+00:00",
   "platform": "Windows-10-10.0.19045-SP0",
   "python": "3.12.10 (tags/v3.12.10:0cc8128, Apr  8 2025, 12:21:36) [MSC v.1943 64 bit (AMD64)]",
-  "project_root_from_run": "../../../outputs/RAVEN_Repo_Preview",
+  "project_root_from_run": "../../../../..",
   "tools": {
     "vsim": "vsim.EXE",
     "vlog": "vlog.EXE",
@@ -18,12 +18,12 @@
     "rtl/compute/raven_gemm_frontend.sv": "fd285b7bfc29b0b80ec7ae0f84b85e59a5f47209e0f372d26efb89e616c92f9f",
     "rtl/compute/raven_gemm_core.sv": "a62277a61663804b8a8e60bdb0b81525d7c8a55d7a3e72807dbd5b4a1cde5562",
     "tests/rtl/compute/sim_read_memory.sv": "5256d171a25e4b97f63b00ae930507b25ce7c9e5a6314ef5fc409db1f7f6614d",
-    "tests/rtl/compute/tb_raven_mac_pe.sv": "e49d177e7fb6794ed02b0209122af1605be5647fa59b0c18a75f7d691fd3cb2d",
+    "tests/rtl/compute/tb_raven_mac_pe.sv": "12d056f33e94bfa7af77ee758d7bc8203ec5641ba86bbd4f69d8cbc2de6ddea2",
     "tests/rtl/compute/tb_raven_gemm_core.sv": "a0ce3794359552bd49ae9f6b0ae9471c4984fe13d8c3bdd897d618658c894b5c",
     "tests/rtl/compute/generate_vectors.py": "a250c72d047dcbd93e91f304e246fcdd3fe7c7f684adf6304c966726c37f02ab",
     "tests/rtl/compute/run_questa.py": "a7e004f03488948d9791ce318ea02fa7637355511229e1a1aafaff85597a3f4e",
     "tests/rtl/compute/run_batch.do": "71ed41a19f5a352e23f8c89aed7231d04eea682630300a4a8de8b74353fcb502",
-    "tests/rtl/compute/view_demo.do": "fa6bccb304e7cc33fde2e17bc118c95aa6ca9fa722440178a5935fd927780f82"
+    "tests/rtl/compute/view_demo.do": "9e41354998064072dc579e0d8f609a2d293ca8ee9a4ea287c1de1a3b28184a13"
   },
   "steps": [
     {
@@ -33,7 +33,7 @@
         "-version"
       ],
       "returncode": 0,
-      "seconds": 0.109,
+      "seconds": 0.062,
       "timed_out": false,
       "expected_failure": false,
       "status": "pass"
@@ -45,7 +45,7 @@
         "-version"
       ],
       "returncode": 0,
-      "seconds": 0.063,
+      "seconds": 0.047,
       "timed_out": false,
       "expected_failure": false,
       "status": "pass"
@@ -57,7 +57,7 @@
         "-c"
       ],
       "returncode": 0,
-      "seconds": 0.062,
+      "seconds": 0.031,
       "timed_out": false,
       "expected_failure": false,
       "status": "pass"
@@ -69,7 +69,7 @@
         "work"
       ],
       "returncode": 0,
-      "seconds": 0.047,
+      "seconds": 0.063,
       "timed_out": false,
       "expected_failure": false,
       "status": "pass"
@@ -82,7 +82,7 @@
         "work"
       ],
       "returncode": 0,
-      "seconds": 0.032,
+      "seconds": 0.047,
       "timed_out": false,
       "expected_failure": false,
       "status": "pass"
@@ -96,17 +96,17 @@
         "work",
         "-l",
         "compile.log",
-        "../../../outputs/RAVEN_Repo_Preview/rtl/compute/raven_mac_pe.sv",
-        "../../../outputs/RAVEN_Repo_Preview/rtl/compute/raven_mac_array.sv",
-        "../../../outputs/RAVEN_Repo_Preview/rtl/compute/raven_gemm_frontend.sv",
-        "../../../outputs/RAVEN_Repo_Preview/rtl/compute/raven_gemm_core.sv",
-        "../../../outputs/RAVEN_Repo_Preview/tests/rtl/compute/sim_read_memory.sv",
-        "../../../outputs/RAVEN_Repo_Preview/tests/rtl/compute/tb_raven_mac_pe.sv",
-        "../../../outputs/RAVEN_Repo_Preview/tests/rtl/compute/tb_raven_gemm_core.sv",
+        "../../../../../rtl/compute/raven_mac_pe.sv",
+        "../../../../../rtl/compute/raven_mac_array.sv",
+        "../../../../../rtl/compute/raven_gemm_frontend.sv",
+        "../../../../../rtl/compute/raven_gemm_core.sv",
+        "../../../../../tests/rtl/compute/sim_read_memory.sv",
+        "../../../../../tests/rtl/compute/tb_raven_mac_pe.sv",
+        "../../../../../tests/rtl/compute/tb_raven_gemm_core.sv",
         "assertion_probe.sv"
       ],
       "returncode": 0,
-      "seconds": 0.203,
+      "seconds": 0.094,
       "timed_out": false,
       "expected_failure": false,
       "status": "pass"
@@ -131,7 +131,7 @@
         "run_batch.do"
       ],
       "returncode": 0,
-      "seconds": 1.593,
+      "seconds": 1.421,
       "timed_out": false,
       "expected_failure": true,
       "status": "pass"
@@ -157,7 +157,7 @@
         "run_batch.do"
       ],
       "returncode": 0,
-      "seconds": 1.11,
+      "seconds": 1.063,
       "timed_out": false,
       "expected_failure": true,
       "status": "pass"
@@ -182,7 +182,7 @@
         "run_batch.do"
       ],
       "returncode": 0,
-      "seconds": 2.609,
+      "seconds": 2.641,
       "timed_out": false,
       "expected_failure": false,
       "status": "pass"
@@ -191,7 +191,7 @@
       "name": "vectors-8x8",
       "argv": [
         "python",
-        "../../../outputs/RAVEN_Repo_Preview/tests/rtl/compute/generate_vectors.py",
+        "../../../../../tests/rtl/compute/generate_vectors.py",
         "--rows",
         "8",
         "--cols",
@@ -228,7 +228,7 @@
         "run_batch.do"
       ],
       "returncode": 0,
-      "seconds": 9.656,
+      "seconds": 9.641,
       "timed_out": false,
       "expected_failure": false,
       "status": "pass"
@@ -237,7 +237,7 @@
       "name": "vectors-4x4",
       "argv": [
         "python",
-        "../../../outputs/RAVEN_Repo_Preview/tests/rtl/compute/generate_vectors.py",
+        "../../../../../tests/rtl/compute/generate_vectors.py",
         "--rows",
         "4",
         "--cols",
@@ -246,7 +246,7 @@
         "4x4/vectors"
       ],
       "returncode": 0,
-      "seconds": 0.25,
+      "seconds": 0.265,
       "timed_out": false,
       "expected_failure": false,
       "status": "pass"
@@ -274,7 +274,7 @@
         "run_batch.do"
       ],
       "returncode": 0,
-      "seconds": 9.656,
+      "seconds": 8.844,
       "timed_out": false,
       "expected_failure": false,
       "status": "pass"
@@ -283,7 +283,7 @@
       "name": "vectors-2x4",
       "argv": [
         "python",
-        "../../../outputs/RAVEN_Repo_Preview/tests/rtl/compute/generate_vectors.py",
+        "../../../../../tests/rtl/compute/generate_vectors.py",
         "--rows",
         "2",
         "--cols",
@@ -292,7 +292,7 @@
         "2x4/vectors"
       ],
       "returncode": 0,
-      "seconds": 0.235,
+      "seconds": 0.25,
       "timed_out": false,
       "expected_failure": false,
       "status": "pass"
@@ -320,7 +320,7 @@
         "run_batch.do"
       ],
       "returncode": 0,
-      "seconds": 9.078,
+      "seconds": 10.063,
       "timed_out": false,
       "expected_failure": false,
       "status": "pass"
@@ -329,7 +329,7 @@
       "name": "vectors-1x1",
       "argv": [
         "python",
-        "../../../outputs/RAVEN_Repo_Preview/tests/rtl/compute/generate_vectors.py",
+        "../../../../../tests/rtl/compute/generate_vectors.py",
         "--rows",
         "1",
         "--cols",
@@ -338,7 +338,7 @@
         "1x1/vectors"
       ],
       "returncode": 0,
-      "seconds": 0.235,
+      "seconds": 0.219,
       "timed_out": false,
       "expected_failure": false,
       "status": "pass"
@@ -366,7 +366,7 @@
         "run_batch.do"
       ],
       "returncode": 0,
-      "seconds": 8.703,
+      "seconds": 9.422,
       "timed_out": false,
       "expected_failure": false,
       "status": "pass"
@@ -394,7 +394,7 @@
         "run_batch.do"
       ],
       "returncode": 0,
-      "seconds": 1.484,
+      "seconds": 1.532,
       "timed_out": false,
       "expected_failure": true,
       "status": "pass"
@@ -422,7 +422,7 @@
         "run_batch.do"
       ],
       "returncode": 0,
-      "seconds": 1.094,
+      "seconds": 1.125,
       "timed_out": false,
       "expected_failure": true,
       "status": "pass"
@@ -450,7 +450,7 @@
         "run_batch.do"
       ],
       "returncode": 0,
-      "seconds": 1.203,
+      "seconds": 1.296,
       "timed_out": false,
       "expected_failure": true,
       "status": "pass"
@@ -481,7 +481,7 @@
         "set raven_log_waves 1; do run_batch.do"
       ],
       "returncode": 0,
-      "seconds": 1.562,
+      "seconds": 1.61,
       "timed_out": false,
       "expected_failure": false,
       "status": "pass"
@@ -496,5 +496,5 @@
     "manifest_rejection_guards": 3,
     "demo_outputs": 64
   },
-  "finished_utc": "2026-11-01T19:51:00.802429+00:00"
+  "finished_utc": "2026-11-02T01:17:20.595126+00:00"
 }

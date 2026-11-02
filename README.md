@@ -52,7 +52,7 @@ Three blocks have separate responsibilities:
 - **AMD AXI DMA:** vendor MM2S/S2MM registers for DDR-to-stream and stream-to-DDR transfers.
 - **RAVEN stream adapter:** proposed fill/drain registers, scratchpad selection, byte counts, and bank ownership.
 
-GEMM A stays row-major: two local 8×16-byte buffers turn sequential 128-bit row reads into eight activation lanes. Conv uses a bounds-checked window gatherer whose refill rate must be measured.
+GEMM A stays row-major: two local 8×16-byte buffers turn sequential 128-bit row reads into eight activation lanes. The proposed Conv path adds a bounds-checked window gatherer; it is not part of the current compute RTL.
 
 Input ping-pong banks allow filling a FREE bank while another is in use. A received DMA packet stays DMA_FILLING until firmware checks successful MM2S completion and explicitly commits the bank to READY. Exact byte lengths and final byte masks support short model tensors. Typed READY/FULL rules govern source consumption; retained tensors and unfinished partial sums cannot be overwritten. A drained output bank is released after successful DMA and adapter completion. See the [memory proposal](docs/RAVEN_Memory_System_Research.md) for capacity, bandwidth, and ownership details.
 
@@ -72,7 +72,8 @@ datapath/array, pipeline, operand frontend, controller and compute verification.
 ```mermaid
 flowchart LR
     DRIVER["TB command driver"] --> CORE["GEMM controller"]
-    MEMORY["TB A / B / PARAM memories"] --> FRONT["Operand frontend"]
+    MEMORY["TB A / B memories"] --> FRONT["Operand frontend"]
+    PARAM["TB PARAM memory"] --> CORE
     CORE --> FRONT
     FRONT --> ARRAY["MAC array and pipelined PEs"]
     ARRAY --> CORE
@@ -85,7 +86,12 @@ N, K, A row pitch and A/B/PARAM starting offsets. M and N must fit the physical
 array. There is one command in flight and one complete resident K reduction.
 
 Three separate 128-bit memory request/response interfaces use valid/ready,
-16-byte-aligned bank-local byte offsets and one outstanding request per port.
+16-byte-aligned bank-local byte offsets (24 bits by default) and one outstanding
+request per port. Hold a request address stable until it is accepted. The
+responder must hold response valid/data until response-ready is asserted;
+an early response cannot be a one-clock pulse that disappears before acceptance.
+Transfers occur on a rising clock edge with both valid and ready high.
+Responses are ordered, with no transaction IDs or memory-error sideband.
 Default ACT/WGT/PARAM capacities are 16 KiB / 16 KiB / 4 KiB. A rows have a
 16-byte-aligned pitch at least round_up(K,16). B always has eight physical
 column lanes per K position. Each PARAM channel record is 16 bytes; compute
@@ -126,7 +132,8 @@ and `run_questa.py` / `run_batch.do` enforce the run and failure checks.
 
 Validation used **Questa Intel Starter FPGA Edition-64 2021.2**
 with immediate and concurrent assertions enabled. The PE passed 65,536 signed
-operand products plus seeded bubbles, overflow and in-flight reset checks.
+operand products plus seeded bubbles, both overflow directions, sticky overflow,
+reinitialization and in-flight reset checks.
 Each of 8×8, 4×4, 2×4 and 1×1 passed 42 fixtures and three reset/restart phases:
 **168 fixtures and 12 reset/restart scenarios total**. The short demo checked
 all 64 outputs. Separate intentional-failure checks confirmed assertion
@@ -254,6 +261,7 @@ raven/
 ├── configs/            # Future design, model-export, and simulation presets
 ├── data/               # Local raw/processed datasets; contents ignored by Git
 ├── docs/               # Research, decisions, interface contracts, diagrams, and guides
+├── evidence/           # Reviewed compute simulation results and experiment records
 ├── rtl/                # Compute pre-alpha; future operators, memory, control, integration
 ├── hw/                 # Future Vivado Tcl, constraints, and IP configuration
 ├── software/           # Future firmware, runtime, drivers, HAL, and host tests

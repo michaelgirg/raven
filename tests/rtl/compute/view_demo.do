@@ -1,6 +1,6 @@
 # Run from the build directory printed by run_questa.py, in the Questa GUI:
 # do view_demo.do
-vsim -t 1ps -voptargs=+acc -wlf demo_gui.wlf -gROWS=8 -gCOLS=8 work.tb_raven_gemm_core +FIXTURES=8x8/vectors +DEMO_ONLY
+vsim -t 1ps -onfinish stop -sva -immedassert -voptargs=+acc -wlf demo_gui.wlf -gROWS=8 -gCOLS=8 work.tb_raven_gemm_core +FIXTURES=8x8/vectors +DEMO_ONLY
 add wave -divider Command
 add wave sim:/tb_raven_gemm_core/clk sim:/tb_raven_gemm_core/rst_n
 add wave sim:/tb_raven_gemm_core/cmd_valid sim:/tb_raven_gemm_core/cmd_ready sim:/tb_raven_gemm_core/busy

@@ -21,8 +21,8 @@ Questa Intel Starter FPGA Edition-64 vlog 2021.2 Compiler 2021.04 Apr 14 2021
 SECTION: compile
 ========================================================================
 Questa Intel Starter FPGA Edition-64 vlog 2021.2 Compiler 2021.04 Apr 14 2021
-Start time: 14:50:11 on Nov 01,2026
-vlog -sv -work work -l compile.log ../../../outputs/RAVEN_Repo_Preview/rtl/compute/raven_mac_pe.sv ../../../outputs/RAVEN_Repo_Preview/rtl/compute/raven_mac_array.sv ../../../outputs/RAVEN_Repo_Preview/rtl/compute/raven_gemm_frontend.sv ../../../outputs/RAVEN_Repo_Preview/rtl/compute/raven_gemm_core.sv ../../../outputs/RAVEN_Repo_Preview/tests/rtl/compute/sim_read_memory.sv ../../../outputs/RAVEN_Repo_Preview/tests/rtl/compute/tb_raven_mac_pe.sv ../../../outputs/RAVEN_Repo_Preview/tests/rtl/compute/tb_raven_gemm_core.sv assertion_probe.sv 
+Start time: 20:16:30 on Nov 01,2026
+vlog -sv -work work -l compile.log ../../../../../rtl/compute/raven_mac_pe.sv ../../../../../rtl/compute/raven_mac_array.sv ../../../../../rtl/compute/raven_gemm_frontend.sv ../../../../../rtl/compute/raven_gemm_core.sv ../../../../../tests/rtl/compute/sim_read_memory.sv ../../../../../tests/rtl/compute/tb_raven_mac_pe.sv ../../../../../tests/rtl/compute/tb_raven_gemm_core.sv assertion_probe.sv
 -- Compiling module raven_mac_pe
 -- Compiling module raven_mac_array
 -- Compiling module raven_gemm_frontend
@@ -36,15 +36,15 @@ Top level modules:
 	tb_raven_mac_pe
 	tb_raven_gemm_core
 	tb_assertion_probe
-End time: 14:50:11 on Nov 01,2026, Elapsed time: 0:00:00
+End time: 20:16:30 on Nov 01,2026, Elapsed time: 0:00:00
 Errors: 0, Warnings: 0
 
 
 ========================================================================
 SECTION: guard-immediate
 ========================================================================
-# vsim -c -onfinish exit -t 1ps -sva -immedassert -l guard-immediate.log -wlf guard-immediate.wlf work.tb_assertion_probe -do "run_batch.do" 
-# Start time: 14:50:12 on Nov 01,2026
+# vsim -c -onfinish exit -t 1ps -sva -immedassert -l guard-immediate.log -wlf guard-immediate.wlf work.tb_assertion_probe -do "run_batch.do"
+# Start time: 20:16:31 on Nov 01,2026
 # ** Note: (vsim-3812) Design is being optimized...
 # //  Questa Intel Starter FPGA Edition-64
 # //  Version 2021.2 win64 Apr 14 2021
@@ -67,15 +67,15 @@ SECTION: guard-immediate
 #    Time: 0 ps  Scope: tb_assertion_probe File: assertion_probe.sv Line: 10
 # ** Note: $finish    : assertion_probe.sv(10)
 #    Time: 0 ps  Iteration: 0  Instance: /tb_assertion_probe
-# End time: 14:50:13 on Nov 01,2026, Elapsed time: 0:00:01
+# End time: 20:16:32 on Nov 01,2026, Elapsed time: 0:00:01
 # Errors: 1, Warnings: 0
 
 
 ========================================================================
 SECTION: guard-sva
 ========================================================================
-# vsim -c -onfinish exit -t 1ps -sva -immedassert -l guard-sva.log -wlf guard-sva.wlf work.tb_assertion_probe "+SVA" -do "run_batch.do" 
-# Start time: 14:50:14 on Nov 01,2026
+# vsim -c -onfinish exit -t 1ps -sva -immedassert -l guard-sva.log -wlf guard-sva.wlf work.tb_assertion_probe "+SVA" -do "run_batch.do"
+# Start time: 20:16:32 on Nov 01,2026
 # ** Note: (vsim-8009) Loading existing optimized design _opt
 # //  Questa Intel Starter FPGA Edition-64
 # //  Version 2021.2 win64 Apr 14 2021
@@ -98,15 +98,15 @@ SECTION: guard-sva
 #    Time: 5 ns Started: 5 ns  Scope: tb_assertion_probe File: assertion_probe.sv Line: 6
 # ** Note: $finish    : assertion_probe.sv(6)
 #    Time: 5 ns  Iteration: 0  Instance: /tb_assertion_probe
-# End time: 14:50:14 on Nov 01,2026, Elapsed time: 0:00:00
+# End time: 20:16:33 on Nov 01,2026, Elapsed time: 0:00:01
 # Errors: 1, Warnings: 0
 
 
 ========================================================================
 SECTION: pe
 ========================================================================
-# vsim -c -onfinish exit -t 1ps -sva -immedassert -l pe.log -wlf pe.wlf work.tb_raven_mac_pe -do "run_batch.do" 
-# Start time: 14:50:15 on Nov 01,2026
+# vsim -c -onfinish exit -t 1ps -sva -immedassert -l pe.log -wlf pe.wlf work.tb_raven_mac_pe -do "run_batch.do"
+# Start time: 20:16:33 on Nov 01,2026
 # ** Note: (vsim-3812) Design is being optimized...
 # //  Questa Intel Starter FPGA Edition-64
 # //  Version 2021.2 win64 Apr 14 2021
@@ -125,18 +125,19 @@ SECTION: pe
 # Loading sv_std.std
 # Loading work.tb_raven_mac_pe(fast)
 # do run_batch.do
+# PASS PE sticky overflow and seed restart
 # PASS PE: 65536 signed products, bias/bubbles, both overflow directions, in-flight reset
-# ** Note: $finish    : ../../../outputs/RAVEN_Repo_Preview/tests/rtl/compute/tb_raven_mac_pe.sv(56)
-#    Time: 1968176 ns  Iteration: 0  Instance: /tb_raven_mac_pe
-# End time: 14:50:17 on Nov 01,2026, Elapsed time: 0:00:02
+# ** Note: $finish    : ../../../../../tests/rtl/compute/tb_raven_mac_pe.sv(72)
+#    Time: 1968246 ns  Iteration: 0  Instance: /tb_raven_mac_pe
+# End time: 20:16:35 on Nov 01,2026, Elapsed time: 0:00:02
 # Errors: 0, Warnings: 0
 
 
 ========================================================================
 SECTION: core-8x8
 ========================================================================
-# vsim -c -onfinish exit -t 1ps -sva -immedassert -l core-8x8.log -wlf core-8x8.wlf work.tb_raven_gemm_core "+FIXTURES=8x8/vectors" -do "run_batch.do" -gCOLS=8 -gROWS=8 
-# Start time: 14:50:18 on Nov 01,2026
+# vsim -c -onfinish exit -t 1ps -sva -immedassert -l core-8x8.log -wlf core-8x8.wlf work.tb_raven_gemm_core "+FIXTURES=8x8/vectors" -do "run_batch.do" -gCOLS=8 -gROWS=8
+# Start time: 20:16:36 on Nov 01,2026
 # ** Note: (vsim-3812) Design is being optimized...
 # //  Questa Intel Starter FPGA Edition-64
 # //  Version 2021.2 win64 Apr 14 2021
@@ -198,17 +199,17 @@ SECTION: core-8x8
 # PASS GEMM 8x8 case 40 M=8 N=8 K=2048 error=0 cycles=8226 in_stall=5982 out_stall=72
 # PASS GEMM 8x8 case 41 M=1 N=1 K=1 error=0 cycles=30 in_stall=11 out_stall=7
 # PASS CORE 8x8: 42 fixtures and 3 in-flight reset/restart phases
-# ** Note: $finish    : ../../../outputs/RAVEN_Repo_Preview/tests/rtl/compute/tb_raven_gemm_core.sv(192)
+# ** Note: $finish    : ../../../../../tests/rtl/compute/tb_raven_gemm_core.sv(192)
 #    Time: 176620 ns  Iteration: 1  Instance: /tb_raven_gemm_core
-# End time: 14:50:27 on Nov 01,2026, Elapsed time: 0:00:09
+# End time: 20:16:45 on Nov 01,2026, Elapsed time: 0:00:09
 # Errors: 0, Warnings: 0
 
 
 ========================================================================
 SECTION: core-4x4
 ========================================================================
-# vsim -c -onfinish exit -t 1ps -sva -immedassert -l core-4x4.log -wlf core-4x4.wlf work.tb_raven_gemm_core "+FIXTURES=4x4/vectors" -do "run_batch.do" -gCOLS=4 -gROWS=4 
-# Start time: 14:50:28 on Nov 01,2026
+# vsim -c -onfinish exit -t 1ps -sva -immedassert -l core-4x4.log -wlf core-4x4.wlf work.tb_raven_gemm_core "+FIXTURES=4x4/vectors" -do "run_batch.do" -gCOLS=4 -gROWS=4
+# Start time: 20:16:46 on Nov 01,2026
 # ** Note: (vsim-3812) Design is being optimized...
 # //  Questa Intel Starter FPGA Edition-64
 # //  Version 2021.2 win64 Apr 14 2021
@@ -270,17 +271,17 @@ SECTION: core-4x4
 # PASS GEMM 4x4 case 40 M=4 N=4 K=2048 error=0 cycles=8045 in_stall=5928 out_stall=18
 # PASS GEMM 4x4 case 41 M=1 N=1 K=1 error=0 cycles=27 in_stall=5 out_stall=6
 # PASS CORE 4x4: 42 fixtures and 3 in-flight reset/restart phases
-# ** Note: $finish    : ../../../outputs/RAVEN_Repo_Preview/tests/rtl/compute/tb_raven_gemm_core.sv(192)
+# ** Note: $finish    : ../../../../../tests/rtl/compute/tb_raven_gemm_core.sv(192)
 #    Time: 151410 ns  Iteration: 1  Instance: /tb_raven_gemm_core
-# End time: 14:50:37 on Nov 01,2026, Elapsed time: 0:00:09
+# End time: 20:16:54 on Nov 01,2026, Elapsed time: 0:00:08
 # Errors: 0, Warnings: 0
 
 
 ========================================================================
 SECTION: core-2x4
 ========================================================================
-# vsim -c -onfinish exit -t 1ps -sva -immedassert -l core-2x4.log -wlf core-2x4.wlf work.tb_raven_gemm_core "+FIXTURES=2x4/vectors" -do "run_batch.do" -gCOLS=4 -gROWS=2 
-# Start time: 14:50:38 on Nov 01,2026
+# vsim -c -onfinish exit -t 1ps -sva -immedassert -l core-2x4.log -wlf core-2x4.wlf work.tb_raven_gemm_core "+FIXTURES=2x4/vectors" -do "run_batch.do" -gCOLS=4 -gROWS=2
+# Start time: 20:16:55 on Nov 01,2026
 # ** Note: (vsim-3812) Design is being optimized...
 # //  Questa Intel Starter FPGA Edition-64
 # //  Version 2021.2 win64 Apr 14 2021
@@ -342,17 +343,17 @@ SECTION: core-2x4
 # PASS GEMM 2x4 case 40 M=2 N=4 K=2048 error=0 cycles=8019 in_stall=5921 out_stall=7
 # PASS GEMM 2x4 case 41 M=1 N=1 K=1 error=0 cycles=29 in_stall=9 out_stall=6
 # PASS CORE 2x4: 42 fixtures and 3 in-flight reset/restart phases
-# ** Note: $finish    : ../../../outputs/RAVEN_Repo_Preview/tests/rtl/compute/tb_raven_gemm_core.sv(192)
+# ** Note: $finish    : ../../../../../tests/rtl/compute/tb_raven_gemm_core.sv(192)
 #    Time: 147480 ns  Iteration: 1  Instance: /tb_raven_gemm_core
-# End time: 14:50:46 on Nov 01,2026, Elapsed time: 0:00:08
+# End time: 20:17:05 on Nov 01,2026, Elapsed time: 0:00:10
 # Errors: 0, Warnings: 0
 
 
 ========================================================================
 SECTION: core-1x1
 ========================================================================
-# vsim -c -onfinish exit -t 1ps -sva -immedassert -l core-1x1.log -wlf core-1x1.wlf work.tb_raven_gemm_core "+FIXTURES=1x1/vectors" -do "run_batch.do" -gCOLS=1 -gROWS=1 
-# Start time: 14:50:47 on Nov 01,2026
+# vsim -c -onfinish exit -t 1ps -sva -immedassert -l core-1x1.log -wlf core-1x1.wlf work.tb_raven_gemm_core "+FIXTURES=1x1/vectors" -do "run_batch.do" -gCOLS=1 -gROWS=1
+# Start time: 20:17:06 on Nov 01,2026
 # ** Note: (vsim-3812) Design is being optimized...
 # //  Questa Intel Starter FPGA Edition-64
 # //  Version 2021.2 win64 Apr 14 2021
@@ -414,17 +415,17 @@ SECTION: core-1x1
 # PASS GEMM 1x1 case 40 M=1 N=1 K=2048 error=0 cycles=7972 in_stall=5906 out_stall=7
 # PASS GEMM 1x1 case 41 M=1 N=1 K=1 error=0 cycles=27 in_stall=6 out_stall=6
 # PASS CORE 1x1: 42 fixtures and 3 in-flight reset/restart phases
-# ** Note: $finish    : ../../../outputs/RAVEN_Repo_Preview/tests/rtl/compute/tb_raven_gemm_core.sv(192)
+# ** Note: $finish    : ../../../../../tests/rtl/compute/tb_raven_gemm_core.sv(192)
 #    Time: 141020 ns  Iteration: 1  Instance: /tb_raven_gemm_core
-# End time: 14:50:55 on Nov 01,2026, Elapsed time: 0:00:08
+# End time: 20:17:14 on Nov 01,2026, Elapsed time: 0:00:08
 # Errors: 0, Warnings: 0
 
 
 ========================================================================
 SECTION: guard-manifest-empty
 ========================================================================
-# vsim -c -onfinish exit -t 1ps -sva -immedassert -l guard-manifest-empty.log -wlf guard-manifest-empty.wlf work.tb_raven_gemm_core "+FIXTURES=invalid-manifest-empty" -do "run_batch.do" -gCOLS=8 -gROWS=8 
-# Start time: 14:50:56 on Nov 01,2026
+# vsim -c -onfinish exit -t 1ps -sva -immedassert -l guard-manifest-empty.log -wlf guard-manifest-empty.wlf work.tb_raven_gemm_core "+FIXTURES=invalid-manifest-empty" -do "run_batch.do" -gCOLS=8 -gROWS=8
+# Start time: 20:17:15 on Nov 01,2026
 # ** Note: (vsim-3812) Design is being optimized...
 # //  Questa Intel Starter FPGA Edition-64
 # //  Version 2021.2 win64 Apr 14 2021
@@ -444,18 +445,18 @@ SECTION: guard-manifest-empty
 # Loading work.tb_raven_gemm_core(fast)
 # do run_batch.do
 # ** Fatal: Expected 42 fixtures, completed 0
-#    Time: 60 ns  Scope: tb_raven_gemm_core.tests File: ../../../outputs/RAVEN_Repo_Preview/tests/rtl/compute/tb_raven_gemm_core.sv Line: 167
-# ** Note: $finish    : ../../../outputs/RAVEN_Repo_Preview/tests/rtl/compute/tb_raven_gemm_core.sv(167)
+#    Time: 60 ns  Scope: tb_raven_gemm_core.tests File: ../../../../../tests/rtl/compute/tb_raven_gemm_core.sv Line: 167
+# ** Note: $finish    : ../../../../../tests/rtl/compute/tb_raven_gemm_core.sv(167)
 #    Time: 60 ns  Iteration: 1  Instance: /tb_raven_gemm_core
-# End time: 14:50:56 on Nov 01,2026, Elapsed time: 0:00:00
+# End time: 20:17:16 on Nov 01,2026, Elapsed time: 0:00:01
 # Errors: 1, Warnings: 0
 
 
 ========================================================================
 SECTION: guard-manifest-partial
 ========================================================================
-# vsim -c -onfinish exit -t 1ps -sva -immedassert -l guard-manifest-partial.log -wlf guard-manifest-partial.wlf work.tb_raven_gemm_core "+FIXTURES=invalid-manifest-partial" -do "run_batch.do" -gCOLS=8 -gROWS=8 
-# Start time: 14:50:57 on Nov 01,2026
+# vsim -c -onfinish exit -t 1ps -sva -immedassert -l guard-manifest-partial.log -wlf guard-manifest-partial.wlf work.tb_raven_gemm_core "+FIXTURES=invalid-manifest-partial" -do "run_batch.do" -gCOLS=8 -gROWS=8
+# Start time: 20:17:17 on Nov 01,2026
 # ** Note: (vsim-8009) Loading existing optimized design _opt
 # //  Questa Intel Starter FPGA Edition-64
 # //  Version 2021.2 win64 Apr 14 2021
@@ -475,18 +476,18 @@ SECTION: guard-manifest-partial
 # Loading work.tb_raven_gemm_core(fast)
 # do run_batch.do
 # ** Fatal: Malformed/truncated fixture manifest
-#    Time: 60 ns  Scope: tb_raven_gemm_core.tests File: ../../../outputs/RAVEN_Repo_Preview/tests/rtl/compute/tb_raven_gemm_core.sv Line: 129
-# ** Note: $finish    : ../../../outputs/RAVEN_Repo_Preview/tests/rtl/compute/tb_raven_gemm_core.sv(129)
+#    Time: 60 ns  Scope: tb_raven_gemm_core.tests File: ../../../../../tests/rtl/compute/tb_raven_gemm_core.sv Line: 129
+# ** Note: $finish    : ../../../../../tests/rtl/compute/tb_raven_gemm_core.sv(129)
 #    Time: 60 ns  Iteration: 1  Instance: /tb_raven_gemm_core
-# End time: 14:50:57 on Nov 01,2026, Elapsed time: 0:00:00
+# End time: 20:17:17 on Nov 01,2026, Elapsed time: 0:00:00
 # Errors: 1, Warnings: 0
 
 
 ========================================================================
 SECTION: guard-manifest-short
 ========================================================================
-# vsim -c -onfinish exit -t 1ps -sva -immedassert -l guard-manifest-short.log -wlf guard-manifest-short.wlf work.tb_raven_gemm_core "+FIXTURES=invalid-manifest-short" -do "run_batch.do" -gCOLS=8 -gROWS=8 
-# Start time: 14:50:58 on Nov 01,2026
+# vsim -c -onfinish exit -t 1ps -sva -immedassert -l guard-manifest-short.log -wlf guard-manifest-short.wlf work.tb_raven_gemm_core "+FIXTURES=invalid-manifest-short" -do "run_batch.do" -gCOLS=8 -gROWS=8
+# Start time: 20:17:18 on Nov 01,2026
 # ** Note: (vsim-8009) Loading existing optimized design _opt
 # //  Questa Intel Starter FPGA Edition-64
 # //  Version 2021.2 win64 Apr 14 2021
@@ -507,18 +508,18 @@ SECTION: guard-manifest-short
 # do run_batch.do
 # PASS GEMM 8x8 case 0 M=8 N=8 K=16 error=0 cycles=151 in_stall=37 out_stall=6
 # ** Fatal: Expected 42 fixtures, completed 1
-#    Time: 1590 ns  Scope: tb_raven_gemm_core.tests File: ../../../outputs/RAVEN_Repo_Preview/tests/rtl/compute/tb_raven_gemm_core.sv Line: 167
-# ** Note: $finish    : ../../../outputs/RAVEN_Repo_Preview/tests/rtl/compute/tb_raven_gemm_core.sv(167)
+#    Time: 1590 ns  Scope: tb_raven_gemm_core.tests File: ../../../../../tests/rtl/compute/tb_raven_gemm_core.sv Line: 167
+# ** Note: $finish    : ../../../../../tests/rtl/compute/tb_raven_gemm_core.sv(167)
 #    Time: 1590 ns  Iteration: 1  Instance: /tb_raven_gemm_core
-# End time: 14:50:59 on Nov 01,2026, Elapsed time: 0:00:01
+# End time: 20:17:18 on Nov 01,2026, Elapsed time: 0:00:00
 # Errors: 1, Warnings: 0
 
 
 ========================================================================
 SECTION: demo
 ========================================================================
-# vsim -c -onfinish exit -t 1ps -sva -immedassert -l demo.log -wlf demo.wlf -voptargs="+acc" work.tb_raven_gemm_core "+FIXTURES=8x8/vectors" "+DEMO_ONLY" "+WAVE=demo.vcd" -do "set raven_log_waves 1; do run_batch.do" -gCOLS=8 -gROWS=8 
-# Start time: 14:50:59 on Nov 01,2026
+# vsim -c -onfinish exit -t 1ps -sva -immedassert -l demo.log -wlf demo.wlf -voptargs="+acc" work.tb_raven_gemm_core "+FIXTURES=8x8/vectors" "+DEMO_ONLY" "+WAVE=demo.vcd" -do "set raven_log_waves 1; do run_batch.do" -gCOLS=8 -gROWS=8
+# Start time: 20:17:19 on Nov 01,2026
 # ** Note: (vsim-3812) Design is being optimized...
 # ** Note: (vopt-143) Recognized 1 FSM in module "raven_gemm_core(fast)".
 # ** Note: (vopt-143) Recognized 2 FSMs in module "raven_gemm_frontend(fast)".
@@ -559,7 +560,7 @@ SECTION: demo
 #      9472    -2401    12737    23785   -27755   -31333    -8245   -34259
 # PASS GEMM 8x8 case 0 M=8 N=8 K=16 error=0 cycles=151 in_stall=37 out_stall=6
 # PASS CORE 8x8: 1 fixtures and 0 in-flight reset/restart phases
-# ** Note: $finish    : ../../../outputs/RAVEN_Repo_Preview/tests/rtl/compute/tb_raven_gemm_core.sv(192)
+# ** Note: $finish    : ../../../../../tests/rtl/compute/tb_raven_gemm_core.sv(192)
 #    Time: 1590 ns  Iteration: 1  Instance: /tb_raven_gemm_core
-# End time: 14:51:00 on Nov 01,2026, Elapsed time: 0:00:01
+# End time: 20:17:20 on Nov 01,2026, Elapsed time: 0:00:01
 # Errors: 0, Warnings: 0

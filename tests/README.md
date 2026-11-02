@@ -1,10 +1,20 @@
 # Hardware and system verification
 
-These folders reserve space for future verification assets. No test suite is implemented or runnable yet.
+The compute suite is runnable from the repository root:
+
+```sh
+python tests/rtl/compute/run_questa.py
+```
+
+It compiles the actual compute RTL, checks it with PE/core testbenches and an
+independent fixture generator, and captures transcripts and demo waveforms.
+It requires Python 3.9+ and a working Questa installation. See the
+[run instructions and coverage](../README.md#run-the-compute-tests).
+Other directories reserve space for future subsystem and integrated verification.
 
 | Directory | Intended contents | Lead |
 |---|---|---|
-| `rtl/compute/` | PE/array, edge-tile, K-chunk, and backpressure tests | Michael |
+| `rtl/compute/` | PE/core GEMM, partial tiles, K tails, backpressure and coordinated reset/restart tests; saved-PSUM/K-chunk continuation remains future work | Michael |
 | `rtl/operators/` | Integer-reference, activation, pool, and EWADD tests | Quan |
 | `rtl/memory/` | Scratchpad/adapter, DMA-stream, byte-count, and ownership tests | Taylor |
 | `rtl/control/` | CSR, queue/dispatch, IRQ, interlock, and recovery tests | Nahjay |

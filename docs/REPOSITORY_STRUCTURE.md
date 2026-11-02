@@ -1,6 +1,10 @@
 # Repository structure
 
-This layout reserves implementation locations for RAVEN while preserving the existing research documents and model paths. Empty implementation directories contain `.gitkeep` so Git retains them. The skeleton does not add RTL, firmware, tests, build commands, or measured results.
+This layout contains compute pre-alpha RTL, runnable Questa testbenches and
+selected simulation evidence, alongside the research documents and model files.
+Other implementation areas remain reserved for future work. Empty directories
+contain `.gitkeep` so Git retains them. No integrated firmware or FPGA build is
+supplied. See the [current compute scope](../README.md#compute-implementation-and-tests).
 
 ## Directory map
 
@@ -34,6 +38,8 @@ raven/
 │   ├── interfaces/            # Reviewed cross-subsystem contracts
 │   ├── regs/                  # Planned generated register documentation
 │   └── reports/               # Reviewed reports and measurement explanations
+├── evidence/
+│   └── questa/                # Compute results, combined log, waveform and experiments
 ├── rtl/
 │   ├── README.md
 │   ├── common/                # Shared SV types, interfaces, and utilities
@@ -88,7 +94,9 @@ raven/
     └── README.md              # Upstream source dependencies if explicitly adopted
 ```
 
-`build/` is the reserved, Git-ignored destination for local generated output. Build tools will create it when implemented; it is not part of the tracked directory skeleton.
+`build/` is the Git-ignored destination for generated output. The Questa runner
+creates its libraries, fixtures, transcripts and waveforms under
+`build/tests/compute/questa/` by default.
 
 The additional preset, dataset, debug, linker, decision, dependency, and automation locations are organizational provisions for future work. In particular, `tests/formal/` is optional; this layout does not add a formal-verification requirement.
 
@@ -124,6 +132,6 @@ The named subsystem leads follow the research documents. Shared milestone leads 
 
 Keep the project overview in the root `README.md`. Store CI notes in `.github/AUTOMATION.md`; a README in `.github/` takes precedence on the repository front page, so do not place an area README there. See [GitHub README selection rules](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-readmes).
 
-Each top-level implementation area has a README describing its role. Keep setup/run commands with the actual working implementation and record tested dependencies when available. Add a root Makefile or CI jobs once their commands perform real checks; this skeleton supplies neither.
+Each top-level implementation area has a README describing its role. Keep setup/run commands with the actual working implementation and record tested dependencies when available. The compute suite currently runs through Python; a root Makefile and CI jobs remain future work.
 
 The five research documents explain subsystem proposals. The [shared interface contract](interfaces/RAVEN_INTERFACE_CONTRACT.md) supplies common behavior, and the [project plan](PROJECT_PLAN.md) supplies targets/dates. Keep those definitions synchronized with the register proposal and future generated outputs. Additional reviewed interfaces belong under `docs/interfaces/`, editable diagrams under `docs/diagrams/`, and setup/handoff material under `docs/guides/`. Selected proposals remain distinct from verified implementations.

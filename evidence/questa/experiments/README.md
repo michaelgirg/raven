@@ -20,6 +20,8 @@ results with an independent Python wide-integer reference.
 | Incomplete fixture manifest | Review found that the old bench stopped on a short `$fscanf` record without enforcing 42 completed fixtures. | Added partial-record, sequential-ID and exact-total checks. Intentional empty, partial-record and short-manifest runs now fail as expected. |
 | Native exit status | This Questa configuration returned status zero even after `$fatal`. | The runner also checks transcript diagnostics and exact PASS totals. It separately proves that immediate and concurrent assertions execute, and returns nonzero on an unexpected test failure. |
 | Group portability | A teammate's checkout and simulator installation can be in different directories. | The runner locates the project from its script location, uses relative fixture/source paths where possible, and discovers tools through PATH, QUESTA_BIN or --questa-bin. A relocated checkout passed when launched from another directory with spaces in the checkout/build paths. |
+| Overflow coverage | The original PE checks covered each overflow direction but did not prove that a later non-overflowing addition preserves an earlier overflow. | Added a three-product reduction whose final mathematical sum fits INT32 but must remain rejected because of the intermediate overflow. A fresh initialization must then clear the flag. |
+| GUI verification settings | The GUI demo depended on default assertion and finish settings. | The viewer now explicitly enables immediate/concurrent assertions and stops at completion so the captured trace stays open. |
 
 The [combined execution log](../verification.log) contains named sections for
 the normal regressions, the two assertion probes and the three manifest-rejection
@@ -31,7 +33,7 @@ expected; they are not failures of the normal design regression.
 | Check | Result |
 |---|---|
 | Compile the design and benches | Passed with zero warnings/errors. |
-| PE testbench | 65,536 signed INT8 operand products passed, plus bias/bubbles, both overflow directions and in-flight reset. |
+| PE testbench | 65,536 signed INT8 operand products passed, plus bias/bubbles, both overflow directions, sticky overflow through a non-overflowing final addition, seed restart and in-flight reset. |
 | Core configurations | 8×8, 4×4, 2×4 and 1×1 each passed 42 fixtures and three reset/restart phases: **168 fixtures and 12 phases total**. |
 | Short demonstration | All 64 INT32 outputs matched the independent reference, with correct row/column/index/last tags. |
 | Demo counters | 151 busy cycles, 16 K issues, 37 input-stall clocks, six output-stall clocks and error code zero. |

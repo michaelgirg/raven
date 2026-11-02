@@ -1,6 +1,7 @@
 # RAVEN NPU Compute Architecture
 
-**Status:** Initial research and proposed architecture; RTL implementation has not started.
+**Status:** Compute pre-alpha RTL is implemented and tested for a single resident
+GEMM microtile. The larger Conv/GEMM architecture below remains a proposal.
 
 **Owner:** Michael — NPU compute architecture and RTL.
 
@@ -12,7 +13,15 @@ Shared interface proposals are documented in [Nahjay's control/runtime research]
 
 Workload priorities below follow [Jackie's model inventory](Quantized_Models.md); result processing follows [Quan's operator proposal](NPU_Operators_Research.md). Model descriptions are reported research, not independent model verification or measured RAVEN support.
 
-**Shared baseline (2026-10-23):** use the [interface contract](interfaces/RAVEN_INTERFACE_CONTRACT.md) for operand delivery, DMA commit, capabilities, CPU/NPU constants, and recovery; use the [project plan](PROJECT_PLAN.md) for dates and acceptance targets. These remain design specifications pending implementation evidence.
+**Implemented subset:** the [compute implementation and tests](../README.md#compute-implementation-and-tests)
+provide signed INT8 multiplication, corrected-bias initialization, an array-sized
+GEMM command, logical K tails, one tagged INT32 result lane, overflow rejection
+and coordinated reset/restart verification. Memory responders, command driving
+and result checking are testbench stand-ins. Conv gathering, larger-tile
+scheduling, saved-PSUM continuation, INT8 output operators and physical/system
+integration are not implemented by that subset.
+
+**Shared baseline:** use the [interface contract](interfaces/RAVEN_INTERFACE_CONTRACT.md) for operand delivery, DMA commit, capabilities, CPU/NPU constants, and recovery; use the [project plan](PROJECT_PLAN.md) for shared milestones and acceptance targets. The broader full-system contract remains a design specification pending integration evidence.
 
 ## 1. Initial proposal
 
@@ -306,4 +315,4 @@ Use the proposed register/opcode and command-field definitions in RISCV_Research
 
 For model-level validation, use version/hash-identified artifacts from Jackie's inventory with batch size, tensor layouts, and quantization recorded. Start with AD01 layer outputs against the agreed integer reference, including per-channel tags and stalled result transfers through Quan's tail. For DS-CNN/MobileNet, separate dense-core timing from depthwise/other CPU fallback time. AD01 reconstruction/ROC-AUC and classifier metrics follow the shared [acceptance table](PROJECT_PLAN.md#functional-and-model-acceptance); hardware conformance requires zero INT8 element mismatches on designated supported fixtures against the pinned arithmetic reference.
 
-Freeze the final array dimensions, interconnect, accumulator contract, panel layout, and result width only after these checks and candidate-model analysis. INT4 and more complex dataflows remain secondary extensions. This document records research, analytical estimates, and proposed behavior; it makes no claims of completed RTL or measured FPGA performance.
+Freeze the final array dimensions, interconnect, accumulator contract, panel layout, and result width only after these checks and candidate-model analysis. INT4 and more complex dataflows remain secondary extensions. This document records the broader research and proposal; the implementation link above identifies the completed compute pre-alpha subset. No integrated-NPU or measured FPGA performance is claimed.

@@ -1,6 +1,10 @@
 # RTL
 
-This is the planned home for synthesizable SystemVerilog. The subdirectories are placeholders; no RTL implementation is supplied yet.
+The compute directory contains the MAC PE, parameterized array, operand frontend
+and single-microtile GEMM controller. They are verified in standalone RTL
+simulation. See the [implementation and run instructions](../README.md#compute-implementation-and-tests).
+The other subsystem directories remain reserved for their owners; an integrated
+FPGA build is not supplied.
 
 | Directory | Intended contents | Lead |
 |---|---|---|

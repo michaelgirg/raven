@@ -48,6 +48,22 @@ module tb_raven_mac_pe;
         initialize(32'sh8000_0000); a=-1; b=1; valid=1; last=1;
         tick(); @(negedge clk); valid=0; tick();
         assert (overflow) else $fatal(1,"Negative overflow not detected");
+        // An intermediate overflow still invalidates the reduction if a later
+        // product brings the stored sum back into the signed INT32 range.
+        initialize(32'sh7fff_ffff); a=1; b=1; valid=1; last=0;
+        tick(); @(negedge clk); a=-1; last=0;
+        tick();
+        assert (overflow && !committed) else $fatal(1,"Intermediate overflow not recorded");
+        // A third product makes the final addition non-overflowing. This catches
+        // an implementation that replaces the flag with only the latest carry.
+        @(negedge clk); a=-1; last=1; tick();
+        @(negedge clk); valid=0; last=0; tick();
+        assert (sum==32'sh7fff_fffe && overflow && committed)
+            else $fatal(1,"Overflow did not remain sticky after the sum recovered");
+        initialize(123); tick();
+        assert (sum==123 && !overflow && !committed)
+            else $fatal(1,"Initialization did not clear sticky overflow");
+        $display("PASS PE sticky overflow and seed restart");
         initialize(0); a=12; b=13; valid=1; last=1;
         tick(); @(negedge clk); rst_n=0; valid=0; tick();
         @(negedge clk); rst_n=1; tick(); tick();
