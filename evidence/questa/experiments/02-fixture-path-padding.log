@@ -1,0 +1,42 @@
+Reading pref.tcl
+
+# 2021.2
+
+# vsim -c -onfinish exit -t 1ps -sva -immedassert -l core-8x8.log -wlf core-8x8.wlf work.tb_raven_gemm_core "+FIXTURES=C:/Users/micha/Documents/Codex/2026-11-01/preview-attachment-raven-michael-questa-handoff/work/raven-michael-prealpha/build/tests/compute/questa/run_20261101T152207_191220Z/8x8/vectors" -do "run_batch.do" -gCOLS=8 -gROWS=8 
+# Start time: 10:22:13 on Nov 01,2026
+# ** Note: (vsim-3812) Design is being optimized...
+# //  Questa Intel Starter FPGA Edition-64
+# //  Version 2021.2 win64 Apr 14 2021
+# //
+# //  Copyright 1991-2021 Mentor Graphics Corporation
+# //  All Rights Reserved.
+# //
+# //  QuestaSim and its associated documentation contain trade
+# //  secrets and commercial or financial information that are the property of
+# //  Mentor Graphics Corporation and are privileged, confidential,
+# //  and exempt from disclosure under the Freedom of Information Act,
+# //  5 U.S.C. Section 552. Furthermore, this information
+# //  is prohibited from disclosure under the Trade Secrets Act,
+# //  18 U.S.C. Section 1905.
+# //
+# Loading sv_std.std
+# Loading work.tb_raven_gemm_core(fast)
+# do run_batch.do
+# ** Warning: (vsim-7) Failed to open readmem file "C:/Users/micha/Documents/Codex/2026-11-01/preview-attachment-raven-michael-questa-handoff/work/raven-michael-prealpha/build/tests/compute/questa/run_20261101T152207_191220Z/8x8/vectors/case_ 0/a.hex" in read mode.
+# No such file or directory. (errno = ENOENT)    : C:/Users/micha/Documents/Codex/2026-11-01/preview-attachment-raven-michael-questa-handoff/work/raven-michael-prealpha/tests/rtl/compute/tb_raven_gemm_core.sv(95)
+#    Time: 60 ns  Iteration: 1  Instance: /tb_raven_gemm_core
+# ** Warning: (vsim-7) Failed to open readmem file "C:/Users/micha/Documents/Codex/2026-11-01/preview-attachment-raven-michael-questa-handoff/work/raven-michael-prealpha/build/tests/compute/questa/run_20261101T152207_191220Z/8x8/vectors/case_ 0/b.hex" in read mode.
+# No such file or directory. (errno = ENOENT)    : C:/Users/micha/Documents/Codex/2026-11-01/preview-attachment-raven-michael-questa-handoff/work/raven-michael-prealpha/tests/rtl/compute/tb_raven_gemm_core.sv(96)
+#    Time: 60 ns  Iteration: 1  Instance: /tb_raven_gemm_core
+# ** Warning: (vsim-7) Failed to open readmem file "C:/Users/micha/Documents/Codex/2026-11-01/preview-attachment-raven-michael-questa-handoff/work/raven-michael-prealpha/build/tests/compute/questa/run_20261101T152207_191220Z/8x8/vectors/case_ 0/param.hex" in read mode.
+# No such file or directory. (errno = ENOENT)    : C:/Users/micha/Documents/Codex/2026-11-01/preview-attachment-raven-michael-questa-handoff/work/raven-michael-prealpha/tests/rtl/compute/tb_raven_gemm_core.sv(97)
+#    Time: 60 ns  Iteration: 1  Instance: /tb_raven_gemm_core
+# ** Warning: (vsim-7) Failed to open readmem file "C:/Users/micha/Documents/Codex/2026-11-01/preview-attachment-raven-michael-questa-handoff/work/raven-michael-prealpha/build/tests/compute/questa/run_20261101T152207_191220Z/8x8/vectors/case_ 0/expected.hex" in read mode.
+# No such file or directory. (errno = ENOENT)    : C:/Users/micha/Documents/Codex/2026-11-01/preview-attachment-raven-michael-questa-handoff/work/raven-michael-prealpha/tests/rtl/compute/tb_raven_gemm_core.sv(98)
+#    Time: 60 ns  Iteration: 1  Instance: /tb_raven_gemm_core
+# ** Fatal: Case 0 element 0 actual x expected x
+#    Time: 935 ns  Scope: tb_raven_gemm_core File: C:/Users/micha/Documents/Codex/2026-11-01/preview-attachment-raven-michael-questa-handoff/work/raven-michael-prealpha/tests/rtl/compute/tb_raven_gemm_core.sv Line: 71
+# ** Note: $finish    : C:/Users/micha/Documents/Codex/2026-11-01/preview-attachment-raven-michael-questa-handoff/work/raven-michael-prealpha/tests/rtl/compute/tb_raven_gemm_core.sv(71)
+#    Time: 935 ns  Iteration: 1  Instance: /tb_raven_gemm_core
+# End time: 10:22:14 on Nov 01,2026, Elapsed time: 0:00:01
+# Errors: 1, Warnings: 4

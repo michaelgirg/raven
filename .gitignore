@@ -34,3 +34,8 @@ __pycache__/
 # Local operating-system files.
 .DS_Store
 Thumbs.db
+
+# Reviewed compute evidence; generated simulator logs remain under /build/.
+!/evidence/questa/verification.log
+!/evidence/questa/experiments/01-original-compile.log
+!/evidence/questa/experiments/02-fixture-path-padding.log
