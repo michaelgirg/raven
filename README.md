@@ -6,7 +6,8 @@ RAVEN is a senior capstone project developing a programmable INT8 neural process
 
 The goal is to execute multiple supported model graphs using one FPGA bitstream and one runtime binary. Intended applications include audio anomaly detection, keyword spotting, and visual wake-word person detection, with inference performed locally on the board.
 
-**Current status: architecture research and design proposals.** This repository currently contains five subsystem research documents, five candidate `.tflite` models, and a directory skeleton for future implementation. RTL, firmware, deployment tools, build scripts, and an FPGA demonstration are planned deliverables. No measured RAVEN throughput, timing closure, power, or inference accuracy is reported yet. Shared interface and configuration choices require team review and implementation verification.
+**Current status: compute pre-alpha RTL and Questa tests, plus subsystem research.** The compute implementation performs one resident INT8 GEMM tile and returns signed INT32 results. Command driving, operand memories and the result consumer are testbench stand-ins. Full-system integration and FPGA measurements remain future work; the broader architecture below is a proposal.
+
 
 ## Documentation and ownership
 
@@ -18,7 +19,7 @@ The goal is to execute multiple supported model graphs using one FPGA bitstream 
 | RISC-V integration, MMIO, control, and runtime | Nahjay | [RISC-V integration and runtime](docs/RISCV_Research.md) |
 | Model analysis/export, tensor extraction, and golden-reference generation | Jackie | [Quantized-model research](docs/Quantized_Models.md) |
 
-The documents describe proposed behavior. The [shared interface contract](docs/interfaces/RAVEN_INTERFACE_CONTRACT.md) defines the current operand, DMA, mailbox, constant-format, and recovery baseline. The [project plan](docs/PROJECT_PLAN.md) holds shared acceptance goals and internal dates. Implementation, timing, and model-quality evidence remain to be collected.
+The documents describe proposed behavior. The [shared interface contract](docs/interfaces/RAVEN_INTERFACE_CONTRACT.md) defines the current operand, DMA, mailbox, constant-format, and recovery baseline. The [project plan](docs/PROJECT_PLAN.md) holds shared acceptance goals and milestones. Full-system implementation, FPGA timing, and model-quality evidence remain to be collected; the compute-only simulation evidence is linked in the compute section.
 
 ## Proposed system architecture
 
@@ -54,6 +55,118 @@ Three blocks have separate responsibilities:
 GEMM A stays row-major: two local 8×16-byte buffers turn sequential 128-bit row reads into eight activation lanes. Conv uses a bounds-checked window gatherer whose refill rate must be measured.
 
 Input ping-pong banks allow filling a FREE bank while another is in use. A received DMA packet stays DMA_FILLING until firmware checks successful MM2S completion and explicitly commits the bank to READY. Exact byte lengths and final byte masks support short model tensors. Typed READY/FULL rules govern source consumption; retained tensors and unfinished partial sums cannot be overwritten. A drained output bank is released after successful DMA and adapter completion. See the [memory proposal](docs/RAVEN_Memory_System_Research.md) for capacity, bandwidth, and ownership details.
+
+## Compute implementation and tests
+
+The demonstrated use case is **8×16 signed INT8 activations × 16×8 signed INT8
+weights + bias → 8×8 signed INT32 results**. The implementation includes the MAC
+datapath/array, pipeline, operand frontend, controller and compute verification.
+
+| Design file | What it does |
+|---|---|
+| [raven_mac_pe.sv](rtl/compute/raven_mac_pe.sv) | Saves a signed INT8 product, adds it to an INT32 seeded sum, handles valid bubbles and detects signed overflow |
+| [raven_mac_array.sv](rtl/compute/raven_mac_array.sv) | Connects the PEs into an output-stationary array with row/column broadcasts and masks |
+| [raven_gemm_frontend.sv](rtl/compute/raven_gemm_frontend.sv) | Reads row-major A and packed B, buffers their words and pairs operands at the same K position |
+| [raven_gemm_core.sv](rtl/compute/raven_gemm_core.sv) | Checks and saves a command, reads corrected bias, sequences the reduction and drains tagged INT32 outputs |
+
+```mermaid
+flowchart LR
+    DRIVER["TB command driver"] --> CORE["GEMM controller"]
+    MEMORY["TB A / B / PARAM memories"] --> FRONT["Operand frontend"]
+    CORE --> FRONT
+    FRONT --> ARRAY["MAC array and pipelined PEs"]
+    ARRAY --> CORE
+    CORE --> CHECK["TB result consumer / independent scoreboard"]
+```
+
+The design top is `raven_gemm_core`. Default ROWS=COLS=8; each physical dimension
+supports 1..8. A command is accepted on `cmd_valid_i && cmd_ready_o` and saves M,
+N, K, A row pitch and A/B/PARAM starting offsets. M and N must fit the physical
+array. There is one command in flight and one complete resident K reduction.
+
+Three separate 128-bit memory request/response interfaces use valid/ready,
+16-byte-aligned bank-local byte offsets and one outstanding request per port.
+Default ACT/WGT/PARAM capacities are 16 KiB / 16 KiB / 4 KiB. A rows have a
+16-byte-aligned pitch at least round_up(K,16). B always has eight physical
+column lanes per K position. Each PARAM channel record is 16 bytes; compute
+reads its signed corrected bias from bytes 0..3. All rounded physical reads
+must fit their selected bank. Logical K padding is not accumulated.
+
+The output is one signed INT32 valid/ready lane with row, column, logical
+index `row*N+column` and last marker. Data and tags stay fixed during a stall.
+Corrected bias is applied once:
+`original_bias[j] - input_zero_point * sum(B[k,j])`. The Python reference
+independently computes `original_bias[j] + sum((A[i,k]-input_zero_point)*B[k,j])`
+with wide integers.
+
+### Run the compute tests
+
+Requires Python 3.9+ and a working Questa installation/license. Add your
+simulator's executable directory to PATH, set QUESTA_BIN locally, or use
+`--questa-bin "<your-questa-bin-directory>"`. No script assumes a personal
+checkout or installation path. TensorFlow, NumPy, Make and a C++ toolchain are
+not needed for these synthetic Questa tests.
+
+```sh
+python tests/rtl/compute/run_questa.py
+python tests/rtl/compute/run_questa.py --demo-only
+```
+
+The runner finds the checkout from its own location. Generated fixtures,
+libraries, transcripts and waveforms go into a fresh directory under
+`build/tests/compute/questa/`; `latest.json` points to the report using a path
+relative to its directory. A relative `--build` override is resolved from the
+caller's working directory.
+
+For the GUI, change to the generated run directory printed by the runner and
+enter `do view_demo.do`. The demo prints the checked matrix and captures VCD/WLF
+waveforms. The two testbenches and `sim_read_memory.sv` are under
+`tests/rtl/compute/`; `generate_vectors.py` creates the independent fixtures,
+and `run_questa.py` / `run_batch.do` enforce the run and failure checks.
+
+Validation used **Questa Intel Starter FPGA Edition-64 2021.2**
+with immediate and concurrent assertions enabled. The PE passed 65,536 signed
+operand products plus seeded bubbles, overflow and in-flight reset checks.
+Each of 8×8, 4×4, 2×4 and 1×1 passed 42 fixtures and three reset/restart phases:
+**168 fixtures and 12 reset/restart scenarios total**. The short demo checked
+all 64 outputs. Separate intentional-failure checks confirmed assertion
+execution and rejection of incomplete fixture manifests.
+
+See the [combined execution log](evidence/questa/verification.log),
+[source-hash/result report](evidence/questa/results.json),
+[waveform preview](evidence/questa/demo_waveform.svg) and
+[experiments, failures and difficulties](evidence/questa/experiments/README.md).
+The experiment record links the actual failed attempts and their fixes.
+
+### Known bugs, limitations and integration boundaries
+
+No failing case remains in the executed supported suite. The testbench's
+Questa declaration-initialization, fixture-name and incomplete-manifest issues
+were fixed and are documented in the experiment record. The suite is not an
+exhaustive proof of every possible sequence.
+
+- One physical microtile per command, full resident K only and one result lane.
+  Conv gathering, larger-tile traversal, saved-PSUM/K-chunk continuation,
+  transpose/BLAS modes and four-lane output remain future work.
+- The arithmetic uses raw signed INT8 operands, symmetric weights and corrected
+  INT32 seeds. Any intermediate signed INT32 overflow rejects the tile after its
+  reduction, without successful result beats. Export must validate seed/range
+  compatibility. Codes: 0x00 success, 0x02 dimension/pitch, 0x03 alignment/span,
+  0x08 accumulation overflow.
+- Reset is synchronous active-low. Compute and memory responders must reset/flush
+  together. Stale replies after an independent reset are unsupported.
+- The core has no autonomous timeout/abort recovery. Missing memory responses or
+  a permanently blocked consumer can stall it indefinitely. Simulation watchdogs
+  do not implement an on-chip supervisor.
+- `compute_done` follows the last product's commitment, including a reduction
+  rejected for overflow. `result_done` follows INT32 acceptance or rejection.
+  System retirement still requires actual downstream storage and successful
+  bank transitions.
+- The command driver, memory responders and scoreboard are simulation stand-ins.
+  Teammates retain production responsibility for RISC-V/CSR, physical BRAM/DMA,
+  requantization/INT8 storage and model export.
+- No synthesis, DSP inference/resource measurement, routed timing, board test or
+  full-model inference is claimed. The 10 ns simulation clock is stimulus.
 
 ## Initial design targets
 
@@ -125,7 +238,7 @@ Benchmarks will report inference latency, useful MAC activity, input/output stal
 | Beta | Demonstrate the agreed core features and selected models; collect baseline measurements |
 | Optimization and handoff | Improve bottlenecks, complete verification, document limits, and test reproducible setup |
 
-Use the [master internal schedule and acceptance table](docs/PROJECT_PLAN.md); the control research links to that same schedule. Internal beta is targeted for March 12, 2027, handoff reproduction for April 9, and the final package for April 16. Official course deadlines take precedence. These are planning dates, not completed milestones.
+Use the [project milestones and acceptance table](docs/PROJECT_PLAN.md) for shared planning and acceptance criteria.
 
 ## Planned deliverables and limitations
 
@@ -141,11 +254,11 @@ raven/
 ├── configs/            # Future design, model-export, and simulation presets
 ├── data/               # Local raw/processed datasets; contents ignored by Git
 ├── docs/               # Research, decisions, interface contracts, diagrams, and guides
-├── rtl/                # Future compute, operators, memory, control, and integration RTL
+├── rtl/                # Compute pre-alpha; future operators, memory, control, integration
 ├── hw/                 # Future Vivado Tcl, constraints, and IP configuration
 ├── software/           # Future firmware, runtime, drivers, HAL, and host tests
 ├── tools/              # Future model-export and register-generation tools
-├── tests/              # Future RTL/integration tests, vectors, and register traces
+├── tests/              # Compute RTL tests; future integration tests and register traces
 ├── benchmarks/         # Future workload definitions and measured result summaries
 ├── models/             # Five original candidate quantized TFLite models
 ├── third_party/        # Future explicitly vendored upstream dependencies
@@ -153,6 +266,6 @@ raven/
 └── README.md
 ```
 
-See the [full directory map and ownership guide](docs/REPOSITORY_STRUCTURE.md) for where each teammate's work belongs. Area READMEs describe the intended contents; [automation notes](.github/AUTOMATION.md) cover future CI. `.gitkeep` files retain empty implementation folders in Git. Source and test code will be added as development proceeds.
+See the [full directory map and ownership guide](docs/REPOSITORY_STRUCTURE.md) for where each teammate's work belongs. Area READMEs describe the intended contents; [automation notes](.github/AUTOMATION.md) cover future CI. `.gitkeep` files retain empty implementation folders in Git. Compute source and test code are listed above; the other reserved areas will gain implementation as development proceeds.
 
-Generated products belong under the Git-ignored `build/` directory. Build and execution instructions will be added with the corresponding implementation and tested tool configuration.
+Generated products belong under the Git-ignored `build/` directory. See the compute run instructions in this README; additional build instructions will accompany their corresponding implementations.

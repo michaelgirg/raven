@@ -1,0 +1,565 @@
+RAVEN compute: combined record of actual Questa executions
+Source/version/outcome report: results.json
+Assertion and manifest guard sections deliberately provoke fatal errors.
+All normal design regressions must pass without warnings/errors.
+
+
+========================================================================
+SECTION: vsim-version
+========================================================================
+Questa  Intel Starter FPGA Edition-64 vsim 2021.2 Simulator 2021.04 Apr 14 2021
+
+
+
+========================================================================
+SECTION: vlog-version
+========================================================================
+Questa Intel Starter FPGA Edition-64 vlog 2021.2 Compiler 2021.04 Apr 14 2021
+
+
+========================================================================
+SECTION: compile
+========================================================================
+Questa Intel Starter FPGA Edition-64 vlog 2021.2 Compiler 2021.04 Apr 14 2021
+Start time: 14:50:11 on Nov 01,2026
+vlog -sv -work work -l compile.log ../../../outputs/RAVEN_Repo_Preview/rtl/compute/raven_mac_pe.sv ../../../outputs/RAVEN_Repo_Preview/rtl/compute/raven_mac_array.sv ../../../outputs/RAVEN_Repo_Preview/rtl/compute/raven_gemm_frontend.sv ../../../outputs/RAVEN_Repo_Preview/rtl/compute/raven_gemm_core.sv ../../../outputs/RAVEN_Repo_Preview/tests/rtl/compute/sim_read_memory.sv ../../../outputs/RAVEN_Repo_Preview/tests/rtl/compute/tb_raven_mac_pe.sv ../../../outputs/RAVEN_Repo_Preview/tests/rtl/compute/tb_raven_gemm_core.sv assertion_probe.sv 
+-- Compiling module raven_mac_pe
+-- Compiling module raven_mac_array
+-- Compiling module raven_gemm_frontend
+-- Compiling module raven_gemm_core
+-- Compiling module sim_read_memory
+-- Compiling module tb_raven_mac_pe
+-- Compiling module tb_raven_gemm_core
+-- Compiling module tb_assertion_probe
+
+Top level modules:
+	tb_raven_mac_pe
+	tb_raven_gemm_core
+	tb_assertion_probe
+End time: 14:50:11 on Nov 01,2026, Elapsed time: 0:00:00
+Errors: 0, Warnings: 0
+
+
+========================================================================
+SECTION: guard-immediate
+========================================================================
+# vsim -c -onfinish exit -t 1ps -sva -immedassert -l guard-immediate.log -wlf guard-immediate.wlf work.tb_assertion_probe -do "run_batch.do" 
+# Start time: 14:50:12 on Nov 01,2026
+# ** Note: (vsim-3812) Design is being optimized...
+# //  Questa Intel Starter FPGA Edition-64
+# //  Version 2021.2 win64 Apr 14 2021
+# //
+# //  Copyright 1991-2021 Mentor Graphics Corporation
+# //  All Rights Reserved.
+# //
+# //  QuestaSim and its associated documentation contain trade
+# //  secrets and commercial or financial information that are the property of
+# //  Mentor Graphics Corporation and are privileged, confidential,
+# //  and exempt from disclosure under the Freedom of Information Act,
+# //  5 U.S.C. Section 552. Furthermore, this information
+# //  is prohibited from disclosure under the Trade Secrets Act,
+# //  18 U.S.C. Section 1905.
+# //
+# Loading sv_std.std
+# Loading work.tb_assertion_probe(fast)
+# do run_batch.do
+# ** Fatal: ASSERT_PROBE_IMMEDIATE_ACTIVE
+#    Time: 0 ps  Scope: tb_assertion_probe File: assertion_probe.sv Line: 10
+# ** Note: $finish    : assertion_probe.sv(10)
+#    Time: 0 ps  Iteration: 0  Instance: /tb_assertion_probe
+# End time: 14:50:13 on Nov 01,2026, Elapsed time: 0:00:01
+# Errors: 1, Warnings: 0
+
+
+========================================================================
+SECTION: guard-sva
+========================================================================
+# vsim -c -onfinish exit -t 1ps -sva -immedassert -l guard-sva.log -wlf guard-sva.wlf work.tb_assertion_probe "+SVA" -do "run_batch.do" 
+# Start time: 14:50:14 on Nov 01,2026
+# ** Note: (vsim-8009) Loading existing optimized design _opt
+# //  Questa Intel Starter FPGA Edition-64
+# //  Version 2021.2 win64 Apr 14 2021
+# //
+# //  Copyright 1991-2021 Mentor Graphics Corporation
+# //  All Rights Reserved.
+# //
+# //  QuestaSim and its associated documentation contain trade
+# //  secrets and commercial or financial information that are the property of
+# //  Mentor Graphics Corporation and are privileged, confidential,
+# //  and exempt from disclosure under the Freedom of Information Act,
+# //  5 U.S.C. Section 552. Furthermore, this information
+# //  is prohibited from disclosure under the Trade Secrets Act,
+# //  18 U.S.C. Section 1905.
+# //
+# Loading sv_std.std
+# Loading work.tb_assertion_probe(fast)
+# do run_batch.do
+# ** Fatal: ASSERT_PROBE_SVA_ACTIVE
+#    Time: 5 ns Started: 5 ns  Scope: tb_assertion_probe File: assertion_probe.sv Line: 6
+# ** Note: $finish    : assertion_probe.sv(6)
+#    Time: 5 ns  Iteration: 0  Instance: /tb_assertion_probe
+# End time: 14:50:14 on Nov 01,2026, Elapsed time: 0:00:00
+# Errors: 1, Warnings: 0
+
+
+========================================================================
+SECTION: pe
+========================================================================
+# vsim -c -onfinish exit -t 1ps -sva -immedassert -l pe.log -wlf pe.wlf work.tb_raven_mac_pe -do "run_batch.do" 
+# Start time: 14:50:15 on Nov 01,2026
+# ** Note: (vsim-3812) Design is being optimized...
+# //  Questa Intel Starter FPGA Edition-64
+# //  Version 2021.2 win64 Apr 14 2021
+# //
+# //  Copyright 1991-2021 Mentor Graphics Corporation
+# //  All Rights Reserved.
+# //
+# //  QuestaSim and its associated documentation contain trade
+# //  secrets and commercial or financial information that are the property of
+# //  Mentor Graphics Corporation and are privileged, confidential,
+# //  and exempt from disclosure under the Freedom of Information Act,
+# //  5 U.S.C. Section 552. Furthermore, this information
+# //  is prohibited from disclosure under the Trade Secrets Act,
+# //  18 U.S.C. Section 1905.
+# //
+# Loading sv_std.std
+# Loading work.tb_raven_mac_pe(fast)
+# do run_batch.do
+# PASS PE: 65536 signed products, bias/bubbles, both overflow directions, in-flight reset
+# ** Note: $finish    : ../../../outputs/RAVEN_Repo_Preview/tests/rtl/compute/tb_raven_mac_pe.sv(56)
+#    Time: 1968176 ns  Iteration: 0  Instance: /tb_raven_mac_pe
+# End time: 14:50:17 on Nov 01,2026, Elapsed time: 0:00:02
+# Errors: 0, Warnings: 0
+
+
+========================================================================
+SECTION: core-8x8
+========================================================================
+# vsim -c -onfinish exit -t 1ps -sva -immedassert -l core-8x8.log -wlf core-8x8.wlf work.tb_raven_gemm_core "+FIXTURES=8x8/vectors" -do "run_batch.do" -gCOLS=8 -gROWS=8 
+# Start time: 14:50:18 on Nov 01,2026
+# ** Note: (vsim-3812) Design is being optimized...
+# //  Questa Intel Starter FPGA Edition-64
+# //  Version 2021.2 win64 Apr 14 2021
+# //
+# //  Copyright 1991-2021 Mentor Graphics Corporation
+# //  All Rights Reserved.
+# //
+# //  QuestaSim and its associated documentation contain trade
+# //  secrets and commercial or financial information that are the property of
+# //  Mentor Graphics Corporation and are privileged, confidential,
+# //  and exempt from disclosure under the Freedom of Information Act,
+# //  5 U.S.C. Section 552. Furthermore, this information
+# //  is prohibited from disclosure under the Trade Secrets Act,
+# //  18 U.S.C. Section 1905.
+# //
+# Loading sv_std.std
+# Loading work.tb_raven_gemm_core(fast)
+# do run_batch.do
+# PASS GEMM 8x8 case 0 M=8 N=8 K=16 error=0 cycles=151 in_stall=37 out_stall=6
+# PASS GEMM 8x8 case 1 M=1 N=1 K=1 error=0 cycles=28 in_stall=9 out_stall=6
+# PASS GEMM 8x8 case 2 M=8 N=8 K=15 error=0 cycles=150 in_stall=37 out_stall=6
+# PASS GEMM 8x8 case 3 M=8 N=8 K=17 error=0 cycles=317 in_stall=108 out_stall=66
+# PASS GEMM 8x8 case 4 M=1 N=8 K=40 error=0 cycles=124 in_stall=42 out_stall=6
+# PASS GEMM 8x8 case 5 M=8 N=1 K=31 error=0 cycles=207 in_stall=135 out_stall=20
+# PASS GEMM 8x8 case 6 M=7 N=7 K=33 error=0 cycles=165 in_stall=52 out_stall=6
+# PASS GEMM 8x8 case 7 M=8 N=8 K=256 error=0 cycles=1256 in_stall=782 out_stall=86
+# PASS GEMM 8x8 case 8 M=1 N=8 K=512 error=0 cycles=1068 in_stall=514 out_stall=6
+# PASS GEMM 8x8 case 9 M=8 N=8 K=2 error=0 cycles=289 in_stall=66 out_stall=99
+# PASS GEMM 8x8 case 10 M=1 N=8 K=640 error=0 cycles=1324 in_stall=642 out_stall=6
+# PASS GEMM 8x8 case 11 M=8 N=4 K=63 error=0 cycles=406 in_stall=242 out_stall=36
+# PASS GEMM 8x8 case 12 M=8 N=5 K=16 error=0 cycles=118 in_stall=37 out_stall=6
+# PASS GEMM 8x8 case 13 M=8 N=7 K=7 error=0 cycles=245 in_stall=68 out_stall=65
+# PASS GEMM 8x8 case 14 M=5 N=5 K=16 error=0 cycles=94 in_stall=28 out_stall=6
+# PASS GEMM 8x8 case 15 M=7 N=4 K=127 error=0 cycles=622 in_stall=410 out_stall=24
+# PASS GEMM 8x8 case 16 M=3 N=5 K=63 error=0 cycles=173 in_stall=70 out_stall=6
+# PASS GEMM 8x8 case 17 M=2 N=4 K=7 error=0 cycles=96 in_stall=37 out_stall=16
+# PASS GEMM 8x8 case 18 M=6 N=5 K=23 error=0 cycles=117 in_stall=39 out_stall=6
+# PASS GEMM 8x8 case 19 M=8 N=7 K=23 error=0 cycles=307 in_stall=114 out_stall=63
+# PASS GEMM 8x8 case 20 M=4 N=2 K=7 error=0 cycles=48 in_stall=17 out_stall=6
+# PASS GEMM 8x8 case 21 M=3 N=5 K=7 error=0 cycles=110 in_stall=26 out_stall=25
+# PASS GEMM 8x8 case 22 M=4 N=8 K=32 error=0 cycles=139 in_stall=41 out_stall=6
+# PASS GEMM 8x8 case 23 M=7 N=3 K=16 error=0 cycles=195 in_stall=95 out_stall=38
+# PASS GEMM 8x8 case 24 M=7 N=8 K=65 error=0 cycles=239 in_stall=84 out_stall=6
+# PASS GEMM 8x8 case 25 M=0 N=8 K=16 error=2 cycles=1 in_stall=0 out_stall=0
+# PASS GEMM 8x8 case 26 M=8 N=9 K=16 error=2 cycles=1 in_stall=0 out_stall=0
+# PASS GEMM 8x8 case 27 M=8 N=8 K=0 error=2 cycles=1 in_stall=0 out_stall=0
+# PASS GEMM 8x8 case 28 M=9 N=8 K=16 error=2 cycles=1 in_stall=0 out_stall=0
+# PASS GEMM 8x8 case 29 M=8 N=8 K=17 error=2 cycles=1 in_stall=0 out_stall=0
+# PASS GEMM 8x8 case 30 M=8 N=8 K=16 error=3 cycles=1 in_stall=0 out_stall=0
+# PASS GEMM 8x8 case 31 M=8 N=8 K=16 error=3 cycles=1 in_stall=0 out_stall=0
+# PASS GEMM 8x8 case 32 M=8 N=8 K=16 error=3 cycles=1 in_stall=0 out_stall=0
+# PASS GEMM 8x8 case 33 M=8 N=8 K=16 error=3 cycles=1 in_stall=0 out_stall=0
+# PASS GEMM 8x8 case 34 M=8 N=8 K=16 error=3 cycles=1 in_stall=0 out_stall=0
+# PASS GEMM 8x8 case 35 M=8 N=8 K=16 error=3 cycles=1 in_stall=0 out_stall=0
+# PASS GEMM 8x8 case 36 M=8 N=8 K=16 error=3 cycles=1 in_stall=0 out_stall=0
+# PASS GEMM 8x8 case 37 M=8 N=8 K=2049 error=3 cycles=1 in_stall=0 out_stall=0
+# PASS GEMM 8x8 case 38 M=1 N=1 K=1 error=8 cycles=20 in_stall=9 out_stall=0
+# PASS GEMM 8x8 case 39 M=1 N=1 K=1 error=8 cycles=24 in_stall=10 out_stall=0
+# PASS GEMM 8x8 case 40 M=8 N=8 K=2048 error=0 cycles=8226 in_stall=5982 out_stall=72
+# PASS GEMM 8x8 case 41 M=1 N=1 K=1 error=0 cycles=30 in_stall=11 out_stall=7
+# PASS CORE 8x8: 42 fixtures and 3 in-flight reset/restart phases
+# ** Note: $finish    : ../../../outputs/RAVEN_Repo_Preview/tests/rtl/compute/tb_raven_gemm_core.sv(192)
+#    Time: 176620 ns  Iteration: 1  Instance: /tb_raven_gemm_core
+# End time: 14:50:27 on Nov 01,2026, Elapsed time: 0:00:09
+# Errors: 0, Warnings: 0
+
+
+========================================================================
+SECTION: core-4x4
+========================================================================
+# vsim -c -onfinish exit -t 1ps -sva -immedassert -l core-4x4.log -wlf core-4x4.wlf work.tb_raven_gemm_core "+FIXTURES=4x4/vectors" -do "run_batch.do" -gCOLS=4 -gROWS=4 
+# Start time: 14:50:28 on Nov 01,2026
+# ** Note: (vsim-3812) Design is being optimized...
+# //  Questa Intel Starter FPGA Edition-64
+# //  Version 2021.2 win64 Apr 14 2021
+# //
+# //  Copyright 1991-2021 Mentor Graphics Corporation
+# //  All Rights Reserved.
+# //
+# //  QuestaSim and its associated documentation contain trade
+# //  secrets and commercial or financial information that are the property of
+# //  Mentor Graphics Corporation and are privileged, confidential,
+# //  and exempt from disclosure under the Freedom of Information Act,
+# //  5 U.S.C. Section 552. Furthermore, this information
+# //  is prohibited from disclosure under the Trade Secrets Act,
+# //  18 U.S.C. Section 1905.
+# //
+# Loading sv_std.std
+# Loading work.tb_raven_gemm_core(fast)
+# do run_batch.do
+# PASS GEMM 4x4 case 0 M=4 N=4 K=16 error=0 cycles=79 in_stall=25 out_stall=6
+# PASS GEMM 4x4 case 1 M=1 N=1 K=1 error=0 cycles=23 in_stall=6 out_stall=6
+# PASS GEMM 4x4 case 2 M=4 N=4 K=15 error=0 cycles=78 in_stall=25 out_stall=6
+# PASS GEMM 4x4 case 3 M=4 N=4 K=17 error=0 cycles=164 in_stall=63 out_stall=30
+# PASS GEMM 4x4 case 4 M=1 N=4 K=40 error=0 cycles=108 in_stall=42 out_stall=6
+# PASS GEMM 4x4 case 5 M=4 N=1 K=31 error=0 cycles=162 in_stall=101 out_stall=14
+# PASS GEMM 4x4 case 6 M=3 N=3 K=33 error=0 cycles=101 in_stall=40 out_stall=6
+# PASS GEMM 4x4 case 7 M=4 N=4 K=256 error=0 cycles=1044 in_stall=714 out_stall=25
+# PASS GEMM 4x4 case 8 M=1 N=4 K=512 error=0 cycles=1052 in_stall=514 out_stall=6
+# PASS GEMM 4x4 case 9 M=4 N=4 K=2 error=0 cycles=91 in_stall=28 out_stall=15
+# PASS GEMM 4x4 case 10 M=1 N=4 K=640 error=0 cycles=1308 in_stall=642 out_stall=6
+# PASS GEMM 4x4 case 11 M=4 N=2 K=63 error=0 cycles=278 in_stall=171 out_stall=17
+# PASS GEMM 4x4 case 12 M=4 N=3 K=16 error=0 cycles=72 in_stall=25 out_stall=6
+# PASS GEMM 4x4 case 13 M=4 N=4 K=7 error=0 cycles=109 in_stall=39 out_stall=17
+# PASS GEMM 4x4 case 14 M=3 N=3 K=16 error=0 cycles=66 in_stall=22 out_stall=6
+# PASS GEMM 4x4 case 15 M=4 N=2 K=127 error=0 cycles=548 in_stall=383 out_stall=13
+# PASS GEMM 4x4 case 16 M=2 N=3 K=63 error=0 cycles=155 in_stall=67 out_stall=6
+# PASS GEMM 4x4 case 17 M=1 N=2 K=7 error=0 cycles=58 in_stall=22 out_stall=6
+# PASS GEMM 4x4 case 18 M=3 N=3 K=23 error=0 cycles=81 in_stall=30 out_stall=6
+# PASS GEMM 4x4 case 19 M=4 N=4 K=23 error=0 cycles=186 in_stall=86 out_stall=23
+# PASS GEMM 4x4 case 20 M=2 N=1 K=7 error=0 cycles=33 in_stall=11 out_stall=6
+# PASS GEMM 4x4 case 21 M=2 N=3 K=7 error=0 cycles=76 in_stall=23 out_stall=12
+# PASS GEMM 4x4 case 22 M=2 N=4 K=32 error=0 cycles=97 in_stall=35 out_stall=6
+# PASS GEMM 4x4 case 23 M=4 N=2 K=16 error=0 cycles=115 in_stall=69 out_stall=8
+# PASS GEMM 4x4 case 24 M=4 N=4 K=65 error=0 cycles=178 in_stall=75 out_stall=6
+# PASS GEMM 4x4 case 25 M=0 N=4 K=16 error=2 cycles=1 in_stall=0 out_stall=0
+# PASS GEMM 4x4 case 26 M=4 N=5 K=16 error=2 cycles=1 in_stall=0 out_stall=0
+# PASS GEMM 4x4 case 27 M=4 N=4 K=0 error=2 cycles=1 in_stall=0 out_stall=0
+# PASS GEMM 4x4 case 28 M=5 N=4 K=16 error=2 cycles=1 in_stall=0 out_stall=0
+# PASS GEMM 4x4 case 29 M=4 N=4 K=17 error=2 cycles=1 in_stall=0 out_stall=0
+# PASS GEMM 4x4 case 30 M=4 N=4 K=16 error=3 cycles=1 in_stall=0 out_stall=0
+# PASS GEMM 4x4 case 31 M=4 N=4 K=16 error=3 cycles=1 in_stall=0 out_stall=0
+# PASS GEMM 4x4 case 32 M=4 N=4 K=16 error=3 cycles=1 in_stall=0 out_stall=0
+# PASS GEMM 4x4 case 33 M=4 N=4 K=16 error=3 cycles=1 in_stall=0 out_stall=0
+# PASS GEMM 4x4 case 34 M=4 N=4 K=16 error=3 cycles=1 in_stall=0 out_stall=0
+# PASS GEMM 4x4 case 35 M=4 N=4 K=16 error=3 cycles=1 in_stall=0 out_stall=0
+# PASS GEMM 4x4 case 36 M=4 N=4 K=16 error=3 cycles=1 in_stall=0 out_stall=0
+# PASS GEMM 4x4 case 37 M=4 N=4 K=2049 error=3 cycles=1 in_stall=0 out_stall=0
+# PASS GEMM 4x4 case 38 M=1 N=1 K=1 error=8 cycles=23 in_stall=8 out_stall=0
+# PASS GEMM 4x4 case 39 M=1 N=1 K=1 error=8 cycles=23 in_stall=10 out_stall=0
+# PASS GEMM 4x4 case 40 M=4 N=4 K=2048 error=0 cycles=8045 in_stall=5928 out_stall=18
+# PASS GEMM 4x4 case 41 M=1 N=1 K=1 error=0 cycles=27 in_stall=5 out_stall=6
+# PASS CORE 4x4: 42 fixtures and 3 in-flight reset/restart phases
+# ** Note: $finish    : ../../../outputs/RAVEN_Repo_Preview/tests/rtl/compute/tb_raven_gemm_core.sv(192)
+#    Time: 151410 ns  Iteration: 1  Instance: /tb_raven_gemm_core
+# End time: 14:50:37 on Nov 01,2026, Elapsed time: 0:00:09
+# Errors: 0, Warnings: 0
+
+
+========================================================================
+SECTION: core-2x4
+========================================================================
+# vsim -c -onfinish exit -t 1ps -sva -immedassert -l core-2x4.log -wlf core-2x4.wlf work.tb_raven_gemm_core "+FIXTURES=2x4/vectors" -do "run_batch.do" -gCOLS=4 -gROWS=2 
+# Start time: 14:50:38 on Nov 01,2026
+# ** Note: (vsim-3812) Design is being optimized...
+# //  Questa Intel Starter FPGA Edition-64
+# //  Version 2021.2 win64 Apr 14 2021
+# //
+# //  Copyright 1991-2021 Mentor Graphics Corporation
+# //  All Rights Reserved.
+# //
+# //  QuestaSim and its associated documentation contain trade
+# //  secrets and commercial or financial information that are the property of
+# //  Mentor Graphics Corporation and are privileged, confidential,
+# //  and exempt from disclosure under the Freedom of Information Act,
+# //  5 U.S.C. Section 552. Furthermore, this information
+# //  is prohibited from disclosure under the Trade Secrets Act,
+# //  18 U.S.C. Section 1905.
+# //
+# Loading sv_std.std
+# Loading work.tb_raven_gemm_core(fast)
+# do run_batch.do
+# PASS GEMM 2x4 case 0 M=2 N=4 K=16 error=0 cycles=65 in_stall=19 out_stall=6
+# PASS GEMM 2x4 case 1 M=1 N=1 K=1 error=0 cycles=27 in_stall=7 out_stall=7
+# PASS GEMM 2x4 case 2 M=2 N=4 K=15 error=0 cycles=64 in_stall=19 out_stall=6
+# PASS GEMM 2x4 case 3 M=2 N=4 K=17 error=0 cycles=128 in_stall=60 out_stall=12
+# PASS GEMM 2x4 case 4 M=1 N=4 K=40 error=0 cycles=108 in_stall=42 out_stall=6
+# PASS GEMM 2x4 case 5 M=2 N=1 K=31 error=0 cycles=161 in_stall=105 out_stall=10
+# PASS GEMM 2x4 case 6 M=1 N=3 K=33 error=0 cycles=91 in_stall=36 out_stall=6
+# PASS GEMM 2x4 case 7 M=2 N=4 K=256 error=0 cycles=1004 in_stall=700 out_stall=13
+# PASS GEMM 2x4 case 8 M=1 N=4 K=512 error=0 cycles=1052 in_stall=514 out_stall=6
+# PASS GEMM 2x4 case 9 M=2 N=4 K=2 error=0 cycles=70 in_stall=14 out_stall=13
+# PASS GEMM 2x4 case 10 M=1 N=4 K=640 error=0 cycles=1308 in_stall=642 out_stall=6
+# PASS GEMM 2x4 case 11 M=2 N=2 K=63 error=0 cycles=265 in_stall=173 out_stall=8
+# PASS GEMM 2x4 case 12 M=2 N=3 K=16 error=0 cycles=60 in_stall=19 out_stall=6
+# PASS GEMM 2x4 case 13 M=2 N=4 K=7 error=0 cycles=81 in_stall=19 out_stall=17
+# PASS GEMM 2x4 case 14 M=2 N=3 K=16 error=0 cycles=60 in_stall=19 out_stall=6
+# PASS GEMM 2x4 case 15 M=2 N=2 K=127 error=0 cycles=539 in_stall=379 out_stall=10
+# PASS GEMM 2x4 case 16 M=1 N=3 K=63 error=0 cycles=151 in_stall=66 out_stall=6
+# PASS GEMM 2x4 case 17 M=1 N=2 K=7 error=0 cycles=60 in_stall=29 out_stall=6
+# PASS GEMM 2x4 case 18 M=2 N=3 K=23 error=0 cycles=75 in_stall=27 out_stall=6
+# PASS GEMM 2x4 case 19 M=2 N=4 K=23 error=0 cycles=148 in_stall=70 out_stall=15
+# PASS GEMM 2x4 case 20 M=1 N=1 K=7 error=0 cycles=31 in_stall=10 out_stall=6
+# PASS GEMM 2x4 case 21 M=1 N=3 K=7 error=0 cycles=66 in_stall=21 out_stall=11
+# PASS GEMM 2x4 case 22 M=1 N=4 K=32 error=0 cycles=92 in_stall=34 out_stall=6
+# PASS GEMM 2x4 case 23 M=2 N=2 K=16 error=0 cycles=98 in_stall=46 out_stall=10
+# PASS GEMM 2x4 case 24 M=2 N=4 K=65 error=0 cycles=164 in_stall=69 out_stall=6
+# PASS GEMM 2x4 case 25 M=0 N=4 K=16 error=2 cycles=1 in_stall=0 out_stall=0
+# PASS GEMM 2x4 case 26 M=2 N=5 K=16 error=2 cycles=1 in_stall=0 out_stall=0
+# PASS GEMM 2x4 case 27 M=2 N=4 K=0 error=2 cycles=1 in_stall=0 out_stall=0
+# PASS GEMM 2x4 case 28 M=3 N=4 K=16 error=2 cycles=1 in_stall=0 out_stall=0
+# PASS GEMM 2x4 case 29 M=2 N=4 K=17 error=2 cycles=1 in_stall=0 out_stall=0
+# PASS GEMM 2x4 case 30 M=2 N=4 K=16 error=3 cycles=1 in_stall=0 out_stall=0
+# PASS GEMM 2x4 case 31 M=2 N=4 K=16 error=3 cycles=1 in_stall=0 out_stall=0
+# PASS GEMM 2x4 case 32 M=2 N=4 K=16 error=3 cycles=1 in_stall=0 out_stall=0
+# PASS GEMM 2x4 case 33 M=2 N=4 K=16 error=3 cycles=1 in_stall=0 out_stall=0
+# PASS GEMM 2x4 case 34 M=2 N=4 K=16 error=3 cycles=1 in_stall=0 out_stall=0
+# PASS GEMM 2x4 case 35 M=2 N=4 K=16 error=3 cycles=1 in_stall=0 out_stall=0
+# PASS GEMM 2x4 case 36 M=2 N=4 K=16 error=3 cycles=1 in_stall=0 out_stall=0
+# PASS GEMM 2x4 case 37 M=2 N=4 K=2049 error=3 cycles=1 in_stall=0 out_stall=0
+# PASS GEMM 2x4 case 38 M=1 N=1 K=1 error=8 cycles=22 in_stall=10 out_stall=0
+# PASS GEMM 2x4 case 39 M=1 N=1 K=1 error=8 cycles=24 in_stall=11 out_stall=0
+# PASS GEMM 2x4 case 40 M=2 N=4 K=2048 error=0 cycles=8019 in_stall=5921 out_stall=7
+# PASS GEMM 2x4 case 41 M=1 N=1 K=1 error=0 cycles=29 in_stall=9 out_stall=6
+# PASS CORE 2x4: 42 fixtures and 3 in-flight reset/restart phases
+# ** Note: $finish    : ../../../outputs/RAVEN_Repo_Preview/tests/rtl/compute/tb_raven_gemm_core.sv(192)
+#    Time: 147480 ns  Iteration: 1  Instance: /tb_raven_gemm_core
+# End time: 14:50:46 on Nov 01,2026, Elapsed time: 0:00:08
+# Errors: 0, Warnings: 0
+
+
+========================================================================
+SECTION: core-1x1
+========================================================================
+# vsim -c -onfinish exit -t 1ps -sva -immedassert -l core-1x1.log -wlf core-1x1.wlf work.tb_raven_gemm_core "+FIXTURES=1x1/vectors" -do "run_batch.do" -gCOLS=1 -gROWS=1 
+# Start time: 14:50:47 on Nov 01,2026
+# ** Note: (vsim-3812) Design is being optimized...
+# //  Questa Intel Starter FPGA Edition-64
+# //  Version 2021.2 win64 Apr 14 2021
+# //
+# //  Copyright 1991-2021 Mentor Graphics Corporation
+# //  All Rights Reserved.
+# //
+# //  QuestaSim and its associated documentation contain trade
+# //  secrets and commercial or financial information that are the property of
+# //  Mentor Graphics Corporation and are privileged, confidential,
+# //  and exempt from disclosure under the Freedom of Information Act,
+# //  5 U.S.C. Section 552. Furthermore, this information
+# //  is prohibited from disclosure under the Trade Secrets Act,
+# //  18 U.S.C. Section 1905.
+# //
+# Loading sv_std.std
+# Loading work.tb_raven_gemm_core(fast)
+# do run_batch.do
+# PASS GEMM 1x1 case 0 M=1 N=1 K=16 error=0 cycles=48 in_stall=18 out_stall=6
+# PASS GEMM 1x1 case 1 M=1 N=1 K=1 error=0 cycles=25 in_stall=7 out_stall=6
+# PASS GEMM 1x1 case 2 M=1 N=1 K=15 error=0 cycles=47 in_stall=18 out_stall=6
+# PASS GEMM 1x1 case 3 M=1 N=1 K=17 error=0 cycles=92 in_stall=59 out_stall=6
+# PASS GEMM 1x1 case 4 M=1 N=1 K=40 error=0 cycles=96 in_stall=42 out_stall=6
+# PASS GEMM 1x1 case 5 M=1 N=1 K=31 error=0 cycles=136 in_stall=89 out_stall=6
+# PASS GEMM 1x1 case 6 M=1 N=1 K=33 error=0 cycles=83 in_stall=36 out_stall=6
+# PASS GEMM 1x1 case 7 M=1 N=1 K=256 error=0 cycles=985 in_stall=715 out_stall=6
+# PASS GEMM 1x1 case 8 M=1 N=1 K=512 error=0 cycles=1040 in_stall=514 out_stall=6
+# PASS GEMM 1x1 case 9 M=1 N=1 K=2 error=0 cycles=27 in_stall=9 out_stall=7
+# PASS GEMM 1x1 case 10 M=1 N=1 K=640 error=0 cycles=1296 in_stall=642 out_stall=6
+# PASS GEMM 1x1 case 11 M=1 N=1 K=63 error=0 cycles=259 in_stall=180 out_stall=6
+# PASS GEMM 1x1 case 12 M=1 N=1 K=16 error=0 cycles=48 in_stall=18 out_stall=6
+# PASS GEMM 1x1 case 13 M=1 N=1 K=7 error=0 cycles=43 in_stall=21 out_stall=6
+# PASS GEMM 1x1 case 14 M=1 N=1 K=16 error=0 cycles=48 in_stall=18 out_stall=6
+# PASS GEMM 1x1 case 15 M=1 N=1 K=127 error=0 cycles=502 in_stall=355 out_stall=6
+# PASS GEMM 1x1 case 16 M=1 N=1 K=63 error=0 cycles=143 in_stall=66 out_stall=6
+# PASS GEMM 1x1 case 17 M=1 N=1 K=7 error=0 cycles=61 in_stall=32 out_stall=7
+# PASS GEMM 1x1 case 18 M=1 N=1 K=23 error=0 cycles=63 in_stall=26 out_stall=6
+# PASS GEMM 1x1 case 19 M=1 N=1 K=23 error=0 cycles=120 in_stall=76 out_stall=6
+# PASS GEMM 1x1 case 20 M=1 N=1 K=7 error=0 cycles=31 in_stall=10 out_stall=6
+# PASS GEMM 1x1 case 21 M=1 N=1 K=7 error=0 cycles=52 in_stall=26 out_stall=6
+# PASS GEMM 1x1 case 22 M=1 N=1 K=32 error=0 cycles=80 in_stall=34 out_stall=6
+# PASS GEMM 1x1 case 23 M=1 N=1 K=16 error=0 cycles=89 in_stall=56 out_stall=6
+# PASS GEMM 1x1 case 24 M=1 N=1 K=65 error=0 cycles=147 in_stall=68 out_stall=6
+# PASS GEMM 1x1 case 25 M=0 N=1 K=16 error=2 cycles=1 in_stall=0 out_stall=0
+# PASS GEMM 1x1 case 26 M=1 N=2 K=16 error=2 cycles=1 in_stall=0 out_stall=0
+# PASS GEMM 1x1 case 27 M=1 N=1 K=0 error=2 cycles=1 in_stall=0 out_stall=0
+# PASS GEMM 1x1 case 28 M=2 N=1 K=16 error=2 cycles=1 in_stall=0 out_stall=0
+# PASS GEMM 1x1 case 29 M=1 N=1 K=17 error=2 cycles=1 in_stall=0 out_stall=0
+# PASS GEMM 1x1 case 30 M=1 N=1 K=16 error=3 cycles=1 in_stall=0 out_stall=0
+# PASS GEMM 1x1 case 31 M=1 N=1 K=16 error=3 cycles=1 in_stall=0 out_stall=0
+# PASS GEMM 1x1 case 32 M=1 N=1 K=16 error=3 cycles=1 in_stall=0 out_stall=0
+# PASS GEMM 1x1 case 33 M=1 N=1 K=16 error=3 cycles=1 in_stall=0 out_stall=0
+# PASS GEMM 1x1 case 34 M=1 N=1 K=16 error=3 cycles=1 in_stall=0 out_stall=0
+# PASS GEMM 1x1 case 35 M=1 N=1 K=16 error=3 cycles=1 in_stall=0 out_stall=0
+# PASS GEMM 1x1 case 36 M=1 N=1 K=16 error=3 cycles=1 in_stall=0 out_stall=0
+# PASS GEMM 1x1 case 37 M=1 N=1 K=2049 error=3 cycles=1 in_stall=0 out_stall=0
+# PASS GEMM 1x1 case 38 M=1 N=1 K=1 error=8 cycles=19 in_stall=8 out_stall=0
+# PASS GEMM 1x1 case 39 M=1 N=1 K=1 error=8 cycles=18 in_stall=7 out_stall=0
+# PASS GEMM 1x1 case 40 M=1 N=1 K=2048 error=0 cycles=7972 in_stall=5906 out_stall=7
+# PASS GEMM 1x1 case 41 M=1 N=1 K=1 error=0 cycles=27 in_stall=6 out_stall=6
+# PASS CORE 1x1: 42 fixtures and 3 in-flight reset/restart phases
+# ** Note: $finish    : ../../../outputs/RAVEN_Repo_Preview/tests/rtl/compute/tb_raven_gemm_core.sv(192)
+#    Time: 141020 ns  Iteration: 1  Instance: /tb_raven_gemm_core
+# End time: 14:50:55 on Nov 01,2026, Elapsed time: 0:00:08
+# Errors: 0, Warnings: 0
+
+
+========================================================================
+SECTION: guard-manifest-empty
+========================================================================
+# vsim -c -onfinish exit -t 1ps -sva -immedassert -l guard-manifest-empty.log -wlf guard-manifest-empty.wlf work.tb_raven_gemm_core "+FIXTURES=invalid-manifest-empty" -do "run_batch.do" -gCOLS=8 -gROWS=8 
+# Start time: 14:50:56 on Nov 01,2026
+# ** Note: (vsim-3812) Design is being optimized...
+# //  Questa Intel Starter FPGA Edition-64
+# //  Version 2021.2 win64 Apr 14 2021
+# //
+# //  Copyright 1991-2021 Mentor Graphics Corporation
+# //  All Rights Reserved.
+# //
+# //  QuestaSim and its associated documentation contain trade
+# //  secrets and commercial or financial information that are the property of
+# //  Mentor Graphics Corporation and are privileged, confidential,
+# //  and exempt from disclosure under the Freedom of Information Act,
+# //  5 U.S.C. Section 552. Furthermore, this information
+# //  is prohibited from disclosure under the Trade Secrets Act,
+# //  18 U.S.C. Section 1905.
+# //
+# Loading sv_std.std
+# Loading work.tb_raven_gemm_core(fast)
+# do run_batch.do
+# ** Fatal: Expected 42 fixtures, completed 0
+#    Time: 60 ns  Scope: tb_raven_gemm_core.tests File: ../../../outputs/RAVEN_Repo_Preview/tests/rtl/compute/tb_raven_gemm_core.sv Line: 167
+# ** Note: $finish    : ../../../outputs/RAVEN_Repo_Preview/tests/rtl/compute/tb_raven_gemm_core.sv(167)
+#    Time: 60 ns  Iteration: 1  Instance: /tb_raven_gemm_core
+# End time: 14:50:56 on Nov 01,2026, Elapsed time: 0:00:00
+# Errors: 1, Warnings: 0
+
+
+========================================================================
+SECTION: guard-manifest-partial
+========================================================================
+# vsim -c -onfinish exit -t 1ps -sva -immedassert -l guard-manifest-partial.log -wlf guard-manifest-partial.wlf work.tb_raven_gemm_core "+FIXTURES=invalid-manifest-partial" -do "run_batch.do" -gCOLS=8 -gROWS=8 
+# Start time: 14:50:57 on Nov 01,2026
+# ** Note: (vsim-8009) Loading existing optimized design _opt
+# //  Questa Intel Starter FPGA Edition-64
+# //  Version 2021.2 win64 Apr 14 2021
+# //
+# //  Copyright 1991-2021 Mentor Graphics Corporation
+# //  All Rights Reserved.
+# //
+# //  QuestaSim and its associated documentation contain trade
+# //  secrets and commercial or financial information that are the property of
+# //  Mentor Graphics Corporation and are privileged, confidential,
+# //  and exempt from disclosure under the Freedom of Information Act,
+# //  5 U.S.C. Section 552. Furthermore, this information
+# //  is prohibited from disclosure under the Trade Secrets Act,
+# //  18 U.S.C. Section 1905.
+# //
+# Loading sv_std.std
+# Loading work.tb_raven_gemm_core(fast)
+# do run_batch.do
+# ** Fatal: Malformed/truncated fixture manifest
+#    Time: 60 ns  Scope: tb_raven_gemm_core.tests File: ../../../outputs/RAVEN_Repo_Preview/tests/rtl/compute/tb_raven_gemm_core.sv Line: 129
+# ** Note: $finish    : ../../../outputs/RAVEN_Repo_Preview/tests/rtl/compute/tb_raven_gemm_core.sv(129)
+#    Time: 60 ns  Iteration: 1  Instance: /tb_raven_gemm_core
+# End time: 14:50:57 on Nov 01,2026, Elapsed time: 0:00:00
+# Errors: 1, Warnings: 0
+
+
+========================================================================
+SECTION: guard-manifest-short
+========================================================================
+# vsim -c -onfinish exit -t 1ps -sva -immedassert -l guard-manifest-short.log -wlf guard-manifest-short.wlf work.tb_raven_gemm_core "+FIXTURES=invalid-manifest-short" -do "run_batch.do" -gCOLS=8 -gROWS=8 
+# Start time: 14:50:58 on Nov 01,2026
+# ** Note: (vsim-8009) Loading existing optimized design _opt
+# //  Questa Intel Starter FPGA Edition-64
+# //  Version 2021.2 win64 Apr 14 2021
+# //
+# //  Copyright 1991-2021 Mentor Graphics Corporation
+# //  All Rights Reserved.
+# //
+# //  QuestaSim and its associated documentation contain trade
+# //  secrets and commercial or financial information that are the property of
+# //  Mentor Graphics Corporation and are privileged, confidential,
+# //  and exempt from disclosure under the Freedom of Information Act,
+# //  5 U.S.C. Section 552. Furthermore, this information
+# //  is prohibited from disclosure under the Trade Secrets Act,
+# //  18 U.S.C. Section 1905.
+# //
+# Loading sv_std.std
+# Loading work.tb_raven_gemm_core(fast)
+# do run_batch.do
+# PASS GEMM 8x8 case 0 M=8 N=8 K=16 error=0 cycles=151 in_stall=37 out_stall=6
+# ** Fatal: Expected 42 fixtures, completed 1
+#    Time: 1590 ns  Scope: tb_raven_gemm_core.tests File: ../../../outputs/RAVEN_Repo_Preview/tests/rtl/compute/tb_raven_gemm_core.sv Line: 167
+# ** Note: $finish    : ../../../outputs/RAVEN_Repo_Preview/tests/rtl/compute/tb_raven_gemm_core.sv(167)
+#    Time: 1590 ns  Iteration: 1  Instance: /tb_raven_gemm_core
+# End time: 14:50:59 on Nov 01,2026, Elapsed time: 0:00:01
+# Errors: 1, Warnings: 0
+
+
+========================================================================
+SECTION: demo
+========================================================================
+# vsim -c -onfinish exit -t 1ps -sva -immedassert -l demo.log -wlf demo.wlf -voptargs="+acc" work.tb_raven_gemm_core "+FIXTURES=8x8/vectors" "+DEMO_ONLY" "+WAVE=demo.vcd" -do "set raven_log_waves 1; do run_batch.do" -gCOLS=8 -gROWS=8 
+# Start time: 14:50:59 on Nov 01,2026
+# ** Note: (vsim-3812) Design is being optimized...
+# ** Note: (vopt-143) Recognized 1 FSM in module "raven_gemm_core(fast)".
+# ** Note: (vopt-143) Recognized 2 FSMs in module "raven_gemm_frontend(fast)".
+# //  Questa Intel Starter FPGA Edition-64
+# //  Version 2021.2 win64 Apr 14 2021
+# //
+# //  Copyright 1991-2021 Mentor Graphics Corporation
+# //  All Rights Reserved.
+# //
+# //  QuestaSim and its associated documentation contain trade
+# //  secrets and commercial or financial information that are the property of
+# //  Mentor Graphics Corporation and are privileged, confidential,
+# //  and exempt from disclosure under the Freedom of Information Act,
+# //  5 U.S.C. Section 552. Furthermore, this information
+# //  is prohibited from disclosure under the Trade Secrets Act,
+# //  18 U.S.C. Section 1905.
+# //
+# Loading sv_std.std
+# Loading work.tb_raven_gemm_core(fast)
+# Loading work.raven_gemm_core(fast)
+# Loading work.raven_gemm_frontend(fast)
+# Loading work.raven_mac_array(fast)
+# Loading work.raven_mac_pe(fast)
+# Loading work.sim_read_memory(fast)
+# Loading work.sim_read_memory(fast__1)
+# Loading work.sim_read_memory(fast__2)
+# set raven_log_waves 1
+# 1
+#  do run_batch.do
+# INT32 result matrix (each element checked against Python oracle):
+#     -2617   -25349   -12402     3493    20585    68158    22508    18317
+#     12450    11344   -25490     -447    26508     1531     9445    13805
+#     -8250    19535   -12631    10443   -29320   -25179     7365      436
+#     -3645     6063    17186    -2135    14233    -3257   -12011    -2662
+#     22280   -24098   -21152    -7955   -20143   -46051   -11067   -25939
+#     32651    40518    26195    11384    16389   -23635     7931     4300
+#     -7035    25078    15136    19544   -16920   -36604    25440     -611
+#      9472    -2401    12737    23785   -27755   -31333    -8245   -34259
+# PASS GEMM 8x8 case 0 M=8 N=8 K=16 error=0 cycles=151 in_stall=37 out_stall=6
+# PASS CORE 8x8: 1 fixtures and 0 in-flight reset/restart phases
+# ** Note: $finish    : ../../../outputs/RAVEN_Repo_Preview/tests/rtl/compute/tb_raven_gemm_core.sv(192)
+#    Time: 1590 ns  Iteration: 1  Instance: /tb_raven_gemm_core
+# End time: 14:51:00 on Nov 01,2026, Elapsed time: 0:00:01
+# Errors: 0, Warnings: 0
