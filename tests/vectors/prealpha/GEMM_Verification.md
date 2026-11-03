@@ -1,34 +1,27 @@
-# RAVEN Pre-Alpha Golden Reference Testing
+# RAVEN Pre-Alpha — GEMM RTL Verification
 
-Generate Python golden references and use them to verify the GEMM compute RTL developed by Michael.
+Python golden references were used to test the GEMM compute RTL developed by Michael.
 
-## 1. Generate the golden references
+## 1. Generate and test Python golden references
 
-Run from the RAVEN repository root:
+Run from the repository root:
 
 ```powershell
 python tools/goldens/generate_prealpha.py
-```
-
-This creates INT8 activation and weight matrices, biases, quantization parameters, and expected INT32/INT8 outputs in `tests/vectors/prealpha/`.
-
-## 2. Test the Python comparison script
-
-```powershell
 python tools/goldens/compare_prealpha.py --case tests/vectors/prealpha/normal_8x16x8 --kind int8 --actual tests/vectors/prealpha/normal_8x16x8/expected_int8.bin
 ```
 
-Expected: **PASS, 0 mismatches**. An intentionally modified output file was also used to confirm that the checker detects incorrect values. These checks validate the comparison tool, not the RTL.
+The generator creates INT8 activations/weights, biases, quantization parameters, and expected INT32/INT8 outputs. We also independently recalculated INT32 outputs and confirmed that the checker detects an intentionally incorrect output. Comparing a reference file against itself only checks the comparison tool; it does not test RTL.
 
-## 3. Test the GEMM RTL in QuestaSim
+## 2. Test the GEMM RTL using Python fixtures
 
-Compile the testbench first (and again after RTL changes):
+Compile the testbench first, and again after RTL changes:
 
 ```powershell
 python tests/rtl/compute/run_questa.py --demo-only
 ```
 
-Then run the tests with the Python-generated fixtures:
+Then run:
 
 ```powershell
 .\tools\goldens\run_compute_rtl.ps1 -Case normal
@@ -36,16 +29,28 @@ Then run the tests with the Python-generated fixtures:
 .\tools\goldens\run_compute_rtl.ps1 -Case partial
 ```
 
-The script exports each fixture, runs the RTL simulation, checks the result, and saves a log.
-
-## Results
-
-| Test | RTL result |
+| Test | QuestaSim result |
 |---|---|
 | Normal GEMM (8×16 × 16×8) | PASS — 64/64 INT32 outputs |
-| Signed inputs with nonzero zero-point | PASS — 64/64 INT32 outputs |
+| Signed inputs and nonzero zero-point | PASS — 64/64 INT32 outputs |
 | Partial tile (7×13 × 13×5) | PASS — 35/35 INT32 outputs |
 
-All three runs reported zero simulation errors and exercised input/output stalls. These tests cover the INT32 compute core, not INT8 requantization or full-system integration.
+All three tests passed using independent Python expected values, with input/output stalls exercised.
 
--ReadME and Verification done by Jackie
+## 3. Run the full GEMM compute regression
+
+```powershell
+.\tools\goldens\run_compute_rtl.ps1 -Case full
+```
+
+This runs the existing compute regression, including the MAC processing element, multiple array sizes, assertion checks, invalid fixtures, and reset/restart tests. The 8×8 core passed **42 fixtures and 3 in-flight reset/restart phases**.
+
+**Note:** `normal`, `signed`, and `partial` use our Python golden fixtures. `full` runs the existing compute RTL regression fixtures.
+
+## Evidence and remaining work
+
+Screenshots: `docs/evidence/prealpha/gemm_verification/`
+
+Standalone INT32 GEMM verification passed for the tests above. INT8 requantization RTL and integration with memory, command control, and output storage still need testing.
+
+-MD and Verification done by Jackie
