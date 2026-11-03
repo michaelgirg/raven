@@ -48,4 +48,4 @@ The script exports each fixture, runs the RTL simulation, checks the result, and
 
 All three runs reported zero simulation errors and exercised input/output stalls. These tests cover the INT32 compute core, not INT8 requantization or full-system integration.
 
--ReadME and Verification done Jackie
+-ReadME and Verification done by Jackie
