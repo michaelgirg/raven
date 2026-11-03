@@ -45,14 +45,23 @@ Run from the repository root:
 python tests/rtl/operators/run_questa.py
 ```
 
-The test passed on November 2, 2026 with Intel ModelSim FPGA Edition 2020.1:
+The directed test has passed with Intel ModelSim FPGA Edition 2020.1 and
+Questa Intel Starter FPGA Edition-64 2021.2:
 
 ```text
 PASS REQUANT: rounding, clamps, tags, stalls, reset, and consecutive inputs
 ```
 
-ModelSim reported that full SVA support requires Questa. The directed
-testbench scoreboard and immediate assertions ran without errors.
+The runner requires both immediate and concurrent assertions to execute. It
+first proves this using two deliberate fatal probes, then checks the real bench
+for simulator errors and the exact completion marker. A simulator exit code of
+zero alone is not accepted as a passing test. Use Questa with full SVA support;
+ModelSim configurations without concurrent assertions fail the guard check.
+
+Each run uses a fresh directory under `build/tests/operators/questa/`, including
+local library mappings, transcripts and a source-hash/result report. `latest.json`
+points to that report relative to its own directory. Tools are discovered through
+PATH, QUESTA_BIN or `--questa-bin`; `--timeout` bounds each tool invocation.
 
 ## Limits
 
