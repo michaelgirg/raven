@@ -270,6 +270,54 @@ module tb_parameter_buffer;
 
         $display("PASS: Parameter backpressure verified");
 
+        //reset must discard a held response and restore shared mode
+        write_parameter(27, 32'd1);
+        write_parameter(28, 32'd1);
+        @(negedge clk);
+        rd_channel = 4;
+        rd_valid_in = 1;
+        rd_ready_out = 0;
+        @(posedge clk);
+        #1;
+        if (rd_valid_out !== 1'b1)
+            $fatal(1, "Parameter reset test did not create a held response");
+        @(negedge clk);
+        rd_valid_in = 0;
+        rst = 1;
+        #1;
+        if (rd_valid_out !== 1'b0 ||
+                {rd_bias, rd_multiplier, rd_shift, rd_zero_point,
+                 rd_clamp_min, rd_clamp_max} !== 96'd0)
+            $fatal(1, "Reset did not clear the parameter response");
+        @(negedge clk);
+        rst = 0;
+
+        for (int i = 0; i < 8; i++) begin
+            expected_bias[i] = 0;
+            expected_multiplier[i] = 0;
+            expected_shift[i] = 0;
+        end
+        expected_zero_point = 0;
+        expected_clamp_min = 0;
+        expected_clamp_max = 0;
+        read_channel(4, 0, 0);
+
+        //only entry zero is reloaded, so stale per-channel mode is detectable
+        expected_bias[4] = 4321;
+        expected_multiplier[0] = 32'sh40000000;
+        expected_shift[0] = -3;
+        expected_zero_point = -5;
+        expected_clamp_min = -100;
+        expected_clamp_max = 100;
+        write_parameter(4, expected_bias[4]);
+        write_parameter(8, expected_multiplier[0]);
+        write_parameter(16, expected_shift[0]);
+        write_parameter(24, expected_zero_point);
+        write_parameter(25, expected_clamp_min);
+        write_parameter(26, expected_clamp_max);
+        read_channel(4, 0, 0);
+        $display("PASS: Reset clears parameters and modes, then fresh writes restart reads");
+
         $display("\nALL PARAMETER BUFFER TESTS PASSED");
         $finish;
     end

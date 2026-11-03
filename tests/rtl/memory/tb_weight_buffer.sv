@@ -220,6 +220,30 @@ module tb_weight_buffer;
         read_k(5);
 
         $display("PASS: Weight bank overwrite verified");
+
+        //discard a held response, reload a bank and check the new values
+        @(negedge clk);
+        rd_k = 5;
+        rd_valid_in = 1;
+        rd_ready_out = 0;
+        @(posedge clk);
+        #1;
+        if (rd_valid_out !== 1'b1)
+            $fatal(1, "Weight reset test did not create a held response");
+        @(negedge clk);
+        rd_valid_in = 0;
+        rst = 1;
+        #1;
+        if (rd_valid_out !== 1'b0 || rd_data !== 64'd0)
+            $fatal(1, "Reset did not discard the held weight response");
+        @(negedge clk);
+        rst = 0;
+        for (int j = 0; j < 8; j++)
+            expected[5][j] = -100 - j;
+        write_bank(5);
+        read_k(5);
+        $display("PASS: Reset discards held weight data and fresh writes restart reads");
+
         $display("\nALL WEIGHT BUFFER TESTS PASSED");
 
         $finish;

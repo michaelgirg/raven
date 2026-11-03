@@ -212,6 +212,32 @@ module tb_activation_buffer;
 
         $display("PASS: Output consumed successfully");
 
+        //discard a held response and reload before restarting reads
+        read_k(3);
+        if (rd_valid_out !== 1'b1)
+            $fatal(1, "Activation reset test did not create a held response");
+        @(negedge clk);
+        rst = 1;
+        #1;
+        if (rd_valid_out !== 1'b0 || rd_data !== 64'd0)
+            $fatal(1, "Reset did not discard the held activation response");
+        @(negedge clk);
+        rst = 0;
+        for (int i = 0; i < 8; i++) begin
+            for (int j = 0; j < 16; j++)
+                expected[i][j] = (i * 16 + j) - 32;
+            write_bank(i);
+        end
+        for (int k = 0; k < 16; k++) begin
+            read_k(k);
+            check_output(k);
+            rd_ready_out = 1;
+            @(posedge clk);
+            @(negedge clk);
+            rd_ready_out = 0;
+        end
+        $display("PASS: Reset discards held activation data and fresh writes restart reads");
+
         $display("--------------------------------");
         $display("ALL ACTIVATION BUFFER TESTS PASSED");
         $display("--------------------------------");
