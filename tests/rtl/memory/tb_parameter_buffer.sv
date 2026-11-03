@@ -201,7 +201,9 @@ module tb_parameter_buffer;
         $display("PASS: Shared multiplier and shift verified");
         $display("PASS: Shared zero-point and clamp values verified");
 
-        //backpressure test
+        //backpressure test with per-channel values selected
+        write_parameter(27, 32'd1);
+        write_parameter(28, 32'd1);
         @(negedge clk);
         rd_channel = 2;
         rd_valid_in = 1;
@@ -214,19 +216,36 @@ module tb_parameter_buffer;
             $fatal(1, "Parameter response missing");
 
         begin
-            logic signed [31:0] held_bias;
-            held_bias = rd_bias;
+            logic [95:0] held_parameters;
+            held_parameters = {rd_bias, rd_multiplier, rd_shift,
+                rd_zero_point, rd_clamp_min, rd_clamp_max};
 
-            repeat (3) begin
+            if (held_parameters !== {expected_bias[2], expected_multiplier[2],
+                    expected_shift[2], expected_zero_point,
+                    expected_clamp_min, expected_clamp_max})
+                $fatal(1, "Initial stalled parameter response mismatch");
+
+            for (int i = 0; i < 6; i++) begin
+                @(negedge clk);
+                //the accepted read is complete; idle request pins may change
+                rd_valid_in = 0;
+                rd_channel = (i + 3) % 8;
+                //configuration writes must not change the held response
+                wr_valid = (i < 2);
+                wr_addr = 27 + i;
+                wr_data = 0;
                 @(posedge clk);
                 #1;
 
-                if (!rd_valid_out || rd_bias !== held_bias)
-                    $fatal(1, "Parameter backpressure failed");
+                if (rd_valid_out !== 1'b1 ||
+                        {rd_bias, rd_multiplier, rd_shift, rd_zero_point,
+                         rd_clamp_min, rd_clamp_max} !== held_parameters)
+                    $fatal(1, "Parameter payload changed during backpressure");
             end
         end
 
         @(negedge clk);
+        wr_valid = 0;
         rd_valid_in = 0;
         rd_ready_out = 1;
 
