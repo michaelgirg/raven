@@ -5,9 +5,11 @@ and single-microtile GEMM controller. They are verified in standalone RTL
 simulation. See the [implementation and run instructions](../README.md#compute-implementation-and-tests).
 The [memory directory](memory/README) contains a standalone activation buffer,
 and [operators](operators/README.md) contains a standalone one-lane
-requantization/clamp block. Their benches are under `tests/rtl/`. Control, common
-interfaces and top-level integration remain reserved; an integrated FPGA build
-is not supplied. See the [current subsystem status](../README.md#current-subsystem-status-and-integration).
+requantization/clamp block. Their benches are under `tests/rtl/`. The control
+directory contains the pre-alpha register block and single-command FSM. They compile,
+but integration is in progress; see the [control plan](../docs/plans/nahjay_control_integration_prealpha.md).
+Common interfaces and top-level integration remain reserved, and an integrated FPGA
+build is not supplied. See the [current subsystem status](../README.md#current-subsystem-status-and-integration).
 
 | Directory | Intended contents | Lead |
 |---|---|---|
