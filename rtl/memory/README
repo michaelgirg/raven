@@ -1,50 +1,37 @@
-# Activation Buffer
+# RAVEN Memory and Data Movement
 
-**Project:** RAVEN  
-**Subsystem:** Memory and Data Movement  
-**Module:** `activationBuffer`  
-**Status:** Initial RTL implementation — simulation verified
+## Overview
 
-## 1. Overview
+This directory contains the initial memory components for the RAVEN FPGA Neural Processing Unit (NPU).
 
-The activation buffer stores an 8 × 16 matrix of signed INT8 activation values for use by the RAVEN compute core.
+The memory subsystem is responsible for storing activation data, weight data, quantization parameters, and computed output values. These buffers provide the storage and interfaces needed to transfer data between the compute core, output operators, and system integration logic.
 
-The buffer is organized into eight banks, with each bank storing 16 activation values. The write interface loads an entire bank using a 128-bit input, while the read interface retrieves one activation value from each bank at a selected K position.
+The initial implementation targets the pre-alpha demonstration of an 8×16 activation matrix multiplied by a 16×8 weight matrix, producing an 8×8 output matrix.
 
-This organization provides eight INT8 activation values simultaneously to the compute interface.
+## Directory Contents
 
-## 2. Architecture
-
-| Property | Specification |
+| File | Description |
 |---|---|
-| Matrix dimensions | 8 × 16 |
-| Number of banks | 8 |
-| Values per bank | 16 |
-| Data type | Signed INT8 |
-| Total storage capacity | 128 bytes |
-| Write width | 128 bits |
-| Read output width | 64 bits |
-| Write address | 3-bit bank selector |
-| Read address | 4-bit K selector |
+| `activationBuffer.sv` | Stores the activation matrix. |
+| `weightBuffer.sv` | Stores the weight matrix. |
+| `parameterBuffer.sv` | Stores bias and quantization parameters. |
+| `outputBuffer.sv` | Stores the final INT8 output matrix. |
 
-### Write operation
+## 1. Activation Buffer
 
-The write interface accepts:
-- `wr_valid`: Indicates a write request.
-- `wr_ready`: Indicates the buffer can accept a write.
-- `wr_bank`: Selects one of eight banks.
-- `wr_data`: Supplies 16 signed INT8 values (128 bits).
+**File:** `activationBuffer.sv`
 
-An entire bank is written when `wr_valid` and `wr_ready` are both asserted at the rising clock edge.
+The activation buffer stores an 8×16 matrix of signed INT8 values.
 
-### Read operation
+- Capacity: 128 bytes.
+- Organization: 8 banks, each containing 16 INT8 values.
+- Write interface: 128-bit input, writing one complete bank.
+- Read interface: 4-bit K index.
+- Read output: 64-bit vector containing one INT8 value from each of the eight banks.
 
-The read interface accepts:
-- `rd_valid_in`: Indicates a read request.
-- `rd_ready`: Indicates the buffer can accept a read.
-- `rd_k`: Selects one of 16 positions across the banks.
+The read interface allows the compute core to retrieve eight activation values corresponding to a selected K position.
 
-The buffer returns eight signed INT8 values, one from each bank, packed into a 64-bit output:
+**Data organization:**
 
 - `rd_data[7:0]`: Bank 0
 - `rd_data[15:8]`: Bank 1
@@ -55,84 +42,132 @@ The buffer returns eight signed INT8 values, one from each bank, packed into a 6
 - `rd_data[55:48]`: Bank 6
 - `rd_data[63:56]`: Bank 7
 
-The read response uses `rd_valid_out` and `rd_ready_out` to indicate when output data is available and when the receiving module has consumed it.
+The buffer uses valid/ready handshaking and synchronous read behavior.
 
-## 3. Handshake Behavior
+## 2. Weight Buffer
 
-The module uses valid/ready handshaking on both interfaces.
+**File:** `weightBuffer.sv`
 
-A transfer is accepted on a rising clock edge when both the corresponding valid and ready signals are asserted.
+The weight buffer stores a 16×8 matrix of signed INT8 values.
 
-The output data and `rd_valid_out` remain stable while the receiver is not ready.
+- Capacity: 128 bytes.
+- Organization: 16 banks, each containing 8 INT8 values.
+- Write interface: 64-bit input, writing one complete bank.
+- Read interface: 4-bit K index.
+- Read output: 64-bit vector containing eight INT8 values representing the output channels for the selected K position.
 
-The current implementation conservatively prevents writes while a read request or unconsumed read response is pending.
+The organization allows the compute core to retrieve the eight weight values associated with a selected K position.
 
-## 4. Reset Behavior
+**Data organization:**
 
-The module uses an active-high asynchronous reset.
+- `rd_data[7:0]`: Output channel 0
+- `rd_data[15:8]`: Output channel 1
+- `rd_data[23:16]`: Output channel 2
+- `rd_data[31:24]`: Output channel 3
+- `rd_data[39:32]`: Output channel 4
+- `rd_data[47:40]`: Output channel 5
+- `rd_data[55:48]`: Output channel 6
+- `rd_data[63:56]`: Output channel 7
 
-Reset clears:
-- `rd_valid_out`
-- `rd_data`
+The buffer uses valid/ready handshaking and synchronous read behavior.
 
-The memory array itself is not reset. This avoids requiring reset logic across the entire storage array and leaves memory initialization to the loading process.
+## 3. Parameter Buffer
 
-## 5. Verification
+**File:** `parameterBuffer.sv`
 
-The module was tested using an independent SystemVerilog testbench with Icarus Verilog.
+The parameter buffer stores the bias and quantization parameters required by the output operators.
 
-The testbench verifies:
+The parameter organization follows the specifications provided by the output-operator developer.
 
-- Reset behavior.
-- Writing all eight banks.
-- Reading all 16 K positions.
-- Correct signed INT8 values across all eight banks.
-- Output stability during receiver backpressure.
-- Clearing the output-valid signal after consumption.
+### Parameter definitions
 
-**Simulation result:** All current testbench checks passed.
+| Parameter | Data type | Organization |
+|---|---|---|
+| Corrected bias | Signed 32-bit | Per-output-channel |
+| Q31 multiplier | Signed 32-bit | Shared or per-output-channel |
+| Quantization shift | Signed 8-bit | Shared or per-output-channel |
+| Output zero-point | Signed 8-bit | Shared |
+| Activation clamp minimum | Signed 8-bit | Shared |
+| Activation clamp maximum | Signed 8-bit | Shared |
 
-## 6. Known Limitations / Future Work
+### Address map
 
-- Bank-valid tracking has not yet been implemented.
-- Reads from unwritten banks are not currently prevented.
-- Read/write collision behavior should be reviewed during system integration.
-- BRAM inference and FPGA synthesis have not yet been verified.
-- The interface should be confirmed against the compute core's final integration specification.
+| Address | Parameter |
+|---|---|
+| 0–7 | Corrected bias, channels 0–7 |
+| 8–15 | Q31 multiplier, channels 0–7 |
+| 16–23 | Quantization shift, channels 0–7 |
+| 24 | Output zero-point |
+| 25 | Activation clamp minimum |
+| 26 | Activation clamp maximum |
+| 27 | Multiplier organization mode |
+| 28 | Shift organization mode |
 
-## 7. Simulation
+For multiplier and shift organization:
+- `0`: Shared mode; use entry 0 for every output channel.
+- `1`: Per-channel mode; use the selected output channel's entry.
 
-Run from the repository root using Icarus Verilog:
+The write interface uses a 6-bit address and 32-bit data input. For 8-bit parameters, the value is stored in the lowest eight bits of the write data.
 
-```bash
-mkdir -p build/tests/memory
-iverilog -g2012 -s tb_activation_buffer \
-    -o build/tests/memory/activation_buffer_test \
-    rtl/memory/activation_buffer.sv \
-    tests/rtl/memory/tb_activation_buffer.sv
-```
+The read interface accepts a 3-bit output-channel selection and returns the corresponding bias, multiplier, shift, zero-point, and clamp values.
 
-Run the simulation:
+The parameter buffer uses valid/ready handshaking and synchronous read behavior.
 
-```bash
-vvp build/tests/memory/activation_buffer_test
-```
+## 4. Output Buffer
 
-A successful run should end with:
+**File:** `outputBuffer.sv`
 
-```text
-ALL ACTIVATION BUFFER TESTS PASSED
-```
+The output buffer stores the final quantized INT8 output matrix produced by the output operators.
 
-The current bench also passes with Questa Intel Starter FPGA Edition-64 2021.2.
-The source paths above use the filenames tracked by the repository. Generated
-executables and waveforms belong under the ignored `build/` directory.
+The pre-alpha GEMM operation produces an 8×8 output matrix.
 
-## 8. Compute integration boundary
+- Capacity: 64 bytes.
+- Organization: 8 rows, each containing 8 INT8 values.
+- Write interface: 64-bit input, writing one complete row.
+- Read interface: 3-bit row selection.
+- Read output: 64-bit vector containing one complete output row.
 
-This buffer returns eight activation lanes for a four-bit K selector. The
-current GEMM frontend instead requests 128-bit words using bank-local byte
-offsets and forms its own activation lanes. Connecting the two requires an
-agreed adapter or frontend change; the interfaces are not wired together.
-This buffer's active-high asynchronous reset must also be coordinated with
-compute's synchronous active-low reset so no stale response survives restart.
+The buffer uses byte-addressable internal storage and tracks whether each output row has been written.
+
+The initial pre-alpha implementation stores final INT8 results only. The storage organization is intended to support future expansion for INT32 partial-sum storage, although the current implementation provides 64 bytes of capacity and does not yet implement the expanded INT32 capacity.
+
+## Interface and Handshaking
+
+The memory components use valid/ready handshaking for data transfers.
+
+- `wr_valid`: Indicates that the producer is presenting valid write data.
+- `wr_ready`: Indicates that the buffer can accept the write.
+- `rd_valid_in`: Indicates that a read request is being presented.
+- `rd_ready`: Indicates that the buffer can accept a read request.
+- `rd_valid_out`: Indicates that read data is available.
+- `rd_ready_out`: Indicates that the consumer can accept the read response.
+
+The buffers use synchronous read operations. Read responses remain valid while the consumer is applying backpressure.
+
+## Reset Behavior
+
+The buffers use active-high asynchronous reset.
+
+Control and response-valid registers are reset. Large storage arrays are not necessarily cleared during reset, avoiding unnecessary reset logic on the memory arrays.
+
+The integration logic must ensure that required data has been written before it is read.
+
+## Current Development Status
+
+| Component | Status |
+|---|---|
+| Activation buffer | RTL implemented; simulation tests passed. |
+| Weight buffer | RTL implemented; testbench passed. |
+| Parameter buffer | RTL implemented; simulation tests passed. |
+| Output buffer | RTL implemented; simulation tests passed. |
+
+## Future Work
+
+- Define and verify memory ownership and bounds checks.
+- Coordinate memory interfaces with the compute core and output operators.
+- Integrate the buffers with the control and integration harness (in progress)
+- Verify the complete GEMM operation against the golden reference (in progress)
+- Evaluate FPGA synthesis and memory inference.
+- Expand output storage to support future INT32 partial-sum requirements.
+
+This directory currently represents the initial memory subsystem implementation for RAVEN pre-alpha. System integration has been tested/verfied as well but can be found under docs/logs/memory_verification.
