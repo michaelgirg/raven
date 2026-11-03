@@ -82,7 +82,11 @@ module tb_parameter_buffer;
         end
     endtask
 
-    task automatic read_channel(input integer channel);
+    task automatic read_channel(
+        input integer channel,
+        input bit multiplier_mode,
+        input bit shift_mode
+    );
         begin
             @(negedge clk);
 
@@ -98,6 +102,13 @@ module tb_parameter_buffer;
 
             if (rd_bias !== expected_bias[channel])
                 $fatal(1, "Bias mismatch on channel %0d", channel);
+
+            //check every field while the response is still valid
+            if (rd_multiplier !== expected_multiplier[multiplier_mode ? channel : 0])
+                $fatal(1, "Multiplier mismatch on channel %0d", channel);
+
+            if (rd_shift !== expected_shift[shift_mode ? channel : 0])
+                $fatal(1, "Shift mismatch on channel %0d", channel);
 
             if (rd_zero_point !== expected_zero_point)
                 $fatal(1, "Zero-point mismatch");
@@ -174,13 +185,7 @@ module tb_parameter_buffer;
         write_parameter(28, 32'd1);
 
         for (int i = 0; i < 8; i++) begin
-            read_channel(i);
-
-            if (rd_multiplier !== expected_multiplier[i])
-                $fatal(1, "Per-channel multiplier mismatch");
-
-            if (rd_shift !== expected_shift[i])
-                $fatal(1, "Per-channel shift mismatch");
+            read_channel(i, 1, 1);
         end
 
         $display("PASS: Per-channel bias, multiplier, and shift verified");
@@ -190,13 +195,7 @@ module tb_parameter_buffer;
         write_parameter(28, 32'd0);
 
         for (int i = 0; i < 8; i++) begin
-            read_channel(i);
-
-            if (rd_multiplier !== expected_multiplier[0])
-                $fatal(1, "Shared multiplier mismatch");
-
-            if (rd_shift !== expected_shift[0])
-                $fatal(1, "Shared shift mismatch");
+            read_channel(i, 0, 0);
         end
 
         $display("PASS: Shared multiplier and shift verified");
