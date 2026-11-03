@@ -1,0 +1,124 @@
+# Activation Buffer
+
+**Project:** RAVEN  
+**Subsystem:** Memory and Data Movement  
+**Module:** `activationBuffer`  
+**Status:** Initial RTL implementation — simulation verified
+
+## 1. Overview
+
+The activation buffer stores an 8 × 16 matrix of signed INT8 activation values for use by the RAVEN compute core.
+
+The buffer is organized into eight banks, with each bank storing 16 activation values. The write interface loads an entire bank using a 128-bit input, while the read interface retrieves one activation value from each bank at a selected K position.
+
+This organization provides eight INT8 activation values simultaneously to the compute interface.
+
+## 2. Architecture
+
+| Property | Specification |
+|---|---|
+| Matrix dimensions | 8 × 16 |
+| Number of banks | 8 |
+| Values per bank | 16 |
+| Data type | Signed INT8 |
+| Total storage capacity | 128 bytes |
+| Write width | 128 bits |
+| Read output width | 64 bits |
+| Write address | 3-bit bank selector |
+| Read address | 4-bit K selector |
+
+### Write operation
+
+The write interface accepts:
+- `wr_valid`: Indicates a write request.
+- `wr_ready`: Indicates the buffer can accept a write.
+- `wr_bank`: Selects one of eight banks.
+- `wr_data`: Supplies 16 signed INT8 values (128 bits).
+
+An entire bank is written when `wr_valid` and `wr_ready` are both asserted at the rising clock edge.
+
+### Read operation
+
+The read interface accepts:
+- `rd_valid_in`: Indicates a read request.
+- `rd_ready`: Indicates the buffer can accept a read.
+- `rd_k`: Selects one of 16 positions across the banks.
+
+The buffer returns eight signed INT8 values, one from each bank, packed into a 64-bit output:
+
+- `rd_data[7:0]`: Bank 0
+- `rd_data[15:8]`: Bank 1
+- `rd_data[23:16]`: Bank 2
+- `rd_data[31:24]`: Bank 3
+- `rd_data[39:32]`: Bank 4
+- `rd_data[47:40]`: Bank 5
+- `rd_data[55:48]`: Bank 6
+- `rd_data[63:56]`: Bank 7
+
+The read response uses `rd_valid_out` and `rd_ready_out` to indicate when output data is available and when the receiving module has consumed it.
+
+## 3. Handshake Behavior
+
+The module uses valid/ready handshaking on both interfaces.
+
+A transfer is accepted on a rising clock edge when both the corresponding valid and ready signals are asserted.
+
+The output data and `rd_valid_out` remain stable while the receiver is not ready.
+
+The current implementation conservatively prevents writes while a read request or unconsumed read response is pending.
+
+## 4. Reset Behavior
+
+The module uses an active-high asynchronous reset.
+
+Reset clears:
+- `rd_valid_out`
+- `rd_data`
+
+The memory array itself is not reset. This avoids requiring reset logic across the entire storage array and leaves memory initialization to the loading process.
+
+## 5. Verification
+
+The module was tested using an independent SystemVerilog testbench with Icarus Verilog.
+
+The testbench verifies:
+
+- Reset behavior.
+- Writing all eight banks.
+- Reading all 16 K positions.
+- Correct signed INT8 values across all eight banks.
+- Output stability during receiver backpressure.
+- Clearing the output-valid signal after consumption.
+
+**Simulation result:** All current testbench checks passed.
+
+## 6. Known Limitations / Future Work
+
+- Bank-valid tracking has not yet been implemented.
+- Reads from unwritten banks are not currently prevented.
+- Read/write collision behavior should be reviewed during system integration.
+- BRAM inference and FPGA synthesis have not yet been verified.
+- The interface should be confirmed against the compute core's final integration specification.
+
+## 7. Simulation
+
+Compile the RTL and testbench using Icarus Verilog:
+
+```bash
+iverilog -g2012 -s tb_activation_buffer \
+    -o activation_buffer_test \
+    activationBuffer.sv \
+    tb_activation_buffer.sv
+```
+
+Run the simulation:
+
+```bash
+vvp activation_buffer_test
+```
+
+A successful run should end with:
+
+```text
+ALL ACTIVATION BUFFER TESTS PASSED
+```
