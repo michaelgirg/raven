@@ -1,11 +1,57 @@
 # Pre-alpha plan: control and integration harness (Nahjay)
 
-**Status:** implementation plan, written November 2, 2026. Nothing here is implemented yet.
+**Status:** in progress. C1–C4 are committed (November 3, 2026). **Resume at C5**
+(`rtl/top/raven_result_writer.sv`, §12).
 **Owner:** Nahjay (control/runtime). **Branch:** `nahjay_control`.
 
 This plan is written for a coding agent working in a fresh session. Read all of it before
 writing code. The **Decisions** section settles the open design choices. Don't reopen them
 unless a teammate's merged RTL conflicts with them, and if one does, stop and report the conflict.
+
+## Progress log
+
+| Commit | Step | Hash |
+|---|---|---|
+| C1 | Plan | `1f2fbe4` |
+| — | Merge `origin/main` (Quan's requant, Taylor's buffers) into `nahjay_control` | `93fafa5` |
+| C2 | `rtl/control/raven_ctrl_pkg.sv` | `53c02ac` |
+| C3 | `rtl/control/raven_ctrl_regs.sv` | `ee78b78` |
+| C4 | `rtl/control/raven_ctrl.sv` | `bc40df6` |
+
+**Next: C5**, then continue down §12 in order.
+
+Notes for the next session:
+
+- **Simulator.** The `vlog`/`vsim` on PATH is ModelSim Intel FPGA 2020.1. It compiles and
+  simulates, but warns `vlog-2186` on SVA and cannot run concurrent assertions, so the
+  compute runner rejects it. Questa FSE 23.1 is installed under
+  `~/intelFPGA_lite/23.1std/questa_fse/` but has no license configured. To use it, set the
+  license and pass `--questa-bin .../questa_fse/linux_x86_64` (not `bin/`, whose `vco`
+  symlinks break the runner). Phase 0's compute baseline has not been confirmed for this reason.
+- **C2–C4 checks.** All three compile cleanly with `vlog -sv`, apart from the ModelSim-only
+  `vlog-2186`. Throwaway smoke sims of regs + ctrl against a scripted fake core passed. They
+  were not committed, and the real coverage is T1–T15.
+- **Teammate RTL now on `main` (D6 conflict, unresolved).** These don't match §5.3/D7. Decide
+  how to adapt before C6/C8:
+  - `rtl/operators/raven_requantize_clamp.sv` (Quan) takes multiplier/shift/zp/clamp as
+    direct per-element inputs. It has no `cfg_load`, no PRM read port and no channel lookup.
+    The top must fetch PARAM records itself, or C6 becomes a wrapper around Quan's module
+    rather than a stand-in.
+  - `rtl/memory/*_buffer.sv` (Taylor) use async active-high `rst`, small row-based ports
+    (for example a 64-byte `outputBuffer`), and not the 128-bit byte-strobed 16 KiB/8 KiB bank
+    ports assumed here. Keep `sim_read_memory`/`sim_write_memory` behind the top-level ports
+    for now.
+- **Interpretations made in C2–C4** (list in the final report):
+  - `OUT0_BYTES` = 8192 (the contract's lower bound).
+  - CHECK tests K only for zero. K's bank span is left to the core's backstop, since
+    `HW_LIMITS[15:0]=8` applies to M/N.
+  - START while busy records ERR_CODE seq = the NEXT_SEQ that START would have received, and
+    ERR_INFO = `0x010` (CTRL). The first error wins over a later core error.
+  - The register bus returns `reg_rvalid_o` for writes as well as reads (one-cycle response
+    to every access).
+  - `raven_ctrl` interface for C8: `op_cfg_load_o` pulses on the core launch handshake,
+    `stored_last_i` comes from the writer, and `out_stall_i` is a per-clock output-backpressure
+    flag. `local_rst_no = rst_ni && !soft_reset`.
 
 ---
 
