@@ -1,10 +1,11 @@
 # Repository structure
 
-This layout contains compute pre-alpha RTL, runnable Questa testbenches and
-selected simulation evidence, alongside the research documents and model files.
-Other implementation areas remain reserved for future work. Empty directories
+This layout contains compute, activation-buffer and requantization/clamp RTL,
+standalone testbenches, golden-fixture tools and selected simulation evidence,
+alongside the research documents and model files.
+Control and full-system integration remain future work. Empty directories
 contain `.gitkeep` so Git retains them. No integrated firmware or FPGA build is
-supplied. See the [current compute scope](../README.md#compute-implementation-and-tests).
+supplied. See the [current subsystem status](../README.md#current-subsystem-status-and-integration).
 
 ## Directory map
 
@@ -67,7 +68,8 @@ raven/
 │   ├── README.md              # Version/dependency manifests added when validated
 │   ├── benchmarks/            # Future host measurement/analysis scripts
 │   ├── models/                # Jackie: inspect/export/pack/golden tools
-│   └── regs/                  # Canonical SystemRDL and generator configuration
+│   ├── regs/                  # Canonical SystemRDL and generator configuration
+│   └── goldens/               # Pre-alpha fixture generation, comparison and compute bridge
 ├── tests/
 │   ├── README.md
 │   ├── rtl/

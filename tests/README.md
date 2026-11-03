@@ -10,13 +10,18 @@ It compiles the actual compute RTL, checks it with PE/core testbenches and an
 independent fixture generator, and captures transcripts and demo waveforms.
 It requires Python 3.9+ and a working Questa installation. See the
 [run instructions and coverage](../README.md#run-the-compute-tests).
-Other directories reserve space for future subsystem and integrated verification.
+The [operator suite](../rtl/operators/README.md#verification) runs with
+`python tests/rtl/operators/run_questa.py`; the
+[activation-buffer bench](rtl/memory/README) has standalone simulation
+instructions. [Golden fixtures and extra GEMM checks](vectors/prealpha/GEMM_Verification.md)
+provide additional compute coverage. Control and integrated verification remain
+future work. See the [current subsystem boundaries](../README.md#current-subsystem-status-and-integration).
 
 | Directory | Intended contents | Lead |
 |---|---|---|
 | `rtl/compute/` | PE/core GEMM, partial tiles, K tails, backpressure and coordinated reset/restart tests; saved-PSUM/K-chunk continuation remains future work | Michael |
-| `rtl/operators/` | Integer-reference, activation, pool, and EWADD tests | Quan |
-| `rtl/memory/` | Scratchpad/adapter, DMA-stream, byte-count, and ownership tests | Taylor |
+| `rtl/operators/` | Implemented requantization/clamp bench; broader activation, pool and EWADD tests remain planned | Quan |
+| `rtl/memory/` | Implemented activation-buffer bench; scratchpad/DMA/ownership integration tests remain planned | Taylor |
 | `rtl/control/` | CSR, queue/dispatch, IRQ, interlock, and recovery tests | Nahjay |
 | `integration/` | Cross-subsystem simulation and on-board hardware/software checks | Shared; assign a lead per milestone |
 | `formal/` | Optional future assertion/property harnesses and formal-run configuration | Scope and owner TBD; no formal flow implemented |

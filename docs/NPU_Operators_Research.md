@@ -1,6 +1,8 @@
 # RAVEN NPU Operators and Datapath Support
 
-**Status:** Initial research and proposed operator architecture; implementation has not started.
+**Status:** A standalone one-lane requantization/clamp block and testbench are
+implemented. The broader operator architecture and system integration remain
+proposed. See the [implementation and test instructions](../rtl/operators/README.md).
 
 **Owner:** Quan — NPU Operators + Datapath Support.
 
@@ -14,7 +16,10 @@ RAVEN's proposed compute core produces signed INT32 completed dot-product result
 
 The first compatibility path should be Deep Autoencoder (AD01): GEMM plus completed-output requantization and fused ReLU. DS-CNN and MobileNetV1 then make depthwise convolution and average pooling important. ResNet-8 adds element-wise ADD, but it is not in Jackie's recommended first three models. Max pooling is retained as an extension because it is not reported in the current five-model inventories.
 
-This is a design proposal, not an RTL, performance, resource, or model-verification result. The shared command fields and scratchpad interfaces cited below require team sign-off.
+This document describes the broader design proposal. The implementation link
+above identifies the tested standalone subset; FPGA performance, resources and
+model execution have not been measured. The shared command fields and scratchpad
+interfaces cited below still require integration and verification.
 
 ## 2. Scope and Architecture Context
 
