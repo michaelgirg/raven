@@ -103,6 +103,59 @@ module tb_output_buffer;
         end
     endtask
 
+    task automatic read_after_write(input integer row);
+        begin
+            @(negedge clk);
+            rd_row = row;
+            rd_valid_in = 1;
+            rd_ready_out = 0;
+
+            //a pending read must wait for this row to be written
+            repeat (3) begin
+                @(posedge clk);
+                #1;
+                if (rd_ready !== 1'b0 || rd_valid_out !== 1'b0)
+                    $fatal(1, "Unwritten output row was readable");
+            end
+
+            @(negedge clk);
+            wr_row = row;
+            for (int j = 0; j < 8; j++)
+                wr_data[j*8 +: 8] = expected[row][j];
+            wr_valid = 1;
+
+            @(posedge clk);
+            if (wr_ready !== 1'b1)
+                $fatal(1, "Pending unwritten read blocked its write");
+            #1;
+            if (rd_valid_out !== 1'b0)
+                $fatal(1, "Unwritten read was accepted before the write");
+
+            @(negedge clk);
+            wr_valid = 0;
+            @(posedge clk);
+            if (rd_ready !== 1'b1)
+                $fatal(1, "Written output row did not become readable");
+            #1;
+            if (rd_valid_out !== 1'b1)
+                $fatal(1, "Pending output read did not complete");
+            for (int j = 0; j < 8; j++) begin
+                if ($signed(rd_data[j*8 +: 8]) !== expected[row][j])
+                    $fatal(1, "Pending read returned stale output data");
+            end
+
+            @(negedge clk);
+            rd_valid_in = 0;
+            rd_ready_out = 1;
+            @(posedge clk);
+            #1;
+            if (rd_valid_out !== 1'b0)
+                $fatal(1, "Pending output response did not clear");
+            @(negedge clk);
+            rd_ready_out = 0;
+        end
+    endtask
+
     initial begin
         rst = 1;
 
@@ -126,6 +179,9 @@ module tb_output_buffer;
         rst = 0;
 
         $display("\n--- OUTPUT BUFFER TEST ---");
+
+        read_after_write(7);
+        $display("PASS: Unwritten row waits for initialization");
 
         //write all eight rows
         for (int i = 0; i < 8; i++)
@@ -185,6 +241,65 @@ module tb_output_buffer;
             $fatal(1, "Output response did not clear");
 
         $display("PASS: Output backpressure verified");
+
+        //reset while an output is held, then require every row to be rewritten
+        @(negedge clk);
+        rd_ready_out = 0;
+        rd_row = 3;
+        rd_valid_in = 1;
+        @(posedge clk);
+        #1;
+        if (rd_valid_out !== 1'b1)
+            $fatal(1, "Output reset test did not create a held response");
+        @(negedge clk);
+        rd_valid_in = 0;
+        rst = 1;
+        #1;
+        if (rd_valid_out !== 1'b0)
+            $fatal(1, "Reset did not discard the held output");
+        @(negedge clk);
+        rst = 0;
+
+        for (int i = 0; i < 8; i++) begin
+            for (int j = 0; j < 8; j++)
+                expected[i][j] = -100 + i*8 + j;
+            read_after_write(i);
+        end
+        $display("PASS: Reset invalidates every row and new writes restart reads");
+
+        //a simultaneous read and overwrite of a valid row returns the old row
+        begin
+            logic [63:0] old_row;
+            for (int j = 0; j < 8; j++)
+                old_row[j*8 +: 8] = expected[2][j];
+            @(negedge clk);
+            wr_row = 2;
+            rd_row = 2;
+            wr_valid = 1;
+            rd_valid_in = 1;
+            for (int j = 0; j < 8; j++) begin
+                expected[2][j] = 50 + j;
+                wr_data[j*8 +: 8] = expected[2][j];
+            end
+            @(posedge clk);
+            if (wr_ready !== 1'b1 || rd_ready !== 1'b1)
+                $fatal(1, "Output read/write collision was not accepted");
+            #1;
+            if (rd_valid_out !== 1'b1 || rd_data !== old_row)
+                $fatal(1, "Output read/write collision did not return the old row");
+            @(negedge clk);
+            wr_valid = 0;
+            rd_valid_in = 0;
+            rd_ready_out = 1;
+            @(posedge clk);
+            #1;
+            if (rd_valid_out !== 1'b0)
+                $fatal(1, "Collision response did not clear");
+            @(negedge clk);
+            rd_ready_out = 0;
+            read_row(2);
+        end
+        $display("PASS: Same-row read/write returns old data and stores new data");
 
         $display("\nALL OUTPUT BUFFER TESTS PASSED");
         $finish;

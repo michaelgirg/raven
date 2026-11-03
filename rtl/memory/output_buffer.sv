@@ -30,8 +30,8 @@ module outputBuffer (
     //track which output rows have been written
     logic [7:0] row_valid;
 
-    //handshake signals
-    assign rd_ready = !rd_valid_out || rd_ready_out;
+    //unwritten rows wait until a write initializes them after reset
+    assign rd_ready = row_valid[rd_row] && (!rd_valid_out || rd_ready_out);
 
     //allow writes unless a read response is pending
     assign wr_ready = !rd_valid_out;
