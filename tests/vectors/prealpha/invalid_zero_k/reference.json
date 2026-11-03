@@ -1,0 +1,10 @@
+{
+  "name": "invalid_zero_k",
+  "operation": "GEMM_REQUANT",
+  "M": 8,
+  "N": 8,
+  "K": 0,
+  "expected_error_code": 2,
+  "expected_output_elements": 0,
+  "note": "Command rejection belongs to Nahjay; no output data is expected."
+}

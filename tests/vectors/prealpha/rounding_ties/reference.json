@@ -1,0 +1,93 @@
+{
+  "name": "rounding_ties",
+  "operation": "GEMM_REQUANT",
+  "M": 2,
+  "N": 4,
+  "K": 1,
+  "A_pitch_bytes": 16,
+  "B_physical_cols": 8,
+  "A_base": 0,
+  "B_base": 0,
+  "PARAM_base": 0,
+  "OUTPUT_base": 0,
+  "input_zero_point": 0,
+  "output_zero_point": 0,
+  "clamp_min": -128,
+  "clamp_max": 127,
+  "original_bias": [
+    0,
+    0,
+    0,
+    0
+  ],
+  "corrected_bias": [
+    0,
+    0,
+    0,
+    0
+  ],
+  "multiplier_q31": [
+    1073741824,
+    1073741824,
+    1073741824,
+    1073741824
+  ],
+  "shift": [
+    0,
+    0,
+    0,
+    0
+  ],
+  "backpressure_test": false,
+  "A": [
+    [
+      3
+    ],
+    [
+      -3
+    ]
+  ],
+  "B": [
+    [
+      1,
+      1,
+      1,
+      1
+    ]
+  ],
+  "expected_int32": [
+    [
+      3,
+      3,
+      3,
+      3
+    ],
+    [
+      -3,
+      -3,
+      -3,
+      -3
+    ]
+  ],
+  "expected_int8": [
+    [
+      2,
+      2,
+      2,
+      2
+    ],
+    [
+      -1,
+      -1,
+      -1,
+      -1
+    ]
+  ],
+  "hashes_sha256": {
+    "a.bin": "7632b14806ba7fb0d5b212565467aadcc622d86bd82cb4489a8c3d457efb5b5a",
+    "b.bin": "3b0e4842b28d6b39ec725a6459fb943f5f1d658f4d0ee991004dd50f2c182f31",
+    "param.bin": "bd51b2f6fedb075ee34700a3384a9addfce14be4af2db7d35f99928d6462e207",
+    "expected_int32.bin": "845a6eb27d807e84991705f4b0eeb0debf361b7144791c7134b4ecb955c9e34e",
+    "expected_int8.bin": "0539b34d649280fc99ac12d5205f1f3f57e3d7c47996019472427c3047f63ad8"
+  }
+}

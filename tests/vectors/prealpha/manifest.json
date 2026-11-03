@@ -1,0 +1,63 @@
+{
+  "seed": 20261102,
+  "contract": "raven-prealpha-gemm-v1-proposed-tflm-single-rounding",
+  "int8_order": "row major M x N",
+  "int32_file": "little-endian signed INT32 row-major",
+  "int8_file": "raw twos-complement bytes row-major",
+  "memory_word_hex": "one 128-bit little-endian word per line",
+  "cases": [
+    {
+      "name": "normal_8x16x8",
+      "M": 8,
+      "N": 8,
+      "K": 16,
+      "expected_elements": 64,
+      "fixture_dir": "normal_8x16x8"
+    },
+    {
+      "name": "signed_nonzero_zp_stalled",
+      "M": 8,
+      "N": 8,
+      "K": 16,
+      "expected_elements": 64,
+      "fixture_dir": "signed_nonzero_zp_stalled"
+    },
+    {
+      "name": "partial_tile_7x13x5",
+      "M": 7,
+      "N": 5,
+      "K": 13,
+      "expected_elements": 35,
+      "fixture_dir": "partial_tile_7x13x5"
+    },
+    {
+      "name": "positive_negative_saturation",
+      "M": 8,
+      "N": 8,
+      "K": 16,
+      "expected_elements": 64,
+      "fixture_dir": "positive_negative_saturation"
+    },
+    {
+      "name": "rounding_ties",
+      "M": 2,
+      "N": 4,
+      "K": 1,
+      "expected_elements": 8,
+      "fixture_dir": "rounding_ties"
+    },
+    {
+      "name": "channel_scales_relu_clamp",
+      "M": 8,
+      "N": 8,
+      "K": 16,
+      "expected_elements": 64,
+      "fixture_dir": "channel_scales_relu_clamp"
+    },
+    {
+      "name": "invalid_zero_k",
+      "expected_error_code": 2,
+      "fixture_dir": "invalid_zero_k"
+    }
+  ]
+}

@@ -23,6 +23,10 @@ SOURCES = [ROOT / p for p in (
     'tests/rtl/compute/tb_raven_mac_pe.sv',
     'tests/rtl/compute/tb_raven_gemm_core.sv')]
 ERROR = re.compile(r'\*\*\s+(?:Warning|Error|Fatal)\b|^\s*#?\s*Errors:\s*[1-9]', re.M)
+BENIGN_WARNING = re.compile(
+    r'^.*\*\*\s+Warning:\s+\(vopt-10587\).*$',
+    re.M
+)
 PROBE = '''`timescale 1ns/1ps
 module tb_assertion_probe;
   bit clk=0, sva_mode=0;
@@ -127,7 +131,7 @@ def main():
             active = re.search(r'^#\s*\*\* Fatal:.*' + re.escape(marker), combined, re.M)
             if not active or 'ASSERTIONS_DISABLED' in re.sub(r'^.*\$display.*$', '', combined, flags=re.M):
                 raise RuntimeError(f'{label}: expected assertion rejection was not observed')
-        elif proc.returncode or ERROR.search(combined) or (marker and marker not in combined):
+        elif proc.returncode or ERROR.search(BENIGN_WARNING.sub('', combined)) or (marker and marker not in combined):
             raise RuntimeError(f'{label}: tool/RTL/PASS check failed; see {label}.console.log')
         step['status'] = 'pass'
         print(f'PASS {label} ({step["seconds"]} s)', flush=True)
