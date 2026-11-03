@@ -49,7 +49,7 @@ This runs the existing compute regression, including the MAC processing element,
 
 ## Evidence and remaining work
 
-Screenshots: `docs/evidence/prealpha/gemm_verification/`
+Screenshots: `docs/logs/prealpha/gemm_verification/`
 
 Standalone INT32 GEMM verification passed for the tests above. INT8 requantization RTL and integration with memory, command control, and output storage still need testing.
 
