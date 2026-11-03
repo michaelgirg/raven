@@ -1,5 +1,10 @@
 # RAVEN Design Draft - Revised Memory-System Sections
 
+> Earlier draft copy. Use [the revised memory/DMA sections](../RAVEN_Design_Draft_Revised_Memory_DMA_Sections.md)
+> and [current memory proposal](../docs/RAVEN_Memory_System_Research.md) for the
+> shared capacity budget and integration requirements. Existing Word/PDF copies
+> are review snapshots rather than current implementation specifications.
+
 *Items that require implementation or team approval are explicitly labeled proposed/TBD. *
 
 ## A. Statement of Work - Initial Hardware Targets
@@ -14,7 +19,7 @@ For the first prototype, use direct-register DMA mode to simplify bring-up. Eval
 
 ## C. Adding: Scratchpad Organization and Tiling
 
-Scratchpad Organization (initial proposal). The first synthesis experiment will target two 16 KiB activation buffers, two 16 KiB weight buffers, 8–16 KiB for output/partial-sum storage, and 2–8 KiB for FIFOs and control state (approximately 58–72 KiB total logical storage). The actual implementation may differ because BRAM primitives have fixed configurations and port constraints; resource use will be reported from Vivado synthesis and implementation. Activations and weights are stored as INT8. Partial sums use the proposed INT32 format until requantization produces the output representation. Logical buffers will be separately named and documented even if synthesis maps them into shared physical RAM resources.
+Scratchpad Organization (initial proposal). The first synthesis experiment will target two 16 KiB activation buffers, two 16 KiB weight buffers, 8–16 KiB for output/partial-sum storage, and 2–8 KiB for FIFOs and control state (74–88 KiB base logical storage). A proposed 4 KiB parameter bank brings the budget to 78–92 KiB; an optional second 8–16 KiB output bank brings it to 86–108 KiB. The actual implementation may differ because BRAM primitives have fixed configurations and port constraints; resource use will be reported from Vivado synthesis and implementation. Activations and weights are stored as INT8. Partial sums use the proposed INT32 format until requantization produces the output representation. Logical buffers will be separately named and documented even if synthesis maps them into shared physical RAM resources.
 
 Tiling (initial proposal). The runtime divides operators into tiles sized to fit local memory and the compute datapath. A candidate GEMM test uses Mₜ=32, Nₜ=32 and Kₜ=64: the INT8 A tile is 2 KiB, the INT8 B tile is 2 KiB, and the INT32 accumulator tile is 4 KiB, excluding metadata, bias and output staging. These dimensions are a test point, not a finalized hardware requirement. Tile sizes will be tuned against the 8×8 MAC array, local-memory port bandwidth and the selected models. The implementation should retain partial sums on-chip across K-dimension chunks where possible and support edge tiles.
 

@@ -13,7 +13,7 @@ The testbench validates the write and read functionality of the 8-bank activatio
 | File | Description |
 |---|---|
 | `tb_activation_buffer.sv` | Testbench for the activation buffer RTL |
-| `../../../rtl/memory/activationBuffer.sv` | Activation buffer implementation |
+| `../../../rtl/memory/activation_buffer.sv` | Activation buffer implementation |
 
 ### Test Configuration
 
@@ -54,16 +54,17 @@ Using Icarus Verilog:
 From the repository root:
 
 ```bash
+mkdir -p build/tests/memory
 iverilog -g2012 -s tb_activation_buffer \
-    -o activation_buffer_test \
-    rtl/memory/activationBuffer.sv \
-    test/rtl/memory/tb_activation_buffer.sv
+    -o build/tests/memory/activation_buffer_test \
+    rtl/memory/activation_buffer.sv \
+    tests/rtl/memory/tb_activation_buffer.sv
 ```
 
 Run the simulation:
 
 ```bash
-vvp activation_buffer_test
+vvp build/tests/memory/activation_buffer_test
 ```
 
 ### Expected Result
@@ -82,6 +83,7 @@ ALL ACTIVATION BUFFER TESTS PASSED
 ### Verification Status
 
 **Current status:** Simulation tests passing with Icarus Verilog.
+The same bench also passes with Questa Intel Starter FPGA Edition-64 2021.2.
 
 FPGA synthesis, BRAM inference, and hardware-level verification have not yet been performed.
 

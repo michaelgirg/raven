@@ -1,6 +1,10 @@
 # RAVEN Memory-System Research
 
-**Status:** Initial research and proposed architecture; RTL implementation has not started.  
+> Earlier research copy. Use [the current memory proposal](../docs/RAVEN_Memory_System_Research.md)
+> for shared interfaces, capacity accounting and implementation status.
+
+**Status:** A standalone activation buffer and testbench are implemented. The
+scratchpad/DMA architecture below remains proposed.
 **Owner:** Taylor - BRAM organization, memory interfaces, DMA, and memory verification.  
 **Target:** AMD/Avnet Ultra96-V2 (Zynq UltraScale+ MPSoC ZU3EG).  
 **Document purpose:** Research baseline and initial proposal; all widths, capacities, tile sizes, and interface details remain subject to team approval, synthesis, and hardware validation.
@@ -61,7 +65,7 @@ Bandwidth arithmetic: bytes/cycle = width/8. At 100 MHz, 64 bits gives 8 × 100 
 
 ## 5. Scratchpad organization
 
-A reasonable first synthesis experiment is a 58–72 KiB logical scratchpad allocation. Treat these as capacity targets, not a guarantee of physical BRAM fit: inferred memory width/depth, port count, banking, and primitive packing affect resource use.
+A reasonable first synthesis experiment is a 74–88 KiB base logical scratchpad allocation. The proposed 4 KiB parameter bank brings this to 78–92 KiB; an optional second 8–16 KiB output bank brings it to 86–108 KiB. Treat these as capacity targets, not a guarantee of physical BRAM fit: inferred memory width/depth, port count, banking, and primitive packing affect resource use.
 
 | Logical buffer | Proposed capacity | Role |
 | --- | --- | --- |

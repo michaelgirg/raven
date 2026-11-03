@@ -1,6 +1,10 @@
 # RAVEN Memory-System Research
 
-**Status:** Initial research and proposed architecture; RTL implementation has not started.  
+> Reference copy. Use [docs/RAVEN_Memory_System_Research.md](docs/RAVEN_Memory_System_Research.md)
+> for the current memory proposal and implementation status.
+
+**Status:** A standalone activation buffer and testbench are implemented. The
+scratchpad/DMA architecture below remains proposed.
 **Owner:** Taylor — BRAM organization, memory interfaces, DMA, and memory verification.  
 **Target:** AMD/Avnet Ultra96-V2 (Zynq UltraScale+ MPSoC ZU3EG).  
 

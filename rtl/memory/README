@@ -102,19 +102,20 @@ The testbench verifies:
 
 ## 7. Simulation
 
-Compile the RTL and testbench using Icarus Verilog:
+Run from the repository root using Icarus Verilog:
 
 ```bash
+mkdir -p build/tests/memory
 iverilog -g2012 -s tb_activation_buffer \
-    -o activation_buffer_test \
-    activationBuffer.sv \
-    tb_activation_buffer.sv
+    -o build/tests/memory/activation_buffer_test \
+    rtl/memory/activation_buffer.sv \
+    tests/rtl/memory/tb_activation_buffer.sv
 ```
 
 Run the simulation:
 
 ```bash
-vvp activation_buffer_test
+vvp build/tests/memory/activation_buffer_test
 ```
 
 A successful run should end with:
@@ -122,3 +123,16 @@ A successful run should end with:
 ```text
 ALL ACTIVATION BUFFER TESTS PASSED
 ```
+
+The current bench also passes with Questa Intel Starter FPGA Edition-64 2021.2.
+The source paths above use the filenames tracked by the repository. Generated
+executables and waveforms belong under the ignored `build/` directory.
+
+## 8. Compute integration boundary
+
+This buffer returns eight activation lanes for a four-bit K selector. The
+current GEMM frontend instead requests 128-bit words using bank-local byte
+offsets and forms its own activation lanes. Connecting the two requires an
+agreed adapter or frontend change; the interfaces are not wired together.
+This buffer's active-high asynchronous reset must also be coordinated with
+compute's synchronous active-low reset so no stale response survives restart.
