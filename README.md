@@ -6,7 +6,7 @@ RAVEN is a senior capstone project developing a programmable INT8 neural process
 
 The goal is to execute multiple supported model graphs using one FPGA bitstream and one runtime binary. Intended applications include audio anomaly detection, keyword spotting, and visual wake-word person detection, with inference performed locally on the board.
 
-**Current status: compute pre-alpha RTL and Questa tests, plus subsystem research.** The compute implementation performs one resident INT8 GEMM tile and returns signed INT32 results. Command driving, operand memories and the result consumer are testbench stand-ins. Full-system integration and FPGA measurements remain future work; the broader architecture below is a proposal.
+**Current status: standalone compute, activation-buffer and requantization/clamp RTL, with testbenches and golden-fixture tools.** The compute implementation performs one resident INT8 GEMM tile and returns signed INT32 results. Command driving, operand memories and the result consumer in its tests are stand-ins. The three RTL blocks are not yet connected into a full system. Full-system integration and FPGA measurements remain future work; the broader architecture below is a proposal.
 
 
 ## Documentation and ownership
@@ -15,11 +15,38 @@ The goal is to execute multiple supported model graphs using one FPGA bitstream 
 |---|---|---|
 | Compute architecture, MAC datapath, pipeline, and compute verification | Michael | [NPU compute architecture](docs/NPU_ARCHITECTURE.md) |
 | Requantization, activation, pooling, element-wise Add, and operator verification | Quan | [NPU operators and datapath support](docs/NPU_Operators_Research.md); [requantization implementation](rtl/operators/README.md) |
-| BRAM organization, memory interfaces, DMA, and memory verification | Taylor | [Memory-system research](docs/RAVEN_Memory_System_Research.md) |
+| BRAM organization, memory interfaces, DMA, and memory verification | Taylor | [Memory-system research](docs/RAVEN_Memory_System_Research.md); [activation buffer](rtl/memory/README) |
 | RISC-V integration, MMIO, control, and runtime | Nahjay | [RISC-V integration and runtime](docs/RISCV_Research.md) |
-| Model analysis/export, tensor extraction, and golden-reference generation | Jackie | [Quantized-model research](docs/Quantized_Models.md) |
+| Model analysis/export, tensor extraction, and golden-reference generation | Jackie | [Quantized-model research](docs/Quantized_Models.md); [golden fixtures and GEMM verification](tests/vectors/prealpha/GEMM_Verification.md) |
 
-The documents describe proposed behavior. The [shared interface contract](docs/interfaces/RAVEN_INTERFACE_CONTRACT.md) defines the current operand, DMA, mailbox, constant-format, and recovery baseline. The [project plan](docs/PROJECT_PLAN.md) holds shared acceptance goals and milestones. Full-system implementation, FPGA timing, and model-quality evidence remain to be collected; the compute-only simulation evidence is linked in the compute section.
+The research documents describe broader proposed behavior and identify implemented subsets. The [shared interface contract](docs/interfaces/RAVEN_INTERFACE_CONTRACT.md) defines the operand, DMA, mailbox, constant-format, and recovery baseline. The [project plan](docs/PROJECT_PLAN.md) holds shared acceptance goals and milestones. Full-system implementation, FPGA timing, and model-quality evidence remain to be collected; standalone simulation instructions are linked below.
+
+Use [docs/RAVEN_Memory_System_Research.md](docs/RAVEN_Memory_System_Research.md)
+for the current memory proposal and [the revised draft sections](RAVEN_Design_Draft_Revised_Memory_DMA_Sections.md)
+for memory/DMA draft wording. Other research copies and existing Word/PDF exports
+are review snapshots; their interface and capacity descriptions may be superseded.
+
+## Current subsystem status and integration
+
+| Area | Implemented and tested | Connection still needed |
+|---|---|---|
+| Compute — Michael | Resident INT8 GEMM microtile, INT32 output, reset/backpressure/error tests | Production operand responders, command control and output storage |
+| Memory — Taylor | 128-byte activation buffer, eight-lane reads, standalone bench | Adapter/frontend agreement, weight/parameter storage, DMA and bank ownership |
+| Operators — Quan | One-lane INT32-to-INT8 requantization/clamp, tags and elastic output, standalone bench | Channel mapping, per-channel parameter delivery and destination storage |
+| Goldens — Jackie | Reproducible fixtures, byte comparator and three extra INT32 GEMM cases | Connected memory-to-GEMM-to-INT8 tests against the independent outputs |
+
+Compute's operand frontend requests 128-bit words with bank-local byte offsets
+and gathers lanes internally. The activation buffer instead returns eight bytes
+for a four-bit K selector. These interfaces need an agreed adapter or frontend
+change. Its active-high asynchronous reset must be coordinated with compute's
+synchronous active-low reset; responders must flush stale replies on restart.
+
+The compute result lane supplies data, row, column, index and last. The operator
+tail also needs a channel tag and that channel's multiplier, shift, output
+zero-point and clamp range. Channel/base mapping and parameter delivery remain
+integration work. Backpressure must propagate through the tail, and system
+completion must follow final output acceptance/storage. No connected
+memory → GEMM → INT8 → storage result is claimed by the standalone tests.
 
 ## Proposed system architecture
 
@@ -262,11 +289,11 @@ raven/
 ├── data/               # Local raw/processed datasets; contents ignored by Git
 ├── docs/               # Research, decisions, interface contracts, diagrams, and guides
 ├── evidence/           # Reviewed compute simulation results and experiment records
-├── rtl/                # Compute pre-alpha; future operators, memory, control, integration
+├── rtl/                # Standalone compute, activation buffer and INT8 tail; future integration
 ├── hw/                 # Future Vivado Tcl, constraints, and IP configuration
 ├── software/           # Future firmware, runtime, drivers, HAL, and host tests
-├── tools/              # Future model-export and register-generation tools
-├── tests/              # Compute RTL tests; future integration tests and register traces
+├── tools/              # Golden-fixture tools; future model export and register generation
+├── tests/              # Standalone RTL tests and goldens; future integrated tests
 ├── benchmarks/         # Future workload definitions and measured result summaries
 ├── models/             # Five original candidate quantized TFLite models
 ├── third_party/        # Future explicitly vendored upstream dependencies
@@ -274,6 +301,6 @@ raven/
 └── README.md
 ```
 
-See the [full directory map and ownership guide](docs/REPOSITORY_STRUCTURE.md) for where each teammate's work belongs. Area READMEs describe the intended contents; [automation notes](.github/AUTOMATION.md) cover future CI. `.gitkeep` files retain empty implementation folders in Git. Compute source and test code are listed above; the other reserved areas will gain implementation as development proceeds.
+See the [full directory map and ownership guide](docs/REPOSITORY_STRUCTURE.md) for where each teammate's work belongs. Area READMEs describe current implementations and planned work; [automation notes](.github/AUTOMATION.md) cover future CI. `.gitkeep` files retain empty implementation folders in Git. Control, runtime, physical memory/DMA and full-system integration remain future work.
 
 Generated products belong under the Git-ignored `build/` directory. See the compute run instructions in this README; additional build instructions will accompany their corresponding implementations.
