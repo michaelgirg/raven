@@ -201,6 +201,19 @@ module tb_parameter_buffer;
         $display("PASS: Shared multiplier and shift verified");
         $display("PASS: Shared zero-point and clamp values verified");
 
+        //select each mode independently, not just both on or both off
+        write_parameter(27, 32'd1);
+        write_parameter(28, 32'd0);
+        for (int i = 0; i < 8; i++)
+            read_channel(i, 1, 0);
+        $display("PASS: Per-channel multiplier with shared shift verified");
+
+        write_parameter(27, 32'd0);
+        write_parameter(28, 32'd1);
+        for (int i = 0; i < 8; i++)
+            read_channel(i, 0, 1);
+        $display("PASS: Shared multiplier with per-channel shift verified");
+
         //backpressure test with per-channel values selected
         write_parameter(27, 32'd1);
         write_parameter(28, 32'd1);
