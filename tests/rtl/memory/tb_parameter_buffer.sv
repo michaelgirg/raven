@@ -125,6 +125,15 @@ module tb_parameter_buffer;
             rd_ready_out = 1;
 
             @(posedge clk);
+            //sample the transfer before post-clock output updates
+            if (rd_valid_out !== 1'b1 || rd_ready_out !== 1'b1 ||
+                    {rd_bias, rd_multiplier, rd_shift, rd_zero_point,
+                     rd_clamp_min, rd_clamp_max} !==
+                    {expected_bias[channel],
+                     expected_multiplier[multiplier_mode ? channel : 0],
+                     expected_shift[shift_mode ? channel : 0],
+                     expected_zero_point, expected_clamp_min, expected_clamp_max})
+                $fatal(1, "Accepted parameter payload mismatch");
             #1;
 
             if (rd_valid_out)
