@@ -64,7 +64,8 @@ module sim_write_memory #(
         end
     end
 
-    assert property (@(posedge clk_i) disable iff (!rst_ni)
+    // Soft reset can release after this clock's input sample.
+    assert property (@(posedge clk_i) disable iff (!rst_ni || !$sampled(rst_ni))
         w_valid_i && !w_ready_o |=> w_valid_i && $stable({w_addr_i, w_data_i, w_strb_i}));
 endmodule
 `default_nettype wire

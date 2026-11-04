@@ -111,18 +111,19 @@ module raven_requant #(
     );
 
 `ifndef SYNTHESIS
+    // Soft reset can release after this clock's input sample.
     // Results arrive only for loaded channels, with parameters inside the TFLM range.
-    assert property (@(posedge clk_i) disable iff (!rst_ni)
+    assert property (@(posedge clk_i) disable iff (!rst_ni || !$sampled(rst_ni))
         in_valid_i && in_ready_o |-> 32'(in_col_i) < 32'(n_q)
                                    && el_mult >= 0 && el_shift >= -8'sd31 && el_shift <= 8'sd30)
         else $error("Requant element outside the loaded channels or the supported multiplier/shift range");
     // No record arrives that was not requested, and the table fits the array.
-    assert property (@(posedge clk_i) disable iff (!rst_ni)
+    assert property (@(posedge clk_i) disable iff (!rst_ni || !$sampled(rst_ni))
         p_rsp_valid_i |-> loading_q && rsp_count_q < req_count_q);
-    assert property (@(posedge clk_i) disable iff (!rst_ni)
+    assert property (@(posedge clk_i) disable iff (!rst_ni || !$sampled(rst_ni))
         cfg_load_i && cfg_per_channel_i |-> 32'(cfg_n_i) <= COLS);
     // A held request keeps its address.
-    assert property (@(posedge clk_i) disable iff (!rst_ni)
+    assert property (@(posedge clk_i) disable iff (!rst_ni || !$sampled(rst_ni))
         p_req_valid_o && !p_req_ready_i |=> p_req_valid_o && $stable(p_req_addr_o));
 `endif
 endmodule

@@ -70,14 +70,15 @@ module raven_result_writer #(
     end
 
 `ifndef SYNTHESIS
+    // Soft reset can release after this clock's input sample.
     // A presented write holds stable until the bank accepts it.
-    assert property (@(posedge clk_i) disable iff (!rst_ni)
+    assert property (@(posedge clk_i) disable iff (!rst_ni || !$sampled(rst_ni))
         w_valid_o && !w_ready_i |=> w_valid_o && $stable({w_addr_o, w_data_o, w_strb_o, last_q}));
     // Control's span check keeps every element inside the bank-local address range.
-    assert property (@(posedge clk_i) disable iff (!rst_ni)
+    assert property (@(posedge clk_i) disable iff (!rst_ni || !$sampled(rst_ni))
         in_valid_i && in_ready_o |-> byte_addr < (32'd1 << ADDR_W));
     // Configuration never changes under an element in flight.
-    assert property (@(posedge clk_i) disable iff (!rst_ni)
+    assert property (@(posedge clk_i) disable iff (!rst_ni || !$sampled(rst_ni))
         cfg_load_i |-> !w_valid_q);
 `endif
 endmodule
