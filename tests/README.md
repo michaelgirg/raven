@@ -2,11 +2,12 @@
 
 ## Verified pre-alpha results
 
-All executed RTL suites passed on merged revision
-`3577d48d063182e0e2e9560623f58cf0804621ae`. The
-[result record](../evidence/questa/final-prealpha/results.json) contains suite
-reports, source hashes, outcomes and the resolved host launch issue; the
-[execution log](../evidence/questa/final-prealpha/verification.log) retains the runs.
+The [runtime-integrity record](../evidence/questa/integrity/results.json) contains
+current source hashes, compute/operator regression results, T1–T16, fault/recovery
+checks, cycle measurements and block synthesis. The earlier
+[merged-build record](../evidence/questa/final-prealpha/results.json) preserves the
+standalone golden sweep on the unchanged native buffers/compute RTL and its
+resolved host launch issue.
 
 | Suite | Passing coverage |
 |---|---|
@@ -15,14 +16,18 @@ reports, source hashes, outcomes and the resolved host launch issue; the
 | Native buffers | Activation, weight, parameter and output standalone benches; eight deliberate reset/validity/mode faults rejected. |
 | Buffer/operator goldens | Four buffer types on six fixtures, plus requantization with and without stalls on all six: 36 successful runs. |
 | Supplemental compute goldens | Normal, signed/nonzero-zero-point and partial-tile INT32 fixtures passed using the Python exporter and Questa directly. |
-| Control/integration | T1–T15 in buffered and direct configurations: 51 PASS records, 721 checks and 22 independently compared INT8 dumps per configuration. All output bytes agreed. |
-| Adapter/configuration | 1,536 adapter checks; COLS=1 reset/NOP operation passed 43 checks. |
+| Control/integration | T1–T16: 79 PASS records / 1,162 buffered checks; 65 PASS records / 875 direct-reference checks; 36 independently compared INT8 dumps each. All output bytes agreed. |
+| Adapter/configuration | 5,797 adapter checks, including 512 single-bit cases; COLS=1 reset/NOP operation passed 43 checks. |
+| Runtime integrity | Fourteen actual native-readback fault/recovery pairs across all seven ports, with/without stalls. ERR_UNIT/IRQ, bank/address diagnostics, no DONE, halt, reset/reload and correct restart are checked. T16 also passes with SYNTHESIS defined: 442 checks and 14 matching recovery dumps. |
 | Rejection/reproducibility | Active assertion guards, incomplete manifests, invalid commands, wrong comparison data and four native-buffer read corruptions rejected; regenerated fixtures matched. |
 | Cycle reproduction | Eight cases per configuration matched the recorded counters, including bank-end K=33 and synthetic 1×640×8. |
 
 Intentional-failure sections contain expected assertion or scoreboard rejections.
-They verify that broken behavior is detected in simulation. They do not establish
-hardware ECC, CRC or intrusion protection. No failing RTL case remains in the
+They verify that broken behavior is detected in simulation. T16 additionally checks
+runtime parity/error logic with simulation-only RTL properties removed; synthesis
+separately confirms that the protection state is retained. This does not establish
+ECC, CRC or general intrusion protection. See the
+[implemented fault model](../docs/interfaces/RAVEN_STAGING_INTEGRITY.md). No failing RTL case remains in the
 executed suites; this is not exhaustive proof of every input or sequence.
 
 The six golden cases are `normal_8x16x8`, `signed_nonzero_zp_stalled`,
@@ -70,7 +75,7 @@ python tests/rtl/integration/run_questa.py
 ```
 
 See [Control pre-alpha and integration](../README.md#control-pre-alpha-and-integration)
-for T1–T15 and its verification status. A full run also checks the original direct-bank
+for T1–T16 and its verification status. A full run also checks the original direct-bank
 configuration against the buffered outputs and runs dedicated adapter stall, address,
 byte-strobe and reset tests. Integration through physical backing banks and the
 RISC-V remains future work. See the [current subsystem boundaries](../README.md#current-subsystem-status-and-integration).
@@ -81,7 +86,7 @@ RISC-V remains future work. See the [current subsystem boundaries](../README.md#
 | `rtl/operators/` | Implemented requantization/clamp bench; broader activation, pool and EWADD tests remain planned | Quan |
 | `rtl/memory/` | Standalone activation, weight, parameter and output benches; scratchpad/DMA/ownership tests remain planned | Taylor |
 | `rtl/control/` | CSR, queue/dispatch, IRQ, interlock, and recovery tests (pre-alpha control is covered by `rtl/integration/`) | Nahjay |
-| `rtl/integration/` | Buffered/direct NPU top, memory-adapter benches, command driver, bank models, fixture exporter and T1–T15 | Shared |
+| `rtl/integration/` | Buffered/direct NPU top, memory-adapter benches, command driver, bank models, fixture exporter and T1–T16, including runtime integrity/recovery | Shared |
 | `integration/` | Cross-subsystem simulation and on-board hardware/software checks | Shared; assign a lead per milestone |
 | `formal/` | Optional future assertion/property harnesses and formal-run configuration | Scope and owner TBD; no formal flow implemented |
 | `vectors/` | Small, reproducible fixtures with documented dtype, shape, layout, quantization, and provenance | Jackie with test owner |

@@ -1,5 +1,5 @@
 {
-  "started_utc": "2026-11-04T19:31:43.464654+00:00",
+  "started_utc": "2026-11-04T21:08:10.460768+00:00",
   "platform": "Windows-10-10.0.19045-SP0",
   "python": "3.12.10 (tags/v3.12.10:0cc8128, Apr  8 2025, 12:21:36) [MSC v.1943 64 bit (AMD64)]",
   "tools": {
@@ -25,33 +25,35 @@
     "T12",
     "T13",
     "T14",
-    "T15"
+    "T15",
+    "T16"
   ],
   "source_sha256": {
-    "rtl/control/raven_ctrl_pkg.sv": "a8f350a31af719453dd61c237ebcabc2c6c0c53952c3da44f0b69f765e7992c9",
+    "rtl/control/raven_ctrl_pkg.sv": "a98fdd33bfc4d2311491a0cc692a8c5fe0d71ea4cec0e4c9e12459fcb5279a8f",
     "rtl/control/raven_ctrl_regs.sv": "49527bba476bee094b04270fb7b519597ede13f83a9dbebce28e0f1cd8a3babd",
-    "rtl/control/raven_ctrl.sv": "359569f6ce26d82c9e519c7004fb7c6fe5a5b092323a1c99ff8b96373fb5d6f8",
-    "rtl/compute/raven_mac_pe.sv": "0b69cc03b120401f22bc2e39a1c126de4ad5ca5d3bc8af325c0e6627de3fc863",
-    "rtl/compute/raven_mac_array.sv": "9012c246244b0bff1e9ed752945f2bee89d4a81ba44cbead7cc3ea9928a3c60f",
-    "rtl/compute/raven_gemm_frontend.sv": "fd285b7bfc29b0b80ec7ae0f84b85e59a5f47209e0f372d26efb89e616c92f9f",
-    "rtl/compute/raven_gemm_core.sv": "a62277a61663804b8a8e60bdb0b81525d7c8a55d7a3e72807dbd5b4a1cde5562",
+    "rtl/control/raven_ctrl.sv": "c4d3bae868985588d41062dd8e32104f38dfef9593f1e7bef4a1fa138e9367ee",
+    "rtl/compute/raven_mac_pe.sv": "ebb6163c504496f444ad35b07bad1b8fe58a6539b3168ecf87ccc32d9de1d925",
+    "rtl/compute/raven_mac_array.sv": "4fff0e7cdb45e494387b3c1e60c6821dfada6e99dbdca785a1f840c3f31c78b0",
+    "rtl/compute/raven_gemm_frontend.sv": "eae348e1ec174fa37600f2176f9e61ebf00aaf043183fbbe9ec9e7f2fdbb34a3",
+    "rtl/compute/raven_gemm_core.sv": "d0bd58a8ffed16af252875a027a831bef2a216eb10cbf158bd03beddfe7dfdcf",
     "rtl/operators/raven_requantize_clamp.sv": "4fea4519e152c51fac6fa8f1de181a6157c357f5933e3701683ae93c418fa8e0",
     "rtl/memory/activation_buffer.sv": "cbd6c0da180939a32794515037e865dc66c5aaaf74f35250d7725c1d67ddea21",
     "rtl/memory/weight_buffer.sv": "9dd2db9094cac58595c87c1e066f5ccf423b2a0f3de5386b310a3564b3ed5a55",
     "rtl/memory/parameter_buffer.sv": "19734cb7f7cbcdcf45385e75564efa3dacdb468b1ab739b7258e1913855cb75f",
     "rtl/memory/output_buffer.sv": "6cde03a417576e4bc672606dc28e43d76cf3df1a4a8d9dc5f6d9668328114f57",
-    "rtl/memory/raven_read_buffer_adapter.sv": "14a538125afce2264a98dfa7c59cc6836a0a3b2c0938d3bf805d3280243228cc",
-    "rtl/memory/raven_output_buffer_adapter.sv": "8eaaa212c82e53c1aad1ed9b97d447568ca1c0e3fe8a920d16c7070d6f43abe7",
+    "rtl/memory/raven_integrity_pkg.sv": "d17a6815deb6f2b607a2b0c768db8bdfa1ad527930dc8f8bf338b8acbc6b8741",
+    "rtl/memory/raven_read_buffer_adapter.sv": "8c192104de488e756db00117ec0fe4d0869a6c842495bcb55294eeb8514f9f80",
+    "rtl/memory/raven_output_buffer_adapter.sv": "2ec7cead6c16db0c2a34a9d5c8b7e1444759dac2cdbc91915238a39cceeeb89f",
     "rtl/top/raven_requant.sv": "1adbd6cd1309441ddf237643e9f2ee45c55748e7fd05db0b0c4f8d3f90823132",
     "rtl/top/raven_result_writer.sv": "e1c6ab683f15668072cdf677af134935cfbd0c01b1c24d937b250247bb8fb99d",
-    "rtl/top/raven_npu_top.sv": "b855b615d854ef326ef8b012c60c11b995865d4829305f684a4278336ac3dabf",
-    "tests/rtl/compute/sim_read_memory.sv": "700f09c7901bb24ab12662493c952f492f5776c8014b28b6fce9c53addd4d8a3",
+    "rtl/top/raven_npu_top.sv": "b8d3e0e84b0660a875048c0aee8e274bf4ecd492a2f7e90b5bc54ecc854c17cd",
+    "tests/rtl/compute/sim_read_memory.sv": "eaf9b9e39aa4c86669132a09d8a518e8cba9bc94370856b94108d09cdd264ac1",
     "tests/rtl/integration/sim_write_memory.sv": "e1a09058af5063fd69f45bddc6386bc24ce74b5e1eb04b2fb79dcbaf9bfcb473",
     "tests/rtl/integration/raven_tb_driver_pkg.sv": "2d059c5176fdf80420e65682c24907e78e4324434e2fb930afb07456a0c3d0c3",
-    "tests/rtl/integration/tb_raven_npu_top.sv": "607677295316beed64d67fdabd07705c23e20e016f079aaed9c867449156868c",
-    "tests/rtl/integration/tb_raven_memory_adapters.sv": "1ff3c287324153c4bcdcc3c39bc9f3d8266677292e52aaf1aa8b7f497a9ad45f",
+    "tests/rtl/integration/tb_raven_npu_top.sv": "281c4a3f19dcffd51895093c9f9ec2f31108503617450354cd6690a86f556935",
+    "tests/rtl/integration/tb_raven_memory_adapters.sv": "0896e90e36eab3439592cefac02865cd7b3e852c5a0d7fd873fe4dae35bbb179",
     "tests/rtl/integration/export_fixtures.py": "56df0d20a94d24d8d445866cb27cef1fbcdfdd3513734ce0f1b0e3464376f440",
-    "tests/rtl/integration/run_questa.py": "5da773a92e21d27741d82b80f1666d61f0d9f5eba14de25e07075b8f062eb4b0",
+    "tests/rtl/integration/run_questa.py": "ccac13c7e121c832bfc106ea733f8179c828d29fc9782e364f341a0fc619e504",
     "tests/rtl/integration/run_batch.do": "c17392bd87c86cc852082b37474db4d8193184932df810cef7ab02982156d059",
     "tools/goldens/compare_prealpha.py": "48ee82969ccfc65eadb7fd5f5976f1f6f01d4f8d351e5fd2903b3d3e37583431"
   },
@@ -75,7 +77,7 @@
         "-version"
       ],
       "returncode": 0,
-      "seconds": 0.047,
+      "seconds": 0.031,
       "timed_out": false,
       "expected_failure": false,
       "status": "pass"
@@ -112,7 +114,7 @@
         "work"
       ],
       "returncode": 0,
-      "seconds": 0.031,
+      "seconds": 0.047,
       "timed_out": false,
       "expected_failure": false,
       "status": "pass"
@@ -140,6 +142,7 @@
         "../../../../../rtl/memory/weight_buffer.sv",
         "../../../../../rtl/memory/parameter_buffer.sv",
         "../../../../../rtl/memory/output_buffer.sv",
+        "../../../../../rtl/memory/raven_integrity_pkg.sv",
         "../../../../../rtl/memory/raven_read_buffer_adapter.sv",
         "../../../../../rtl/memory/raven_output_buffer_adapter.sv",
         "../../../../../rtl/top/raven_requant.sv",
@@ -260,7 +263,7 @@
         "run_batch.do"
       ],
       "returncode": 0,
-      "seconds": 1.391,
+      "seconds": 1.406,
       "timed_out": false,
       "expected_failure": false,
       "status": "pass"
@@ -287,7 +290,7 @@
         "run_batch.do"
       ],
       "returncode": 0,
-      "seconds": 1.421,
+      "seconds": 1.422,
       "timed_out": false,
       "expected_failure": false,
       "status": "pass"
@@ -313,7 +316,7 @@
         "run_batch.do"
       ],
       "returncode": 0,
-      "seconds": 1.438,
+      "seconds": 1.391,
       "timed_out": false,
       "expected_failure": false,
       "status": "pass"
@@ -353,12 +356,12 @@
         "work.tb_raven_npu_top",
         "+FIXTURES=fixtures",
         "+OUT=out",
-        "+TESTS=T1,T2,T3,T4,T5,T6,T7,T8,T9,T10,T11,T12,T13,T14,T15",
+        "+TESTS=T1,T2,T3,T4,T5,T6,T7,T8,T9,T10,T11,T12,T13,T14,T15,T16",
         "-do",
         "run_batch.do"
       ],
       "returncode": 0,
-      "seconds": 9.953,
+      "seconds": 12.703,
       "timed_out": false,
       "expected_failure": false,
       "status": "pass"
@@ -520,7 +523,7 @@
         "out/actual_int8_rounding_ties.bin"
       ],
       "returncode": 0,
-      "seconds": 0.062,
+      "seconds": 0.047,
       "timed_out": false,
       "expected_failure": false,
       "status": "pass"
@@ -538,7 +541,7 @@
         "out/actual_int8_rounding_ties_stalled.bin"
       ],
       "returncode": 0,
-      "seconds": 0.063,
+      "seconds": 0.062,
       "timed_out": false,
       "expected_failure": false,
       "status": "pass"
@@ -556,7 +559,7 @@
         "out/actual_int8_signed_nonzero_zp_stalled.bin"
       ],
       "returncode": 0,
-      "seconds": 0.062,
+      "seconds": 0.063,
       "timed_out": false,
       "expected_failure": false,
       "status": "pass"
@@ -574,7 +577,7 @@
         "out/actual_int8_signed_nonzero_zp_stalled_stalled.bin"
       ],
       "returncode": 0,
-      "seconds": 0.063,
+      "seconds": 0.062,
       "timed_out": false,
       "expected_failure": false,
       "status": "pass"
@@ -592,7 +595,7 @@
         "out/actual_int8_t12_start_while_busy.bin"
       ],
       "returncode": 0,
-      "seconds": 0.047,
+      "seconds": 0.063,
       "timed_out": false,
       "expected_failure": false,
       "status": "pass"
@@ -616,6 +619,258 @@
       "status": "pass"
     },
     {
+      "name": "compare-t16_port0_stalls0_restart",
+      "argv": [
+        "python",
+        "../../../../../tools/goldens/compare_prealpha.py",
+        "--case",
+        "../../../../../tests/vectors/prealpha/normal_8x16x8",
+        "--kind",
+        "int8",
+        "--actual",
+        "out/actual_int8_t16_port0_stalls0_restart.bin"
+      ],
+      "returncode": 0,
+      "seconds": 0.063,
+      "timed_out": false,
+      "expected_failure": false,
+      "status": "pass"
+    },
+    {
+      "name": "compare-t16_port0_stalls1_restart",
+      "argv": [
+        "python",
+        "../../../../../tools/goldens/compare_prealpha.py",
+        "--case",
+        "../../../../../tests/vectors/prealpha/normal_8x16x8",
+        "--kind",
+        "int8",
+        "--actual",
+        "out/actual_int8_t16_port0_stalls1_restart.bin"
+      ],
+      "returncode": 0,
+      "seconds": 0.062,
+      "timed_out": false,
+      "expected_failure": false,
+      "status": "pass"
+    },
+    {
+      "name": "compare-t16_port1_stalls0_restart",
+      "argv": [
+        "python",
+        "../../../../../tools/goldens/compare_prealpha.py",
+        "--case",
+        "../../../../../tests/vectors/prealpha/normal_8x16x8",
+        "--kind",
+        "int8",
+        "--actual",
+        "out/actual_int8_t16_port1_stalls0_restart.bin"
+      ],
+      "returncode": 0,
+      "seconds": 0.047,
+      "timed_out": false,
+      "expected_failure": false,
+      "status": "pass"
+    },
+    {
+      "name": "compare-t16_port1_stalls1_restart",
+      "argv": [
+        "python",
+        "../../../../../tools/goldens/compare_prealpha.py",
+        "--case",
+        "../../../../../tests/vectors/prealpha/normal_8x16x8",
+        "--kind",
+        "int8",
+        "--actual",
+        "out/actual_int8_t16_port1_stalls1_restart.bin"
+      ],
+      "returncode": 0,
+      "seconds": 0.046,
+      "timed_out": false,
+      "expected_failure": false,
+      "status": "pass"
+    },
+    {
+      "name": "compare-t16_port2_stalls0_restart",
+      "argv": [
+        "python",
+        "../../../../../tools/goldens/compare_prealpha.py",
+        "--case",
+        "../../../../../tests/vectors/prealpha/normal_8x16x8",
+        "--kind",
+        "int8",
+        "--actual",
+        "out/actual_int8_t16_port2_stalls0_restart.bin"
+      ],
+      "returncode": 0,
+      "seconds": 0.063,
+      "timed_out": false,
+      "expected_failure": false,
+      "status": "pass"
+    },
+    {
+      "name": "compare-t16_port2_stalls1_restart",
+      "argv": [
+        "python",
+        "../../../../../tools/goldens/compare_prealpha.py",
+        "--case",
+        "../../../../../tests/vectors/prealpha/normal_8x16x8",
+        "--kind",
+        "int8",
+        "--actual",
+        "out/actual_int8_t16_port2_stalls1_restart.bin"
+      ],
+      "returncode": 0,
+      "seconds": 0.062,
+      "timed_out": false,
+      "expected_failure": false,
+      "status": "pass"
+    },
+    {
+      "name": "compare-t16_port3_stalls0_restart",
+      "argv": [
+        "python",
+        "../../../../../tools/goldens/compare_prealpha.py",
+        "--case",
+        "../../../../../tests/vectors/prealpha/normal_8x16x8",
+        "--kind",
+        "int8",
+        "--actual",
+        "out/actual_int8_t16_port3_stalls0_restart.bin"
+      ],
+      "returncode": 0,
+      "seconds": 0.063,
+      "timed_out": false,
+      "expected_failure": false,
+      "status": "pass"
+    },
+    {
+      "name": "compare-t16_port3_stalls1_restart",
+      "argv": [
+        "python",
+        "../../../../../tools/goldens/compare_prealpha.py",
+        "--case",
+        "../../../../../tests/vectors/prealpha/normal_8x16x8",
+        "--kind",
+        "int8",
+        "--actual",
+        "out/actual_int8_t16_port3_stalls1_restart.bin"
+      ],
+      "returncode": 0,
+      "seconds": 0.062,
+      "timed_out": false,
+      "expected_failure": false,
+      "status": "pass"
+    },
+    {
+      "name": "compare-t16_port4_stalls0_restart",
+      "argv": [
+        "python",
+        "../../../../../tools/goldens/compare_prealpha.py",
+        "--case",
+        "../../../../../tests/vectors/prealpha/normal_8x16x8",
+        "--kind",
+        "int8",
+        "--actual",
+        "out/actual_int8_t16_port4_stalls0_restart.bin"
+      ],
+      "returncode": 0,
+      "seconds": 0.063,
+      "timed_out": false,
+      "expected_failure": false,
+      "status": "pass"
+    },
+    {
+      "name": "compare-t16_port4_stalls1_restart",
+      "argv": [
+        "python",
+        "../../../../../tools/goldens/compare_prealpha.py",
+        "--case",
+        "../../../../../tests/vectors/prealpha/normal_8x16x8",
+        "--kind",
+        "int8",
+        "--actual",
+        "out/actual_int8_t16_port4_stalls1_restart.bin"
+      ],
+      "returncode": 0,
+      "seconds": 0.047,
+      "timed_out": false,
+      "expected_failure": false,
+      "status": "pass"
+    },
+    {
+      "name": "compare-t16_port5_stalls0_restart",
+      "argv": [
+        "python",
+        "../../../../../tools/goldens/compare_prealpha.py",
+        "--case",
+        "../../../../../tests/vectors/prealpha/normal_8x16x8",
+        "--kind",
+        "int8",
+        "--actual",
+        "out/actual_int8_t16_port5_stalls0_restart.bin"
+      ],
+      "returncode": 0,
+      "seconds": 0.047,
+      "timed_out": false,
+      "expected_failure": false,
+      "status": "pass"
+    },
+    {
+      "name": "compare-t16_port5_stalls1_restart",
+      "argv": [
+        "python",
+        "../../../../../tools/goldens/compare_prealpha.py",
+        "--case",
+        "../../../../../tests/vectors/prealpha/normal_8x16x8",
+        "--kind",
+        "int8",
+        "--actual",
+        "out/actual_int8_t16_port5_stalls1_restart.bin"
+      ],
+      "returncode": 0,
+      "seconds": 0.063,
+      "timed_out": false,
+      "expected_failure": false,
+      "status": "pass"
+    },
+    {
+      "name": "compare-t16_port6_stalls0_restart",
+      "argv": [
+        "python",
+        "../../../../../tools/goldens/compare_prealpha.py",
+        "--case",
+        "../../../../../tests/vectors/prealpha/normal_8x16x8",
+        "--kind",
+        "int8",
+        "--actual",
+        "out/actual_int8_t16_port6_stalls0_restart.bin"
+      ],
+      "returncode": 0,
+      "seconds": 0.062,
+      "timed_out": false,
+      "expected_failure": false,
+      "status": "pass"
+    },
+    {
+      "name": "compare-t16_port6_stalls1_restart",
+      "argv": [
+        "python",
+        "../../../../../tools/goldens/compare_prealpha.py",
+        "--case",
+        "../../../../../tests/vectors/prealpha/normal_8x16x8",
+        "--kind",
+        "int8",
+        "--actual",
+        "out/actual_int8_t16_port6_stalls1_restart.bin"
+      ],
+      "returncode": 0,
+      "seconds": 0.063,
+      "timed_out": false,
+      "expected_failure": false,
+      "status": "pass"
+    },
+    {
       "name": "compare-t4_bank_edges_k33",
       "argv": [
         "python",
@@ -628,7 +883,7 @@
         "out/actual_int8_t4_bank_edges_k33.bin"
       ],
       "returncode": 0,
-      "seconds": 0.063,
+      "seconds": 0.062,
       "timed_out": false,
       "expected_failure": false,
       "status": "pass"
@@ -646,7 +901,7 @@
         "out/actual_int8_t4_bank_edges_k33_stalled.bin"
       ],
       "returncode": 0,
-      "seconds": 0.062,
+      "seconds": 0.063,
       "timed_out": false,
       "expected_failure": false,
       "status": "pass"
@@ -664,7 +919,7 @@
         "out/actual_int8_t5_normal_shared_scale.bin"
       ],
       "returncode": 0,
-      "seconds": 0.063,
+      "seconds": 0.062,
       "timed_out": false,
       "expected_failure": false,
       "status": "pass"
@@ -682,7 +937,7 @@
         "out/actual_int8_t5_normal_shared_scale_stalled.bin"
       ],
       "returncode": 0,
-      "seconds": 0.062,
+      "seconds": 0.063,
       "timed_out": false,
       "expected_failure": false,
       "status": "pass"
@@ -700,7 +955,7 @@
         "out/actual_int8_t6_partial_pitch16_dst100.bin"
       ],
       "returncode": 0,
-      "seconds": 0.063,
+      "seconds": 0.062,
       "timed_out": false,
       "expected_failure": false,
       "status": "pass"
@@ -718,7 +973,7 @@
         "out/actual_int8_t6_partial_pitch16_dst100_stalled.bin"
       ],
       "returncode": 0,
-      "seconds": 0.062,
+      "seconds": 0.047,
       "timed_out": false,
       "expected_failure": false,
       "status": "pass"
@@ -779,12 +1034,12 @@
         "work.tb_raven_npu_top",
         "+FIXTURES=fixtures",
         "+OUT=out-direct",
-        "+TESTS=T1,T2,T3,T4,T5,T6,T7,T8,T9,T10,T11,T12,T13,T14,T15",
+        "+TESTS=T1,T2,T3,T4,T5,T6,T7,T8,T9,T10,T11,T12,T13,T14,T15,T16",
         "-do",
         "run_batch.do"
       ],
       "returncode": 0,
-      "seconds": 3.625,
+      "seconds": 4.406,
       "timed_out": false,
       "expected_failure": false,
       "status": "pass"
@@ -892,7 +1147,7 @@
         "out-direct/actual_int8_partial_tile_7x13x5_stalled.bin"
       ],
       "returncode": 0,
-      "seconds": 0.062,
+      "seconds": 0.047,
       "timed_out": false,
       "expected_failure": false,
       "status": "pass"
@@ -910,7 +1165,7 @@
         "out-direct/actual_int8_positive_negative_saturation.bin"
       ],
       "returncode": 0,
-      "seconds": 0.047,
+      "seconds": 0.062,
       "timed_out": false,
       "expected_failure": false,
       "status": "pass"
@@ -1036,7 +1291,259 @@
         "out-direct/actual_int8_t15_staging_rewrite.bin"
       ],
       "returncode": 0,
+      "seconds": 0.047,
+      "timed_out": false,
+      "expected_failure": false,
+      "status": "pass"
+    },
+    {
+      "name": "compare-direct-t16_port0_stalls0_restart",
+      "argv": [
+        "python",
+        "../../../../../tools/goldens/compare_prealpha.py",
+        "--case",
+        "../../../../../tests/vectors/prealpha/normal_8x16x8",
+        "--kind",
+        "int8",
+        "--actual",
+        "out-direct/actual_int8_t16_port0_stalls0_restart.bin"
+      ],
+      "returncode": 0,
+      "seconds": 0.063,
+      "timed_out": false,
+      "expected_failure": false,
+      "status": "pass"
+    },
+    {
+      "name": "compare-direct-t16_port0_stalls1_restart",
+      "argv": [
+        "python",
+        "../../../../../tools/goldens/compare_prealpha.py",
+        "--case",
+        "../../../../../tests/vectors/prealpha/normal_8x16x8",
+        "--kind",
+        "int8",
+        "--actual",
+        "out-direct/actual_int8_t16_port0_stalls1_restart.bin"
+      ],
+      "returncode": 0,
       "seconds": 0.062,
+      "timed_out": false,
+      "expected_failure": false,
+      "status": "pass"
+    },
+    {
+      "name": "compare-direct-t16_port1_stalls0_restart",
+      "argv": [
+        "python",
+        "../../../../../tools/goldens/compare_prealpha.py",
+        "--case",
+        "../../../../../tests/vectors/prealpha/normal_8x16x8",
+        "--kind",
+        "int8",
+        "--actual",
+        "out-direct/actual_int8_t16_port1_stalls0_restart.bin"
+      ],
+      "returncode": 0,
+      "seconds": 0.063,
+      "timed_out": false,
+      "expected_failure": false,
+      "status": "pass"
+    },
+    {
+      "name": "compare-direct-t16_port1_stalls1_restart",
+      "argv": [
+        "python",
+        "../../../../../tools/goldens/compare_prealpha.py",
+        "--case",
+        "../../../../../tests/vectors/prealpha/normal_8x16x8",
+        "--kind",
+        "int8",
+        "--actual",
+        "out-direct/actual_int8_t16_port1_stalls1_restart.bin"
+      ],
+      "returncode": 0,
+      "seconds": 0.062,
+      "timed_out": false,
+      "expected_failure": false,
+      "status": "pass"
+    },
+    {
+      "name": "compare-direct-t16_port2_stalls0_restart",
+      "argv": [
+        "python",
+        "../../../../../tools/goldens/compare_prealpha.py",
+        "--case",
+        "../../../../../tests/vectors/prealpha/normal_8x16x8",
+        "--kind",
+        "int8",
+        "--actual",
+        "out-direct/actual_int8_t16_port2_stalls0_restart.bin"
+      ],
+      "returncode": 0,
+      "seconds": 0.063,
+      "timed_out": false,
+      "expected_failure": false,
+      "status": "pass"
+    },
+    {
+      "name": "compare-direct-t16_port2_stalls1_restart",
+      "argv": [
+        "python",
+        "../../../../../tools/goldens/compare_prealpha.py",
+        "--case",
+        "../../../../../tests/vectors/prealpha/normal_8x16x8",
+        "--kind",
+        "int8",
+        "--actual",
+        "out-direct/actual_int8_t16_port2_stalls1_restart.bin"
+      ],
+      "returncode": 0,
+      "seconds": 0.062,
+      "timed_out": false,
+      "expected_failure": false,
+      "status": "pass"
+    },
+    {
+      "name": "compare-direct-t16_port3_stalls0_restart",
+      "argv": [
+        "python",
+        "../../../../../tools/goldens/compare_prealpha.py",
+        "--case",
+        "../../../../../tests/vectors/prealpha/normal_8x16x8",
+        "--kind",
+        "int8",
+        "--actual",
+        "out-direct/actual_int8_t16_port3_stalls0_restart.bin"
+      ],
+      "returncode": 0,
+      "seconds": 0.063,
+      "timed_out": false,
+      "expected_failure": false,
+      "status": "pass"
+    },
+    {
+      "name": "compare-direct-t16_port3_stalls1_restart",
+      "argv": [
+        "python",
+        "../../../../../tools/goldens/compare_prealpha.py",
+        "--case",
+        "../../../../../tests/vectors/prealpha/normal_8x16x8",
+        "--kind",
+        "int8",
+        "--actual",
+        "out-direct/actual_int8_t16_port3_stalls1_restart.bin"
+      ],
+      "returncode": 0,
+      "seconds": 0.062,
+      "timed_out": false,
+      "expected_failure": false,
+      "status": "pass"
+    },
+    {
+      "name": "compare-direct-t16_port4_stalls0_restart",
+      "argv": [
+        "python",
+        "../../../../../tools/goldens/compare_prealpha.py",
+        "--case",
+        "../../../../../tests/vectors/prealpha/normal_8x16x8",
+        "--kind",
+        "int8",
+        "--actual",
+        "out-direct/actual_int8_t16_port4_stalls0_restart.bin"
+      ],
+      "returncode": 0,
+      "seconds": 0.063,
+      "timed_out": false,
+      "expected_failure": false,
+      "status": "pass"
+    },
+    {
+      "name": "compare-direct-t16_port4_stalls1_restart",
+      "argv": [
+        "python",
+        "../../../../../tools/goldens/compare_prealpha.py",
+        "--case",
+        "../../../../../tests/vectors/prealpha/normal_8x16x8",
+        "--kind",
+        "int8",
+        "--actual",
+        "out-direct/actual_int8_t16_port4_stalls1_restart.bin"
+      ],
+      "returncode": 0,
+      "seconds": 0.062,
+      "timed_out": false,
+      "expected_failure": false,
+      "status": "pass"
+    },
+    {
+      "name": "compare-direct-t16_port5_stalls0_restart",
+      "argv": [
+        "python",
+        "../../../../../tools/goldens/compare_prealpha.py",
+        "--case",
+        "../../../../../tests/vectors/prealpha/normal_8x16x8",
+        "--kind",
+        "int8",
+        "--actual",
+        "out-direct/actual_int8_t16_port5_stalls0_restart.bin"
+      ],
+      "returncode": 0,
+      "seconds": 0.063,
+      "timed_out": false,
+      "expected_failure": false,
+      "status": "pass"
+    },
+    {
+      "name": "compare-direct-t16_port5_stalls1_restart",
+      "argv": [
+        "python",
+        "../../../../../tools/goldens/compare_prealpha.py",
+        "--case",
+        "../../../../../tests/vectors/prealpha/normal_8x16x8",
+        "--kind",
+        "int8",
+        "--actual",
+        "out-direct/actual_int8_t16_port5_stalls1_restart.bin"
+      ],
+      "returncode": 0,
+      "seconds": 0.062,
+      "timed_out": false,
+      "expected_failure": false,
+      "status": "pass"
+    },
+    {
+      "name": "compare-direct-t16_port6_stalls0_restart",
+      "argv": [
+        "python",
+        "../../../../../tools/goldens/compare_prealpha.py",
+        "--case",
+        "../../../../../tests/vectors/prealpha/normal_8x16x8",
+        "--kind",
+        "int8",
+        "--actual",
+        "out-direct/actual_int8_t16_port6_stalls0_restart.bin"
+      ],
+      "returncode": 0,
+      "seconds": 0.047,
+      "timed_out": false,
+      "expected_failure": false,
+      "status": "pass"
+    },
+    {
+      "name": "compare-direct-t16_port6_stalls1_restart",
+      "argv": [
+        "python",
+        "../../../../../tools/goldens/compare_prealpha.py",
+        "--case",
+        "../../../../../tests/vectors/prealpha/normal_8x16x8",
+        "--kind",
+        "int8",
+        "--actual",
+        "out-direct/actual_int8_t16_port6_stalls1_restart.bin"
+      ],
+      "returncode": 0,
+      "seconds": 0.063,
       "timed_out": false,
       "expected_failure": false,
       "status": "pass"
@@ -1054,7 +1561,7 @@
         "out-direct/actual_int8_t4_bank_edges_k33.bin"
       ],
       "returncode": 0,
-      "seconds": 0.063,
+      "seconds": 0.062,
       "timed_out": false,
       "expected_failure": false,
       "status": "pass"
@@ -1072,7 +1579,7 @@
         "out-direct/actual_int8_t4_bank_edges_k33_stalled.bin"
       ],
       "returncode": 0,
-      "seconds": 0.062,
+      "seconds": 0.063,
       "timed_out": false,
       "expected_failure": false,
       "status": "pass"
@@ -1090,7 +1597,7 @@
         "out-direct/actual_int8_t5_normal_shared_scale.bin"
       ],
       "returncode": 0,
-      "seconds": 0.063,
+      "seconds": 0.062,
       "timed_out": false,
       "expected_failure": false,
       "status": "pass"
@@ -1108,7 +1615,7 @@
         "out-direct/actual_int8_t5_normal_shared_scale_stalled.bin"
       ],
       "returncode": 0,
-      "seconds": 0.062,
+      "seconds": 0.063,
       "timed_out": false,
       "expected_failure": false,
       "status": "pass"
@@ -1126,7 +1633,7 @@
         "out-direct/actual_int8_t6_partial_pitch16_dst100.bin"
       ],
       "returncode": 0,
-      "seconds": 0.047,
+      "seconds": 0.062,
       "timed_out": false,
       "expected_failure": false,
       "status": "pass"
@@ -1144,7 +1651,7 @@
         "out-direct/actual_int8_t6_partial_pitch16_dst100_stalled.bin"
       ],
       "returncode": 0,
-      "seconds": 0.062,
+      "seconds": 0.063,
       "timed_out": false,
       "expected_failure": false,
       "status": "pass"
@@ -1162,7 +1669,7 @@
         "out-direct/actual_int8_t7_normal_act1_wgt1.bin"
       ],
       "returncode": 0,
-      "seconds": 0.063,
+      "seconds": 0.062,
       "timed_out": false,
       "expected_failure": false,
       "status": "pass"
@@ -1180,7 +1687,7 @@
         "out-direct/actual_int8_t7_normal_act1_wgt1_stalled.bin"
       ],
       "returncode": 0,
-      "seconds": 0.062,
+      "seconds": 0.047,
       "timed_out": false,
       "expected_failure": false,
       "status": "pass"
@@ -1210,7 +1717,103 @@
         "run_batch.do"
       ],
       "returncode": 0,
-      "seconds": 1.579,
+      "seconds": 1.578,
+      "timed_out": false,
+      "expected_failure": false,
+      "status": "pass"
+    },
+    {
+      "name": "synthesis-define-vlib",
+      "argv": [
+        "vlib",
+        "rtl_synthesis"
+      ],
+      "returncode": 0,
+      "seconds": 0.047,
+      "timed_out": false,
+      "expected_failure": false,
+      "status": "pass"
+    },
+    {
+      "name": "synthesis-define-vmap",
+      "argv": [
+        "vmap",
+        "rtl_synthesis",
+        "rtl_synthesis"
+      ],
+      "returncode": 0,
+      "seconds": 0.031,
+      "timed_out": false,
+      "expected_failure": false,
+      "status": "pass"
+    },
+    {
+      "name": "synthesis-define-compile",
+      "argv": [
+        "vlog",
+        "-sv",
+        "+define+SYNTHESIS",
+        "-timescale",
+        "1ns/1ps",
+        "-work",
+        "rtl_synthesis",
+        "-l",
+        "synthesis-define-compile.log",
+        "../../../../../rtl/control/raven_ctrl_pkg.sv",
+        "../../../../../rtl/control/raven_ctrl_regs.sv",
+        "../../../../../rtl/control/raven_ctrl.sv",
+        "../../../../../rtl/compute/raven_mac_pe.sv",
+        "../../../../../rtl/compute/raven_mac_array.sv",
+        "../../../../../rtl/compute/raven_gemm_frontend.sv",
+        "../../../../../rtl/compute/raven_gemm_core.sv",
+        "../../../../../rtl/operators/raven_requantize_clamp.sv",
+        "../../../../../rtl/memory/activation_buffer.sv",
+        "../../../../../rtl/memory/weight_buffer.sv",
+        "../../../../../rtl/memory/parameter_buffer.sv",
+        "../../../../../rtl/memory/output_buffer.sv",
+        "../../../../../rtl/memory/raven_integrity_pkg.sv",
+        "../../../../../rtl/memory/raven_read_buffer_adapter.sv",
+        "../../../../../rtl/memory/raven_output_buffer_adapter.sv",
+        "../../../../../rtl/top/raven_requant.sv",
+        "../../../../../rtl/top/raven_result_writer.sv",
+        "../../../../../rtl/top/raven_npu_top.sv",
+        "../../../../../tests/rtl/compute/sim_read_memory.sv",
+        "../../../../../tests/rtl/integration/sim_write_memory.sv",
+        "../../../../../tests/rtl/integration/raven_tb_driver_pkg.sv",
+        "../../../../../tests/rtl/integration/tb_raven_npu_top.sv",
+        "../../../../../tests/rtl/integration/tb_raven_memory_adapters.sv"
+      ],
+      "returncode": 0,
+      "seconds": 0.14,
+      "timed_out": false,
+      "expected_failure": false,
+      "status": "pass"
+    },
+    {
+      "name": "integrity-synthesis-define",
+      "argv": [
+        "vsim",
+        "-c",
+        "-onfinish",
+        "exit",
+        "-t",
+        "1ps",
+        "-voptargs=+acc",
+        "-sva",
+        "-immedassert",
+        "-l",
+        "integrity-synthesis-define.log",
+        "-wlf",
+        "integrity-synthesis-define.wlf",
+        "rtl_synthesis.tb_raven_npu_top",
+        "+FIXTURES=fixtures",
+        "+OUT=out-synthesis-define",
+        "+TESTS=T16",
+        "-do",
+        "run_batch.do"
+      ],
+      "returncode": 0,
+      "seconds": 3.797,
       "timed_out": false,
       "expected_failure": false,
       "status": "pass"
@@ -1222,7 +1825,7 @@
         "fault_activation"
       ],
       "returncode": 0,
-      "seconds": 0.046,
+      "seconds": 0.031,
       "timed_out": false,
       "expected_failure": false,
       "status": "pass"
@@ -1263,6 +1866,7 @@
         "../../../../../rtl/memory/weight_buffer.sv",
         "../../../../../rtl/memory/parameter_buffer.sv",
         "../../../../../rtl/memory/output_buffer.sv",
+        "../../../../../rtl/memory/raven_integrity_pkg.sv",
         "../../../../../rtl/memory/raven_read_buffer_adapter.sv",
         "../../../../../rtl/memory/raven_output_buffer_adapter.sv",
         "../../../../../rtl/top/raven_requant.sv",
@@ -1304,7 +1908,7 @@
         "run_batch.do"
       ],
       "returncode": 0,
-      "seconds": 1.578,
+      "seconds": 1.594,
       "timed_out": false,
       "expected_failure": true,
       "status": "pass"
@@ -1316,7 +1920,7 @@
         "fault_weight"
       ],
       "returncode": 0,
-      "seconds": 0.047,
+      "seconds": 0.031,
       "timed_out": false,
       "expected_failure": false,
       "status": "pass"
@@ -1357,6 +1961,7 @@
         "faults/weight.sv",
         "../../../../../rtl/memory/parameter_buffer.sv",
         "../../../../../rtl/memory/output_buffer.sv",
+        "../../../../../rtl/memory/raven_integrity_pkg.sv",
         "../../../../../rtl/memory/raven_read_buffer_adapter.sv",
         "../../../../../rtl/memory/raven_output_buffer_adapter.sv",
         "../../../../../rtl/top/raven_requant.sv",
@@ -1369,7 +1974,7 @@
         "../../../../../tests/rtl/integration/tb_raven_memory_adapters.sv"
       ],
       "returncode": 0,
-      "seconds": 0.125,
+      "seconds": 0.141,
       "timed_out": false,
       "expected_failure": false,
       "status": "pass"
@@ -1398,7 +2003,7 @@
         "run_batch.do"
       ],
       "returncode": 0,
-      "seconds": 1.563,
+      "seconds": 1.562,
       "timed_out": false,
       "expected_failure": true,
       "status": "pass"
@@ -1423,7 +2028,7 @@
         "fault_parameter"
       ],
       "returncode": 0,
-      "seconds": 0.046,
+      "seconds": 0.047,
       "timed_out": false,
       "expected_failure": false,
       "status": "pass"
@@ -1451,6 +2056,7 @@
         "../../../../../rtl/memory/weight_buffer.sv",
         "faults/parameter.sv",
         "../../../../../rtl/memory/output_buffer.sv",
+        "../../../../../rtl/memory/raven_integrity_pkg.sv",
         "../../../../../rtl/memory/raven_read_buffer_adapter.sv",
         "../../../../../rtl/memory/raven_output_buffer_adapter.sv",
         "../../../../../rtl/top/raven_requant.sv",
@@ -1463,7 +2069,7 @@
         "../../../../../tests/rtl/integration/tb_raven_memory_adapters.sv"
       ],
       "returncode": 0,
-      "seconds": 0.11,
+      "seconds": 0.14,
       "timed_out": false,
       "expected_failure": false,
       "status": "pass"
@@ -1492,7 +2098,7 @@
         "run_batch.do"
       ],
       "returncode": 0,
-      "seconds": 1.609,
+      "seconds": 1.594,
       "timed_out": false,
       "expected_failure": true,
       "status": "pass"
@@ -1545,6 +2151,7 @@
         "../../../../../rtl/memory/weight_buffer.sv",
         "../../../../../rtl/memory/parameter_buffer.sv",
         "faults/output.sv",
+        "../../../../../rtl/memory/raven_integrity_pkg.sv",
         "../../../../../rtl/memory/raven_read_buffer_adapter.sv",
         "../../../../../rtl/memory/raven_output_buffer_adapter.sv",
         "../../../../../rtl/top/raven_requant.sv",
@@ -1586,7 +2193,7 @@
         "run_batch.do"
       ],
       "returncode": 0,
-      "seconds": 1.594,
+      "seconds": 1.609,
       "timed_out": false,
       "expected_failure": true,
       "status": "pass"
@@ -1594,16 +2201,16 @@
   ],
   "status": "pass",
   "adapter_checks": {
-    "read-kind-0": 321,
-    "read-kind-1": 321,
-    "read-kind-2": 321,
-    "output": 573
+    "read-kind-0": 1368,
+    "read-kind-1": 1368,
+    "read-kind-2": 1368,
+    "output": 1693
   },
   "buffer_fault_checks": {
-    "activation": "wrong native read value rejected by INT8 scoreboard",
-    "weight": "wrong native read value rejected by INT8 scoreboard",
-    "parameter": "wrong native read value rejected by INT8 scoreboard",
-    "output": "wrong native read value rejected by INT8 scoreboard"
+    "activation": "broken native read path rejected by runtime/scoreboard checks",
+    "weight": "broken native read path rejected by runtime/scoreboard checks",
+    "parameter": "broken native read path rejected by runtime/scoreboard checks",
+    "output": "broken native read path rejected by runtime/scoreboard checks"
   },
   "configuration_checks": {
     "USE_TILE_BUFFERS=0": {
@@ -1622,10 +2229,11 @@
         "T12",
         "T13",
         "T14",
-        "T15"
+        "T15",
+        "T16"
       ],
-      "pass_records": 51,
-      "checks": 721,
+      "pass_records": 65,
+      "checks": 875,
       "int8_comparisons": [
         "channel_scales_relu_clamp",
         "channel_scales_relu_clamp_stalled",
@@ -1641,6 +2249,20 @@
         "signed_nonzero_zp_stalled_stalled",
         "t12_start_while_busy",
         "t15_staging_rewrite",
+        "t16_port0_stalls0_restart",
+        "t16_port0_stalls1_restart",
+        "t16_port1_stalls0_restart",
+        "t16_port1_stalls1_restart",
+        "t16_port2_stalls0_restart",
+        "t16_port2_stalls1_restart",
+        "t16_port3_stalls0_restart",
+        "t16_port3_stalls1_restart",
+        "t16_port4_stalls0_restart",
+        "t16_port4_stalls1_restart",
+        "t16_port5_stalls0_restart",
+        "t16_port5_stalls1_restart",
+        "t16_port6_stalls0_restart",
+        "t16_port6_stalls1_restart",
         "t4_bank_edges_k33",
         "t4_bank_edges_k33_stalled",
         "t5_normal_shared_scale",
@@ -1658,6 +2280,14 @@
       ],
       "pass_records": 2,
       "checks": 43
+    },
+    "SYNTHESIS=defined": {
+      "tests": [
+        "T16"
+      ],
+      "pass_records": 28,
+      "checks": 442,
+      "matching_recovery_dumps": 14
     }
   },
   "totals": {
@@ -1676,10 +2306,11 @@
       "T12",
       "T13",
       "T14",
-      "T15"
+      "T15",
+      "T16"
     ],
-    "pass_records": 51,
-    "checks": 721,
+    "pass_records": 79,
+    "checks": 1162,
     "int8_comparisons": [
       "channel_scales_relu_clamp",
       "channel_scales_relu_clamp_stalled",
@@ -1695,6 +2326,20 @@
       "signed_nonzero_zp_stalled_stalled",
       "t12_start_while_busy",
       "t15_staging_rewrite",
+      "t16_port0_stalls0_restart",
+      "t16_port0_stalls1_restart",
+      "t16_port1_stalls0_restart",
+      "t16_port1_stalls1_restart",
+      "t16_port2_stalls0_restart",
+      "t16_port2_stalls1_restart",
+      "t16_port3_stalls0_restart",
+      "t16_port3_stalls1_restart",
+      "t16_port4_stalls0_restart",
+      "t16_port4_stalls1_restart",
+      "t16_port5_stalls0_restart",
+      "t16_port5_stalls1_restart",
+      "t16_port6_stalls0_restart",
+      "t16_port6_stalls1_restart",
       "t4_bank_edges_k33",
       "t4_bank_edges_k33_stalled",
       "t5_normal_shared_scale",
@@ -1707,5 +2352,5 @@
   },
   "vsim_version": "Questa  Intel Starter FPGA Edition-64 vsim 2021.2 Simulator 2021.04 Apr 14 2021",
   "vlog_version": "Questa Intel Starter FPGA Edition-64 vlog 2021.2 Compiler 2021.04 Apr 14 2021",
-  "finished_utc": "2026-11-04T19:32:17.226472+00:00"
+  "finished_utc": "2026-11-04T21:08:53.491259+00:00"
 }

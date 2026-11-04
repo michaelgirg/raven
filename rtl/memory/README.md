@@ -171,6 +171,13 @@ The integration logic must ensure that required data has been written before it 
 
 ## Pre-alpha pipeline adapters
 
+The default buffered path also implements
+[per-byte staging parity and runtime recovery](../../docs/interfaces/RAVEN_STAGING_INTEGRITY.md).
+Read parity is captured before native-buffer staging and checked before response
+release; output parity is checked before backing commit. A mismatch triggers
+ERR_UNIT, traffic flush and a halt until soft reset. It does not repair data or
+protect backing storage outside the stated capture/commit boundary.
+
 `raven_npu_top` defaults to `USE_TILE_BUFFERS=1`. The two adapter modules connect
 these four native buffers to the existing 128-bit bank interfaces without changing
 the compute RTL, command layout or architectural capacities. Backing storage still
