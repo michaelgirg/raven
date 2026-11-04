@@ -1,0 +1,113 @@
+Reading pref.tcl
+
+# 2021.2
+
+# vsim -c -onfinish exit -t 1ps -sva -immedassert -l integration.log -wlf integration.wlf work.tb_raven_npu_top "+FIXTURES=fixtures" "+OUT=out" "+TESTS=T1,T2,T3,T4,T5,T6,T7,T8,T9,T10,T11,T12,T13,T14,T15" -do "run_batch.do"
+# Start time: 11:56:05 on Nov 04,2026
+# ** Note: (vsim-3812) Design is being optimized...
+# //  Questa Intel Starter FPGA Edition-64
+# //  Version 2021.2 win64 Apr 14 2021
+# //
+# //  Copyright 1991-2021 Mentor Graphics Corporation
+# //  All Rights Reserved.
+# //
+# //  QuestaSim and its associated documentation contain trade
+# //  secrets and commercial or financial information that are the property of
+# //  Mentor Graphics Corporation and are privileged, confidential,
+# //  and exempt from disclosure under the Freedom of Information Act,
+# //  5 U.S.C. Section 552. Furthermore, this information
+# //  is prohibited from disclosure under the Trade Secrets Act,
+# //  18 U.S.C. Section 1905.
+# //
+# Loading sv_std.std
+# Loading work.raven_reg_bus_if(fast)
+# Loading work.raven_ctrl_pkg(fast)
+# Loading work.raven_tb_driver_pkg(fast)
+# Loading work.tb_raven_npu_top(fast)
+# do run_batch.do
+# PASS t1_reset_values
+# TEST T1 PASS
+# PASS t2_register_access
+# TEST T2 PASS
+# PASS t3_nop
+# TEST T3 PASS
+# PASS normal_8x16x8
+# PASS signed_nonzero_zp_stalled
+# PASS partial_tile_7x13x5
+# PASS positive_negative_saturation
+# PASS rounding_ties
+# PASS channel_scales_relu_clamp
+# TEST T4 PASS
+# PASS t5_normal_shared_scale
+# TEST T5 PASS
+# PASS t6_partial_pitch16_dst100
+# TEST T6 PASS
+# PASS t7_normal_act1_wgt1
+# TEST T7 PASS
+# PASS normal_8x16x8_stalled
+# PASS signed_nonzero_zp_stalled_stalled
+# PASS partial_tile_7x13x5_stalled
+# PASS positive_negative_saturation_stalled
+# PASS rounding_ties_stalled
+# PASS channel_scales_relu_clamp_stalled
+# PASS t5_normal_shared_scale_stalled
+# PASS t6_partial_pitch16_dst100_stalled
+# PASS t7_normal_act1_wgt1_stalled
+# TEST T8 PASS
+# PASS invalid_zero_k
+# TEST T9 PASS
+# PASS t10_illegal_opcode
+# PASS t10_reserved_src_a
+# PASS t10_reserved_p5
+# PASS t10_missing_acc_last
+# PASS t10_src_a_prm_bank
+# PASS t10_dst_out1_bank
+# PASS t10_m9
+# PASS t10_p4_below_n
+# PASS t10_dst_misaligned
+# PASS t10_dst_span_overflow
+# TEST T10 PASS
+# ** Error: Assertion error.
+#    Time: 57055 ps Started: 57045 ps  Scope: tb_raven_npu_top.dut.u_requant File: ../../../../../rtl/top/raven_requant.sv Line: 125
+# ** Error: Assertion error.
+#    Time: 57055 ps Started: 57045 ps  Scope: tb_raven_npu_top.m_prm_b File: ../../../../../tests/rtl/compute/sim_read_memory.sv Line: 45
+# PASS t11_a_pitch_short
+# ** Error: Assertion error.
+#    Time: 57635 ps Started: 57625 ps  Scope: tb_raven_npu_top.dut.u_requant File: ../../../../../rtl/top/raven_requant.sv Line: 125
+# ** Error: Assertion error.
+#    Time: 57635 ps Started: 57625 ps  Scope: tb_raven_npu_top.m_prm_b File: ../../../../../tests/rtl/compute/sim_read_memory.sv Line: 45
+# PASS t11_a_base_misaligned
+# PASS t11_acc_overflow
+# TEST T11 PASS
+# PASS t12_start_while_busy
+# TEST T12 PASS
+# PASS t13_halted
+# PASS normal_8x16x8
+# TEST T13 PASS
+# ** Error: Assertion error.
+#    Time: 65995 ps Started: 65985 ps  Scope: tb_raven_npu_top.dut.u_requant File: ../../../../../rtl/top/raven_requant.sv Line: 125
+# ** Error: Assertion error.
+#    Time: 65995 ps Started: 65985 ps  Scope: tb_raven_npu_top.m_prm_b File: ../../../../../tests/rtl/compute/sim_read_memory.sv Line: 45
+# PASS t14_soft_reset_in_run
+# PASS normal_8x16x8
+# PASS t14_hw_reset_in_run
+# PASS normal_8x16x8
+# ** Error: Assertion error.
+#    Time: 72865 ps Started: 72855 ps  Scope: tb_raven_npu_top.dut.u_requant.u_requant File: ../../../../../rtl/operators/raven_requantize_clamp.sv Line: 103
+# ** Error: Assertion error.
+#    Time: 72865 ps Started: 72855 ps  Scope: tb_raven_npu_top.dut.u_writer File: ../../../../../rtl/top/raven_result_writer.sv Line: 74
+# ** Error: Assertion error.
+#    Time: 72865 ps Started: 72855 ps  Scope: tb_raven_npu_top.m_out0 File: ../../../../../tests/rtl/integration/sim_write_memory.sv Line: 67
+# PASS t14_soft_reset_in_drain
+# PASS normal_8x16x8
+# PASS t14_hw_reset_in_drain
+# PASS normal_8x16x8
+# TEST T14 PASS
+# PASS t15_staging_rewrite
+# TEST T15 PASS
+# SUMMARY: 47 passed, 0 failed, 657 checks
+# ALL TESTS PASSED
+# ** Note: $finish    : ../../../../../tests/rtl/integration/tb_raven_npu_top.sv(706)
+#    Time: 83110 ps  Iteration: 1  Instance: /tb_raven_npu_top
+# End time: 11:56:11 on Nov 04,2026, Elapsed time: 0:00:06
+# Errors: 9, Warnings: 0

@@ -19,6 +19,8 @@ It builds directly on [NPU_ARCHITECTURE.md](NPU_ARCHITECTURE.md) (Michael, compu
 
 **Earlier shared-interface revision (2026-10-22, amended by the current shared contract).** The baseline keeps fallback kernels on the RISC-V, uses one result lane for bring-up with four lanes as an evaluation configuration, widens POOL strides, allocates EWADD's common pre-shift, and explicitly names a continuation's PSUM source and row pitch. Parameter records provide per-output bias even when requantization uses a shared scale. Implementation and verification remain outstanding; the current shared contract supersedes older conflicting descriptions.
 
+**Revision (2026-11-03).** Added the pre-alpha control RTL subset (§5): register block, single-command FSM and shared package. It is not yet integrated or verified against the T1–T15 tests.
+
 **Revision (2026-10-23).** Replaced next-run cleanup with explicit RECLAIM; retained output until acknowledgment; specified valid-byte DMA packets and a successful-MM2S commit before READY; added timer-driven waits, recovery-generation tickets, test capabilities, a measurable T5, and model-specific acceptance. These remain proposed implementation requirements.
 
 **Revision (2026-10-22).** Defined how a completed `FULL` output bank becomes a source for POOL, RELU, or EWADD, with ownership rules and a Conv → Pool → DMA command/state example (§5.1, §6.7, §6.8); made in-place INT32 → INT8 conversion conditional on the compute/output traversal agreement, with a staging fallback (§6.6).
@@ -397,6 +399,16 @@ These RTL blocks live in `rtl/control/`:
 | `raven_dispatch` | Pops a command, checks it (opcode legal, dims non-zero and within hardware limits, bank/offset ranges), **waits for referenced banks to be consumable** (`READY`, or `FULL` for an output-op source; §6.7), then hands a decoded command to Michael's compute controller or Quan's operator units. |
 | `raven_complete` | Watches for *command completion*: all outputs written to the destination bank. Applies `RELEASE_*` bank transitions, updates `DONE_SEQ`, and raises the IRQ. |
 | `raven_perf` | Cycle counters: total, busy, compute-active, input-stall, output-stall, dependency-wait, and MACs committed. |
+
+**Pre-alpha implementation (2026-11-03).** A single-command subset of these blocks is in `rtl/control/`. The [pre-alpha plan](plans/nahjay_control_integration_prealpha.md) records its decisions (D1–D12) and its progress.
+
+| File | Stands in for | Pre-alpha scope |
+|---|---|---|
+| `raven_ctrl_pkg.sv` | Generated register header | §6.2 offsets, §6.3 opcodes, OP_FLAGS bits, §6.4 bank IDs, §6.8 error codes, §5.1 FSM codes |
+| `raven_ctrl_regs.sv` | `raven_csr` | Small synchronous register bus instead of AXI4-Lite. §6.2 offsets are unchanged for the implemented subset. One-clock response to every access; unmapped/unaligned → error |
+| `raven_ctrl.sv` | `raven_cmd_queue` + `raven_dispatch` + `raven_complete` + `raven_perf` | Queue depth 0, NOP and GEMM only. IDLE → CHECK → ISSUE → RUN → DRAIN → RETIRE, ERROR → HALTED. FETCH/WAIT_DEP are never entered. Retires only after the last INT8 byte is stored |
+
+Differences from the full design: no command queue, bank-state interlock, ABORT, ZERO_LOCAL or QUIESCENT tracking (STATUS[12] reads !BUSY). START while busy latches ERR_Q_OVERFLOW; the active command still retires, then the FSM halts. The files compile and pass a standalone smoke simulation. Integration with the GEMM core, the output path and the T1–T15 tests are still outstanding.
 
 ### 5.1 Control FSM
 

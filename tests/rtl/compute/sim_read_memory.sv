@@ -42,9 +42,10 @@ module sim_read_memory #(
             end
         end
     end
-    assert property (@(posedge clk_i) disable iff (!rst_ni)
+    // Soft reset can release after this clock's input sample.
+    assert property (@(posedge clk_i) disable iff (!rst_ni || !$sampled(rst_ni))
         req_valid_i && !req_ready_o |=> req_valid_i && $stable(req_addr_i));
-    assert property (@(posedge clk_i) disable iff (!rst_ni)
+    assert property (@(posedge clk_i) disable iff (!rst_ni || !$sampled(rst_ni))
         rsp_valid_o && !rsp_ready_i |=> rsp_valid_o && $stable(rsp_data_o));
 endmodule
 `default_nettype wire

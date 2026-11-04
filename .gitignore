@@ -39,3 +39,7 @@ Thumbs.db
 !/evidence/questa/verification.log
 !/evidence/questa/experiments/01-original-compile.log
 !/evidence/questa/experiments/02-fixture-path-padding.log
+!/evidence/questa/integration/verification.log
+!/evidence/questa/integration/experiments/01-soft-reset-assertions.log
+!/evidence/questa/integration/experiments/02-premature-parameter-reads.log
+!/evidence/questa/integration/experiments/03-single-column-elaboration.log

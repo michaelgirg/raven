@@ -2,8 +2,8 @@
 
 **Status:** A standalone activation buffer and testbench are implemented. The
 scratchpad/DMA architecture and compute integration below remain proposed.
-See the [buffer implementation](../rtl/memory/README) and
-[test instructions](../tests/rtl/memory/README).
+See the [buffer implementation](../rtl/memory/README.md) and
+[test instructions](../tests/rtl/memory/README.md).
 **Owner:** Taylor — BRAM organization, memory interfaces, DMA, and memory verification.  
 **Target:** AMD/Avnet Ultra96-V2 (Zynq UltraScale+ MPSoC ZU3EG).  
 

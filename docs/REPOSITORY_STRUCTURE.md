@@ -33,13 +33,20 @@ raven/
 │   ├── RISCV_Research.md
 │   ├── PROJECT_PLAN.md        # Shared targets, milestone leads, and dates
 │   ├── REPOSITORY_STRUCTURE.md
+│   ├── archive/memory/        # Earlier research copies and Word snapshots
 │   ├── decisions/             # Architecture decision records
 │   ├── diagrams/              # Editable diagram sources and reviewable exports
+│   ├── drafts/                # Current design-draft source sections
 │   ├── guides/                # Setup, programming, troubleshooting, and handoff
 │   ├── interfaces/            # Reviewed cross-subsystem contracts
 │   ├── regs/                  # Planned generated register documentation
-│   └── reports/               # Reviewed reports and measurement explanations
+│   ├── reports/               # Reviewed reports and measurement explanations
+│   └── reviews/               # Design-draft feedback and response documents
 ├── evidence/
+│   ├── prealpha/              # Verification notes and screenshots by subsystem
+│   │   ├── compute/
+│   │   ├── memory/
+│   │   └── operators/
 │   └── questa/                # Compute results, combined log, waveform and experiments
 ├── rtl/
 │   ├── README.md
@@ -101,6 +108,13 @@ creates its libraries, fixtures, transcripts and waveforms under
 `build/tests/compute/questa/` by default.
 
 The additional preset, dataset, debug, linker, decision, dependency, and automation locations are organizational provisions for future work. In particular, `tests/formal/` is optional; this layout does not add a formal-verification requirement.
+
+Current research stays in `docs/`. Design-draft source sections belong in
+`docs/drafts/`, feedback documents in `docs/reviews/`, and earlier memory copies
+in `docs/archive/memory/`. Verification notes and screenshots are grouped by
+subsystem under `evidence/prealpha/`; detailed compute run records remain in
+`evidence/questa/`. Original model files, RTL, benches, scripts and golden
+fixtures keep their existing paths.
 
 ## Where work belongs
 

@@ -100,7 +100,8 @@ module raven_requantize_clamp (
     initial begin
         assert ($bits(shift_i) == 8) else $fatal(1, "Unexpected requant shift width");
     end
-    assert property (@(posedge clk_i) disable iff (!rst_ni)
+    // Soft reset can release after this clock's input sample.
+    assert property (@(posedge clk_i) disable iff (!rst_ni || !$sampled(rst_ni))
         out_valid_o && !out_ready_i |=> out_valid_o &&
         $stable({out_data_o, out_row_o, out_col_o, out_index_o, out_channel_o, out_last_o}));
 `endif

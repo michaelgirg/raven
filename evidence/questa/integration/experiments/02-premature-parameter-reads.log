@@ -1,0 +1,33 @@
+Reading pref.tcl
+
+# 2021.2
+
+# vsim -c -onfinish exit -t 1ps -sva -immedassert -l integration.log -wlf integration.wlf work.tb_raven_npu_top "+FIXTURES=fixtures" "+OUT=out" "+TESTS=T11" -do "run_batch.do"
+# Start time: 11:59:54 on Nov 04,2026
+# ** Note: (vsim-3812) Design is being optimized...
+# //  Questa Intel Starter FPGA Edition-64
+# //  Version 2021.2 win64 Apr 14 2021
+# //
+# //  Copyright 1991-2021 Mentor Graphics Corporation
+# //  All Rights Reserved.
+# //
+# //  QuestaSim and its associated documentation contain trade
+# //  secrets and commercial or financial information that are the property of
+# //  Mentor Graphics Corporation and are privileged, confidential,
+# //  and exempt from disclosure under the Freedom of Information Act,
+# //  5 U.S.C. Section 552. Furthermore, this information
+# //  is prohibited from disclosure under the Trade Secrets Act,
+# //  18 U.S.C. Section 1905.
+# //
+# Loading sv_std.std
+# Loading work.raven_reg_bus_if(fast)
+# Loading work.raven_ctrl_pkg(fast)
+# Loading work.raven_tb_driver_pkg(fast)
+# Loading work.tb_raven_npu_top(fast)
+# do run_batch.do
+# ** Fatal: CHECK FAILED: t11_a_pitch_short: invalid command issued bank reads: got 00000002 expected 00000000
+#    Time: 590 ps  Scope: tb_raven_npu_top.expect_eq File: ../../../../../tests/rtl/integration/tb_raven_npu_top.sv Line: 149
+# ** Note: $finish    : ../../../../../tests/rtl/integration/tb_raven_npu_top.sv(149)
+#    Time: 590 ps  Iteration: 1  Instance: /tb_raven_npu_top
+# End time: 11:59:55 on Nov 04,2026, Elapsed time: 0:00:01
+# Errors: 1, Warnings: 0
