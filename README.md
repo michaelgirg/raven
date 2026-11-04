@@ -19,7 +19,7 @@ the standalone golden matrix on the unchanged native buffers and compute RTL.
 | Check | Verified result |
 |---|---|
 | MAC PE and compute | 65,536 signed products, 168 fixtures across four array sizes, and 12 reset/restart scenarios passed. |
-| Connected pipeline | T1â€“T16 passed: 1,162 buffered checks and 875 direct-reference checks, with 36 independent INT8 comparisons per configuration and identical output bytes. |
+| Connected pipeline | T1–T16 passed: 1,162 buffered checks and 875 direct-reference checks, with 36 independent INT8 comparisons per configuration and identical output bytes. |
 | Memory and operators | All four standalone buffer benches, 36 buffer/operator golden runs and three supplemental INT32 GEMM fixtures passed. |
 | Adapter and error handling | 5,797 adapter checks, including 512 single-bit cases; 14 runtime fault/recovery pairs; 43 single-column checks; fault tests also pass with simulation-only RTL assertions removed. |
 | Reproducibility | Regenerated fixtures matched the committed data; all recorded buffered/direct cycle counts were reproduced. |
@@ -81,11 +81,11 @@ Its results apply to the pinned PR revision and do not establish a working board
 
 | Area | Implemented and tested | Connection still needed |
 |---|---|---|
-| Compute â€” Michael | Resident INT8 GEMM microtile; connected to control, buffered operands and INT8 storage; reset/backpressure/error tests | Physical backing banks and broader operation support |
-| Memory â€” Taylor | Activation, weight, parameter and output buffers; connected through staging adapters; standalone and integrated tests | Physical backing banks, DMA, bank ownership and efficient tile reuse |
-| Operators â€” Quan | One-lane INT32-to-INT8 requantization/clamp; connected channel mapping, per-channel PARAM delivery and output storage | Broader operators and board integration |
-| Goldens â€” Jackie | Reproducible fixtures, byte comparator and three extra INT32 GEMM cases | Fixtures for overflow/bad-pitch errors (currently derived in the integration exporter) |
-| Control â€” Nahjay | Register block, single-command FSM, NPU simulation top (control â†’ compute â†’ requant â†’ INT8 writer), command driver and T1â€“T15 integration tests | AXI4-Lite/generated CSR, command queue, bank-state interlock, physical banks, RISC-V firmware |
+| Compute — Michael | Resident INT8 GEMM microtile; connected to control, buffered operands and INT8 storage; reset/backpressure/error tests | Physical backing banks and broader operation support |
+| Memory — Taylor | Activation, weight, parameter and output buffers; connected through staging adapters; standalone and integrated tests | Physical backing banks, DMA, bank ownership and efficient tile reuse |
+| Operators — Quan | One-lane INT32-to-INT8 requantization/clamp; connected channel mapping, per-channel PARAM delivery and output storage | Broader operators and board integration |
+| Goldens — Jackie | Reproducible fixtures, byte comparator and three extra INT32 GEMM cases | Fixtures for overflow/bad-pitch errors (currently derived in the integration exporter) |
+| Control — Nahjay | Register block, single-command FSM, NPU simulation top (control → compute → requant → INT8 writer), command driver and T1–T15 integration tests | AXI4-Lite/generated CSR, command queue, bank-state interlock, physical banks, RISC-V firmware |
 
 Compute's operand frontend requests 128-bit words with bank-local byte offsets.
 The [memory adapters](rtl/memory/README.md#pre-alpha-pipeline-adapters) refill native
@@ -125,7 +125,7 @@ The RISC-V runs the layer schedule, programs transfers, and executes software fa
 
 ### Control and memory interfaces
 
-The current register and command proposal is in [RISC-V research Â§Â§6â€“7](docs/RISCV_Research.md). It replaces the original `PARAM_DIM` and `ADDR_IN`/`ADDR_WEIGHT`/`ADDR_OUT` sketch. NPU commands use scratchpad bank/offset references; DDR addresses belong to the DMA interface.
+The current register and command proposal is in [RISC-V research §§6–7](docs/RISCV_Research.md). It replaces the original `PARAM_DIM` and `ADDR_IN`/`ADDR_WEIGHT`/`ADDR_OUT` sketch. NPU commands use scratchpad bank/offset references; DDR addresses belong to the DMA interface.
 
 Three blocks have separate responsibilities:
 
@@ -133,14 +133,14 @@ Three blocks have separate responsibilities:
 - **AMD AXI DMA:** vendor MM2S/S2MM registers for DDR-to-stream and stream-to-DDR transfers.
 - **RAVEN stream adapter:** proposed fill/drain registers, scratchpad selection, byte counts, and bank ownership.
 
-GEMM A stays row-major: two local 8Ã—16-byte buffers turn sequential 128-bit row reads into eight activation lanes. The proposed Conv path adds a bounds-checked window gatherer; it is not part of the current compute RTL.
+GEMM A stays row-major: two local 8×16-byte buffers turn sequential 128-bit row reads into eight activation lanes. The proposed Conv path adds a bounds-checked window gatherer; it is not part of the current compute RTL.
 
 Input ping-pong banks allow filling a FREE bank while another is in use. A received DMA packet stays DMA_FILLING until firmware checks successful MM2S completion and explicitly commits the bank to READY. Exact byte lengths and final byte masks support short model tensors. Typed READY/FULL rules govern source consumption; retained tensors and unfinished partial sums cannot be overwritten. A drained output bank is released after successful DMA and adapter completion. See the [memory proposal](docs/RAVEN_Memory_System_Research.md) for capacity, bandwidth, and ownership details.
 
 ## Compute implementation and tests
 
-The demonstrated use case is **8Ã—16 signed INT8 activations Ã— 16Ã—8 signed INT8
-weights + bias â†’ 8Ã—8 signed INT32 results**. The implementation includes the MAC
+The demonstrated use case is **8×16 signed INT8 activations × 16×8 signed INT8
+weights + bias → 8×8 signed INT32 results**. The implementation includes the MAC
 datapath/array, pipeline, operand frontend, controller and compute verification.
 
 | Design file | What it does |
@@ -215,7 +215,7 @@ Validation used **Questa Intel Starter FPGA Edition-64 2021.2**
 with immediate and concurrent assertions enabled. The PE passed 65,536 signed
 operand products plus seeded bubbles, both overflow directions, sticky overflow,
 reinitialization and in-flight reset checks.
-Each of 8Ã—8, 4Ã—4, 2Ã—4 and 1Ã—1 passed 42 fixtures and three reset/restart phases:
+Each of 8×8, 4×4, 2×4 and 1×1 passed 42 fixtures and three reset/restart phases:
 **168 fixtures and 12 reset/restart scenarios total**. The short demo checked
 all 64 outputs. Separate intentional-failure checks confirmed assertion
 execution and rejection of incomplete fixture manifests.
@@ -268,7 +268,7 @@ stands in for the RISC-V. The design decisions are in the
 | Design file | What it does |
 |---|---|
 | [raven_ctrl_pkg.sv](rtl/control/raven_ctrl_pkg.sv) | Register offsets, opcodes, flags, bank IDs, error codes and FSM state codes |
-| [raven_ctrl_regs.sv](rtl/control/raven_ctrl_regs.sv) | Register bus with the [Â§6.2](docs/RISCV_Research.md) offsets: staging, RO/W1S/W1C behavior and the IRQ line |
+| [raven_ctrl_regs.sv](rtl/control/raven_ctrl_regs.sv) | Register bus with the [§6.2](docs/RISCV_Research.md) offsets: staging, RO/W1S/W1C behavior and the IRQ line |
 | [raven_ctrl.sv](rtl/control/raven_ctrl.sv) | Snapshots staging on START, validates, issues one core command, retires, and keeps errors, sequence numbers and counters |
 | [raven_requant.sv](rtl/top/raven_requant.sv) | Loads per-channel multiplier/shift PARAM records through a second PRM read port and feeds [raven_requantize_clamp](rtl/operators/raven_requantize_clamp.sv) |
 | [raven_result_writer.sv](rtl/top/raven_result_writer.sv) | Turns INT8 results into byte-strobed OUT0 writes at `dst + row*pitch + col`, and reports when the last byte is stored |
@@ -293,7 +293,7 @@ flowchart LR
 
 Implemented behavior:
 
-- Opcodes `0x00 NOP` and `0x02 GEMM` (one resident tile, M and N â‰¤ 8, full K, flags
+- Opcodes `0x00 NOP` and `0x02 GEMM` (one resident tile, M and N ≤ 8, full K, flags
   `ACC_INIT|ACC_LAST|REQUANT_EN`, optional `RELU_EN` and `PER_CHANNEL`). Any other opcode
   is `ERR_ILLEGAL_OP`.
 - Before launch, control checks reserved bits, flags, bank IDs and types, dimensions and the
@@ -307,7 +307,7 @@ Implemented behavior:
 - Any error halts the FSM. CLEAR_ERR clears the diagnostics; only SOFT_RESET returns to
   IDLE. SOFT_RESET also resets the datapath and the bank ports through `local_rst_no`.
 
-Differences from the full [Â§5â€“Â§6 control design](docs/RISCV_Research.md):
+Differences from the full [§5–§6 control design](docs/RISCV_Research.md):
 
 - A plain register bus instead of AXI4-Lite and the generated CSR. The offsets and field
   layouts are the same.
@@ -329,9 +329,9 @@ python tests/rtl/integration/run_questa.py --tests T1,T4
 Questa is located the same way as for the compute runner (`--questa-bin`, QUESTA_BIN or
 PATH). The runner checks that immediate and concurrent assertions execute, compiles the
 compute, control, memory, operator and top RTL with the integration testbench, exports fixtures
-from `tests/vectors/prealpha/`, and runs T1â€“T15. It then checks every dumped INT8 result
+from `tests/vectors/prealpha/`, and runs T1–T15. It then checks every dumped INT8 result
 again with `tools/goldens/compare_prealpha.py`. The default `USE_TILE_BUFFERS=1` path
-uses the real native buffers. A full run also repeats T1â€“T15 with
+uses the real native buffers. A full run also repeats T1–T15 with
 `USE_TILE_BUFFERS=0`, compares both configurations byte for byte, and exercises
 adapter address reuse, held responses, all output byte lanes, sparse/full strobes
 and reset cancellation. Output goes to a fresh directory under
@@ -349,7 +349,7 @@ rewrites, and T16 native-staging corruption followed by runtime error reporting,
 halt, reset/reload and a successful restart. Every valid result is
 compared byte for byte, and every other OUT0 byte must still hold its 0xA5 guard value.
 
-**Verification status:** T1â€“T16 pass with Questa Intel Starter FPGA Edition-64 2021.2
+**Verification status:** T1–T16 pass with Questa Intel Starter FPGA Edition-64 2021.2
 and both assertion guards enabled: **79 PASS records and 1,162 checks in the buffered
 configuration; 65 PASS records and 875 checks in the direct reference; 36 independent
 INT8 comparisons each**. Direct T16 replays the recovery GEMMs without claiming parity.
@@ -371,7 +371,7 @@ See the [source-hash/result report](evidence/questa/integration/results.json),
 - The core has no timeout, so a memory that never responds hangs the command until
   SOFT_RESET.
 - Control does not range-check Q_SHIFT or Q_MULT. Values outside the TFLM range
-  (`-31 â‰¤ shift â‰¤ 30`, multiplier â‰¥ 0) are caught only by a simulation assertion in
+  (`-31 ≤ shift ≤ 30`, multiplier ≥ 0) are caught only by a simulation assertion in
   `raven_requant`.
 
 ## Initial design targets
@@ -380,14 +380,14 @@ See the [source-hash/result report](evidence/questa/integration/results.json),
 |---|---|
 | FPGA platform | Ultra96-V2, Zynq UltraScale+ MPSoC ZU3EG |
 | Control processor | RISC-V soft processor; MicroBlaze V proposed, pending integration review |
-| Initial compute array | 8Ã—8, or 64 scalar MACs; larger configurations evaluated later |
+| Initial compute array | 8×8, or 64 scalar MACs; larger configurations evaluated later |
 | Numerical formats | Signed INT8 activations/weights; architectural INT32 accumulation with validated ranges |
 | Clock and timing | At least 100 MHz; non-negative routed timing slack |
 | Result interface | One lane for functional bring-up; four lanes as an evaluation configuration; target II=1 |
 | Control interface | 32-bit MMIO over AXI4-Lite |
 | DMA path | Proposed 128-bit memory-mapped and stream paths at nominal 100 MHz, subject to connectivity and timing |
-| Base logical scratchpad allocation | 74â€“88 KiB |
-| Additional parameter/output storage | +4 KiB PRM; optional +8â€“16 KiB OUT1; total 86â€“108 KiB with both |
+| Base logical scratchpad allocation | 74–88 KiB |
+| Additional parameter/output storage | +4 KiB PRM; optional +8–16 KiB OUT1; total 86–108 KiB with both |
 | FPGA resource use | Original planning target below approximately 80%; verify each resource in synthesis/implementation |
 | Operator/model goals | Six NPU operators and three selected models, subject to team acceptance decisions |
 
@@ -407,7 +407,7 @@ Scratchpad figures are logical allocations, not measured physical BRAM use; the 
 | `0x06` | Element-wise Add (EWADD) | Quantized residual addition with input/output rescaling |
 | `0x07` | Depthwise Conv | Reserved; hardware mapping undecided, initial RISC-V fallback |
 
-The six-operator goal covers `0x01`â€“`0x06`; the reserved depthwise opcode does not count as implemented support. Pooling and EWADD follow the initial FC/Conv bring-up. Softmax and metadata operations such as reshape belong to the runtime plan.
+The six-operator goal covers `0x01`–`0x06`; the reserved depthwise opcode does not count as implemented support. Pooling and EWADD follow the initial FC/Conv bring-up. Softmax and metadata operations such as reshape belong to the runtime plan.
 
 Exact arithmetic and field definitions are in the [operator proposal](docs/NPU_Operators_Research.md) and [control proposal](docs/RISCV_Research.md), including the proposed pinned TFLM integer reference, EWADD pre-shift, and widened POOL stride fields.
 
@@ -456,21 +456,21 @@ FPGA resources, memory ports/bandwidth, timing closure, unsupported operators, q
 
 ```text
 raven/
-â”œâ”€â”€ .github/            # Future CI workflow definitions
-â”œâ”€â”€ configs/            # Future design, model-export, and simulation presets
-â”œâ”€â”€ data/               # Local raw/processed datasets; contents ignored by Git
-â”œâ”€â”€ docs/               # Research, decisions, interface contracts, diagrams, and guides
-â”œâ”€â”€ evidence/           # Simulation results, verification notes and screenshots
-â”œâ”€â”€ rtl/                # Compute, memory buffers, INT8 tail, pre-alpha control and NPU top
-â”œâ”€â”€ hw/                 # Future Vivado Tcl, constraints, and IP configuration
-â”œâ”€â”€ software/           # Future firmware, runtime, drivers, HAL, and host tests
-â”œâ”€â”€ tools/              # Golden-fixture tools; future model export and register generation
-â”œâ”€â”€ tests/              # Standalone RTL tests, goldens and the pre-alpha integration test
-â”œâ”€â”€ benchmarks/         # Future workload definitions and measured result summaries
-â”œâ”€â”€ models/             # Five original candidate quantized TFLite models
-â”œâ”€â”€ third_party/        # Future explicitly vendored upstream dependencies
-â”œâ”€â”€ .gitignore
-â””â”€â”€ README.md
+├── .github/            # Future CI workflow definitions
+├── configs/            # Future design, model-export, and simulation presets
+├── data/               # Local raw/processed datasets; contents ignored by Git
+├── docs/               # Research, decisions, interface contracts, diagrams, and guides
+├── evidence/           # Simulation results, verification notes and screenshots
+├── rtl/                # Compute, memory buffers, INT8 tail, pre-alpha control and NPU top
+├── hw/                 # Future Vivado Tcl, constraints, and IP configuration
+├── software/           # Future firmware, runtime, drivers, HAL, and host tests
+├── tools/              # Golden-fixture tools; future model export and register generation
+├── tests/              # Standalone RTL tests, goldens and the pre-alpha integration test
+├── benchmarks/         # Future workload definitions and measured result summaries
+├── models/             # Five original candidate quantized TFLite models
+├── third_party/        # Future explicitly vendored upstream dependencies
+├── .gitignore
+└── README.md
 ```
 
 See the [full directory map and ownership guide](docs/REPOSITORY_STRUCTURE.md) for where each teammate's work belongs. Area READMEs describe current implementations and planned work; [automation notes](.github/AUTOMATION.md) cover future CI. `.gitkeep` files retain empty implementation folders in Git. The command queue, runtime, physical memory/DMA and full-system integration remain future work.
