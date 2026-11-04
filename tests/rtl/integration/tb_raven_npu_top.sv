@@ -8,7 +8,7 @@
 // Plusargs:
 //   +FIXTURES=<dir>  export_fixtures.py output (required)
 //   +OUT=<dir>       where traces and actual_int8 dumps go (default: FIXTURES)
-//   +TESTS=<list>    tests to run, e.g. "T1,T2,T3,T4" (default: all implemented)
+//   +TESTS=<list>    tests to run, e.g. "T1,T4,T7" (default: all implemented, T1-T8)
 //
 // Independent monitors count core command handshakes and OUT writes, record the cycle of
 // the last OUT write and of every DONE_SEQ change, and fail if completion comes first.
@@ -165,10 +165,11 @@ module tb_raven_npu_top;
     endtask
 
     // Compare OUT0 against the expected M x N region at dst/pitch; every other byte must be guard.
-    task automatic check_out_bank(input string name, input meta_t mt);
+    task automatic check_out_bank(input string name, input meta_t mt, input string tag = "");
         logic [7:0] exp [];
         int fd, got, mism = 0;
         logic [7:0] b;
+        if (tag == "") tag = name;
         exp = new[mt.m * mt.n];
         if (mt.m * mt.n > 0) begin
             fd = $fopen({fixtures, "/", name, "/expected_int8.hex"}, "r");
@@ -186,86 +187,135 @@ module tb_raven_npu_top;
             int c = off >= 0 && mt.p4 > 0 ? off % mt.p4 : -1;
             logic [7:0] want_b = r >= 0 && r < mt.m && c < mt.n ? exp[r * mt.n + c] : 8'hA5;
             if (m_out0.read_byte(a) !== want_b) begin
-                if (mism < 8) $display("  %s OUT0[%04h] = %02h, expected %02h", name, a,
+                if (mism < 8) $display("  %s OUT0[%04h] = %02h, expected %02h", tag, a,
                                        m_out0.read_byte(a), want_b);
                 mism++;
             end
         end
         checks++;
-        if (mism != 0) $fatal(1, "CHECK FAILED: %s: %0d OUT0 bytes wrong", name, mism);
+        if (mism != 0) $fatal(1, "CHECK FAILED: %s: %0d OUT0 bytes wrong", tag, mism);
     endtask
 
-    // Packed M x N result for compare_prealpha.py.
-    task automatic dump_actual(input string name, input meta_t mt);
-        int fd = $fopen({out_dir, "/actual_int8_", name, ".bin"}, "wb");
-        if (fd == 0) $fatal(1, "Cannot write actual_int8 for %s", name);
+    // Packed M x N result for compare_prealpha.py, listed in dumps.txt as "<tag> <fixture>".
+    task automatic dump_actual(input string name, input string tag, input meta_t mt);
+        int fd = $fopen({out_dir, "/actual_int8_", tag, ".bin"}, "wb");
+        if (fd == 0) $fatal(1, "Cannot write actual_int8 for %s", tag);
         for (int r = 0; r < mt.m; r++)
             for (int c = 0; c < mt.n; c++)
                 $fwrite(fd, "%c", m_out0.read_byte(mt.dst_offset + r * mt.p4 + c));
         $fclose(fd);
+        fd = $fopen({out_dir, "/dumps.txt"}, "a");
+        $fdisplay(fd, "%s %s", tag, name);
+        $fclose(fd);
     endtask
 
-    // Run one fixture end to end and check everything the plan asks for it.
+    // Load a case's banks, re-guard OUT0, set stalls, open its trace and stage its command.
     // force_stall turns on random stalls in every bank model regardless of the fixture.
-    task automatic run_case(input string name, input bit force_stall = 0);
-        meta_t mt;
-        logic [15:0] seq;
-        logic [31:0] err, v;
-        raven_status_t st;
-        int unsigned launch0, wr0;
+    task automatic prepare_case(input string name, input bit force_stall, input string tag,
+                                output meta_t mt);
         read_meta(name, mt);
         load_banks(name, mt);
         m_out0.fill_guard();
         stalls = force_stall || mt.stall != 0;
-        raven_open_trace({out_dir, "/trace_", name, force_stall ? "_stalled" : "", ".txt"});
-        launch0 = launches; wr0 = out_wr;
+        raven_open_trace({out_dir, "/trace_", tag, ".txt"});
         raven_set_op_from_file({fixtures, "/", name, "/cmd.txt"});
+    endtask
+
+    // Checks after a command that must retire: done after the last write, exact bytes,
+    // guards intact, DONE IRQ raised and cleared, and the expected number of launches.
+    task automatic check_retired(input string name, input string tag, input meta_t mt, input logic [15:0] seq,
+                                 input int unsigned launches_seen, input int unsigned writes_seen);
+        logic [31:0] v;
+        expect_reg({tag, ": DONE_SEQ"}, REG_DONE_SEQ, 32'(seq));
+        npu_read32(REG_IRQ_STATUS, v);
+        expect_eq({tag, ": IRQ_STATUS.DONE"}, v[IRQ_DONE], 1);
+        expect_eq({tag, ": npu_irq"}, irq, 1);
+        npu_write32(REG_IRQ_STATUS, 32'd1 << IRQ_DONE);
+        npu_read32(REG_IRQ_STATUS, v);
+        expect_eq({tag, ": IRQ_STATUS.DONE after W1C"}, v[IRQ_DONE], 0);
+        expect_eq({tag, ": core launches"}, launches_seen, mt.expect_launch);
+        expect_eq({tag, ": OUT0 writes"}, writes_seen, mt.m * mt.n);
+        if (mt.m * mt.n > 0) begin
+            checks++;
+            if (!(done_cycle > last_out_cycle))
+                $fatal(1, "CHECK FAILED: %s: DONE_SEQ changed at %0d before the last OUT0 write at %0d",
+                       tag, done_cycle, last_out_cycle);
+            dump_actual(name, tag, mt);
+        end
+        check_out_bank(name, mt, tag);
+    endtask
+
+    // Checks after a command that must fail, then SOFT_RESET out of HALTED.
+    task automatic check_failed(input string name, input string tag, input meta_t mt, input logic [15:0] seq,
+                                input logic [31:0] err, input int unsigned launches_seen,
+                                input int unsigned writes_seen);
+        logic [31:0] v;
+        expect_eq({tag, ": ERR_CODE.code"}, err[7:0], mt.err_code);
+        expect_eq({tag, ": ERR_CODE.seq"}, err[31:16], seq);
+        expect_reg({tag, ": ERR_INFO"}, REG_ERR_INFO, mt.err_info);
+        // ERROR -> HALTED takes one clock after STATUS.ERROR is visible.
+        repeat (2) @(negedge clk);
+        npu_read32(REG_STATUS, v);
+        expect_eq({tag, ": STATUS.HALTED"}, v[STATUS_HALTED], 1);
+        expect_eq({tag, ": STATUS.FSM"}, v[STATUS_FSM_LSB +: 4], FSM_HALTED);
+        npu_read32(REG_IRQ_STATUS, v);
+        expect_eq({tag, ": IRQ_STATUS.ERROR"}, v[IRQ_ERROR], 1);
+        expect_eq({tag, ": npu_irq"}, irq, 1);
+        expect_eq({tag, ": core launches"}, launches_seen, mt.expect_launch);
+        expect_eq({tag, ": OUT0 writes"}, writes_seen, 0);
+        check_out_bank(name, mt, tag);
+        raven_soft_reset(); // The only way out of HALTED (D9).
+        expect_reg({tag, ": STATUS after SOFT_RESET"}, REG_STATUS, 32'h0000_1010);
+    endtask
+
+    // Run one fixture end to end and check everything the plan asks for it.
+    task automatic run_case(input string name, input bit force_stall = 0);
+        meta_t mt;
+        logic [15:0] seq;
+        logic [31:0] err;
+        raven_status_t st;
+        int unsigned launch0, wr0;
+        string tag = name;
+        if (force_stall) tag = {name, "_stalled"};
+        prepare_case(name, force_stall, tag, mt);
+        launch0 = launches; wr0 = out_wr;
         raven_start(seq, st);
-        expect_eq({name, ": raven_start"}, st, RAVEN_OK);
+        expect_eq({tag, ": raven_start"}, st, RAVEN_OK);
         raven_wait(seq, WAIT_CYCLES, err, st);
         if (mt.err_code == 0) begin
-            expect_eq({name, ": raven_wait"}, st, RAVEN_OK);
-            expect_reg({name, ": DONE_SEQ"}, REG_DONE_SEQ, 32'(seq));
-            expect_reg({name, ": ERR_CODE"}, REG_ERR_CODE, 0);
-            npu_read32(REG_IRQ_STATUS, v);
-            expect_eq({name, ": IRQ_STATUS.DONE"}, v[IRQ_DONE], 1);
-            expect_eq({name, ": npu_irq"}, irq, 1);
-            npu_write32(REG_IRQ_STATUS, 32'd1 << IRQ_DONE);
-            expect_eq({name, ": npu_irq after W1C"}, irq, 0);
-            expect_eq({name, ": core launches"}, launches - launch0, mt.expect_launch);
-            expect_eq({name, ": OUT0 writes"}, out_wr - wr0, mt.m * mt.n);
-            if (mt.m * mt.n > 0) begin
-                checks++;
-                if (!(done_cycle > last_out_cycle))
-                    $fatal(1, "CHECK FAILED: %s: DONE_SEQ changed at %0d before the last OUT0 write at %0d",
-                           name, done_cycle, last_out_cycle);
-                dump_actual(name, mt);
-            end
-            check_out_bank(name, mt);
+            expect_eq({tag, ": raven_wait"}, st, RAVEN_OK);
+            expect_reg({tag, ": ERR_CODE"}, REG_ERR_CODE, 0);
+            check_retired(name, tag, mt, seq, launches - launch0, out_wr - wr0);
         end else begin
-            expect_eq({name, ": raven_wait"}, st, RAVEN_E_HW);
-            expect_eq({name, ": ERR_CODE.code"}, err[7:0], mt.err_code);
-            expect_eq({name, ": ERR_CODE.seq"}, err[31:16], seq);
-            expect_reg({name, ": ERR_INFO"}, REG_ERR_INFO, mt.err_info);
-            // ERROR -> HALTED takes one clock after STATUS.ERROR is visible.
-            repeat (2) @(negedge clk);
-            npu_read32(REG_STATUS, v);
-            expect_eq({name, ": STATUS.HALTED"}, v[STATUS_HALTED], 1);
-            expect_eq({name, ": STATUS.FSM"}, v[STATUS_FSM_LSB +: 4], FSM_HALTED);
-            npu_read32(REG_IRQ_STATUS, v);
-            expect_eq({name, ": IRQ_STATUS.ERROR"}, v[IRQ_ERROR], 1);
-            expect_eq({name, ": npu_irq"}, irq, 1);
-            expect_eq({name, ": core launches"}, launches - launch0, mt.expect_launch);
-            expect_eq({name, ": OUT0 writes"}, out_wr - wr0, 0);
-            check_out_bank(name, mt);
-            raven_soft_reset(); // The only way out of HALTED (D9).
-            expect_reg({name, ": STATUS after SOFT_RESET"}, REG_STATUS, 32'h0000_1010);
+            expect_eq({tag, ": raven_wait"}, st, RAVEN_E_HW);
+            check_failed(name, tag, mt, seq, err, launches - launch0, out_wr - wr0);
         end
         raven_close_trace();
         stalls = 0;
-        if (force_stall) $display("PASS %s (stalled)", name);
-        else $display("PASS %s", name);
+        $display("PASS %s", tag);
         passed++;
+    endtask
+
+    // Every case export_fixtures.py assigned to test t, in cases.txt order.
+    task automatic cases_for(input string t, ref string names [$]);
+        int fd, got;
+        string name, test;
+        names.delete();
+        fd = $fopen({fixtures, "/cases.txt"}, "r");
+        if (fd == 0) $fatal(1, "Missing cases.txt in %s", fixtures);
+        forever begin
+            got = $fscanf(fd, "%s %s\n", name, test);
+            if (got != 2) break;
+            if (test == t) names.push_back(name);
+        end
+        $fclose(fd);
+        if (names.size() == 0) $fatal(1, "No fixtures for %s in cases.txt", t);
+    endtask
+
+    task automatic run_test_cases(input string t, input bit force_stall = 0);
+        string names [$];
+        cases_for(t, names);
+        foreach (names[i]) run_case(names[i], force_stall);
     endtask
 
     // ---------------------------------------------------------------- tests
@@ -353,18 +403,45 @@ module tb_raven_npu_top;
         expect_eq("T3 core launches", launches - launch0, 0);
     endtask
 
-    // T4: the six valid fixtures back to back, without reset; DONE_SEQ counts 1, 2, ...
+    // T4: the six valid fixtures back to back, without reset; DONE_SEQ counts up.
     task automatic t4_fixtures();
-        string names [6] = '{"normal_8x16x8", "signed_nonzero_zp_stalled", "partial_tile_7x13x5",
-                             "positive_negative_saturation", "rounding_ties", "channel_scales_relu_clamp"};
+        string names [$];
         logic [31:0] count0, v;
+        cases_for("T4", names);
         npu_read32(REG_CMD_COUNT, count0);
         foreach (names[i]) begin
             npu_read32(REG_NEXT_SEQ, v);
             expect_eq({"T4 NEXT_SEQ before ", names[i]}, v, 32'(sw_next_seq));
             run_case(names[i]);
         end
-        expect_reg("T4 CMD_COUNT", REG_CMD_COUNT, count0 + 6);
+        expect_reg("T4 CMD_COUNT", REG_CMD_COUNT, count0 + names.size());
+    endtask
+
+    // T5: PER_CHANNEL=0 with Q_MULT/Q_SHIFT gives the same bytes as the per-channel records.
+    task automatic t5_shared_scale();
+        run_test_cases("T5");
+    endtask
+
+    // T6: padded output pitch at a nonzero destination; the gaps keep their guard bytes.
+    task automatic t6_output_pitch();
+        run_test_cases("T6");
+    endtask
+
+    // T7: A from ACT1 and B from WGT1. ACT0/WGT0 still hold the previous case's data, so
+    // a routing mistake changes the result; their read counters must not move either.
+    task automatic t7_bank_routing();
+        int unsigned a0 = reads[0], w0 = reads[2], a1 = reads[1], w1 = reads[3];
+        run_test_cases("T7");
+        expect_eq("T7 ACT0 reads", reads[0], a0);
+        expect_eq("T7 WGT0 reads", reads[2], w0);
+        checks++;
+        if (reads[1] == a1 || reads[3] == w1) $fatal(1, "CHECK FAILED: T7 ACT1/WGT1 were not read");
+    endtask
+
+    // T8: every valid fixture again with random stalls in every bank model, OUT0 included.
+    task automatic t8_backpressure();
+        string tests [4] = '{"T4", "T5", "T6", "T7"};
+        foreach (tests[i]) run_test_cases(tests[i], 1);
     endtask
 
     // ---------------------------------------------------------------- main
@@ -384,6 +461,10 @@ module tb_raven_npu_top;
         expect_eq("raven_init", st, RAVEN_OK);
         if (want("T3")) begin t3_nop(); $display("TEST T3 PASS"); end
         if (want("T4")) begin t4_fixtures(); $display("TEST T4 PASS"); end
+        if (want("T5")) begin t5_shared_scale(); $display("TEST T5 PASS"); end
+        if (want("T6")) begin t6_output_pitch(); $display("TEST T6 PASS"); end
+        if (want("T7")) begin t7_bank_routing(); $display("TEST T7 PASS"); end
+        if (want("T8")) begin t8_backpressure(); $display("TEST T8 PASS"); end
 
         $display("SUMMARY: %0d passed, %0d failed, %0d checks", passed, failed, checks);
         if (failed == 0) $display("ALL TESTS PASSED");

@@ -10,6 +10,8 @@ directory per test case under the output directory:
                              same rules the firmware C helpers use (RISCV_Research.md §6.4)
   expected_int8.hex          expected M x N INT8 bytes, row-major, one byte per line
   meta.txt                   one line of decimal fields, see META_FIELDS
+  golden.txt                 valid cases only: the tests/vectors/prealpha case whose
+                             expected_int8.bin the result must match (for compare_prealpha.py)
 
 and cases.txt listing "<case> <test>" in run order. Besides Jackie's fixtures it derives the
 plan's variant and error cases (T3, T5-T7, T9-T11), so the testbench holds no command constants.
@@ -104,11 +106,12 @@ def write_hex128(path, image):
 class Case:
     def __init__(self, name, test, regs, images, expected=b'', dims=(0, 0), out_pitch=0,
                  dst_offset=0, a_bank=BANK_ACT0, b_bank=BANK_WGT0, err=(ERR_NONE, 0),
-                 stall=False, expect_launch=True):
+                 stall=False, expect_launch=True, golden=None):
         self.name, self.test, self.regs, self.images = name, test, regs, images
         self.expected, self.dims, self.out_pitch, self.dst_offset = expected, dims, out_pitch, dst_offset
         self.a_bank, self.b_bank, self.err, self.stall = a_bank, b_bank, err, stall
         self.expect_launch = expect_launch
+        self.golden = golden
 
     def write(self, root):
         d = root / self.name
@@ -122,6 +125,8 @@ class Case:
         meta = [self.dims[0], self.dims[1], self.out_pitch, self.dst_offset, self.a_bank,
                 self.b_bank, self.err[0], self.err[1], int(self.stall), int(self.expect_launch)]
         (d / 'meta.txt').write_text(' '.join(str(v) for v in meta) + '\n', encoding='ascii')
+        if self.golden and self.expected:
+            (d / 'golden.txt').write_text(self.golden + '\n', encoding='ascii')
 
 
 def fixture_case(ref_json, expected, name=None, test='T4', **over):
@@ -145,7 +150,7 @@ def fixture_case(ref_json, expected, name=None, test='T4', **over):
                      p['q_mult'], p['q_shift'])
     return Case(name or ref_json['name'], test, regs, bank_images(ref_json), expected,
                 (m, n), p['out_pitch'], p['dst_offset'], p['a_bank'], p['b_bank'],
-                stall=p['stall'])
+                stall=p['stall'], golden=ref_json['name'])
 
 
 def error_case(base, name, test, err, expect_launch, edit, images=None):
