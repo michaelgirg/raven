@@ -6,7 +6,7 @@ RAVEN is a senior capstone project developing a programmable INT8 neural process
 
 The goal is to execute multiple supported model graphs using one FPGA bitstream and one runtime binary. Intended applications include audio anomaly detection, keyword spotting, and visual wake-word person detection, with inference performed locally on the board.
 
-**Current status: standalone compute, memory-buffer and requantization/clamp RTL, plus a pre-alpha control block and a simulation top that connects control, compute, requantization and INT8 result storage.** One register-bus command runs one resident INT8 GEMM tile through to stored INT8 bytes, checked against the golden fixtures. In that integration test the command driver (standing in for the RISC-V) and the bank memories are simulation models. Physical memories, DMA, the RISC-V, full-system integration and FPGA measurements remain future work; the broader architecture below is a proposal. See [Control pre-alpha and integration](#control-pre-alpha-and-integration).
+**Current status: a pre-alpha RTL pipeline connecting control, GEMM, activation/weight/parameter buffers, requantization and buffered INT8 result storage.** One register-bus command runs one resident INT8 GEMM tile through to stored INT8 bytes, checked against the golden fixtures. Adapters connect all four memory-buffer modules to the existing datapath. The command driver (standing in for the RISC-V) and full-capacity backing memories are simulation models. Physical bank implementation, DMA, the RISC-V, full-system integration and FPGA measurements remain future work; the broader architecture below is a proposal. See [Control pre-alpha and integration](#control-pre-alpha-and-integration).
 
 
 ## Documentation and ownership
@@ -30,25 +30,26 @@ are review snapshots; their interface and capacity descriptions may be supersede
 
 | Area | Implemented and tested | Connection still needed |
 |---|---|---|
-| Compute — Michael | Resident INT8 GEMM microtile, INT32 output, reset/backpressure/error tests | Production operand responders, command control and output storage |
-| Memory — Taylor | 128-byte activation buffer, eight-lane reads, standalone bench | Adapter/frontend agreement, weight/parameter storage, DMA and bank ownership |
-| Operators — Quan | One-lane INT32-to-INT8 requantization/clamp, tags and elastic output, standalone bench | Channel mapping, per-channel parameter delivery and destination storage |
+| Compute — Michael | Resident INT8 GEMM microtile; connected to control, buffered operands and INT8 storage; reset/backpressure/error tests | Physical backing banks and broader operation support |
+| Memory — Taylor | Activation, weight, parameter and output buffers; connected through staging adapters; standalone and integrated tests | Physical backing banks, DMA, bank ownership and efficient tile reuse |
+| Operators — Quan | One-lane INT32-to-INT8 requantization/clamp; connected channel mapping, per-channel PARAM delivery and output storage | Broader operators and board integration |
 | Goldens — Jackie | Reproducible fixtures, byte comparator and three extra INT32 GEMM cases | Fixtures for overflow/bad-pitch errors (currently derived in the integration exporter) |
 | Control — Nahjay | Register block, single-command FSM, NPU simulation top (control → compute → requant → INT8 writer), command driver and T1–T15 integration tests | AXI4-Lite/generated CSR, command queue, bank-state interlock, physical banks, RISC-V firmware |
 
-Compute's operand frontend requests 128-bit words with bank-local byte offsets
-and gathers lanes internally. The activation buffer instead returns eight bytes
-for a four-bit K selector. These interfaces need an agreed adapter or frontend
-change. Its active-high asynchronous reset must be coordinated with compute's
-synchronous active-low reset; responders must flush stale replies on restart.
+Compute's operand frontend requests 128-bit words with bank-local byte offsets.
+The [memory adapters](rtl/memory/README.md#pre-alpha-pipeline-adapters) refill native
+buffer slots from backing memory and gather their read results into those words.
+Every output byte passes through the output buffer before its backing write is
+accepted. The top applies `local_rst_no` to all adapters and inverts it for the
+buffers' active-high asynchronous resets. Backing responders must use the same
+reset to discard pending replies.
 
-The compute result lane supplies data, row, column, index and last. The operator
-tail also needs a channel tag and that channel's multiplier, shift, output
-zero-point and clamp range. Channel/base mapping and parameter delivery remain
-integration work. Backpressure must propagate through the tail, and system
-completion must follow final output acceptance/storage. The pre-alpha
-[integration top](#control-pre-alpha-and-integration) does this with simulation
-bank models; no result through physical memories is claimed yet.
+The operator tail uses the compute column tag to select multiplier and shift
+from canonical PARAM records; output zero-point and clamp remain command fields.
+Backpressure propagates through the complete path, and DONE follows the final
+committed OUT0 write. The small native buffers are transient staging, while the
+architectural ACT/WGT/PRM/OUT capacities still require backing storage. No FPGA
+memory inference, timing or board operation is claimed yet.
 
 ## Proposed system architecture
 
@@ -220,20 +221,22 @@ stands in for the RISC-V. The design decisions are in the
 | [raven_ctrl.sv](rtl/control/raven_ctrl.sv) | Snapshots staging on START, validates, issues one core command, retires, and keeps errors, sequence numbers and counters |
 | [raven_requant.sv](rtl/top/raven_requant.sv) | Loads per-channel multiplier/shift PARAM records through a second PRM read port and feeds [raven_requantize_clamp](rtl/operators/raven_requantize_clamp.sv) |
 | [raven_result_writer.sv](rtl/top/raven_result_writer.sv) | Turns INT8 results into byte-strobed OUT0 writes at `dst + row*pitch + col`, and reports when the last byte is stored |
-| [raven_npu_top.sv](rtl/top/raven_npu_top.sv) | Connects the blocks and routes A to ACT0/ACT1 and B to WGT0/WGT1; every bank is a top-level port |
+| [raven_read_buffer_adapter.sv](rtl/memory/raven_read_buffer_adapter.sv) | Stages 128-bit ACT/WGT/PRM reads through their native buffers, preserving backing addresses and PARAM record layout |
+| [raven_output_buffer_adapter.sv](rtl/memory/raven_output_buffer_adapter.sv) | Stages strobed bytes through the output buffer; acknowledges only when backing storage accepts the write |
+| [raven_npu_top.sv](rtl/top/raven_npu_top.sv) | Connects the blocks and native buffers, routes A to ACT0/ACT1 and B to WGT0/WGT1, and exposes backing-bank ports |
 
 ```mermaid
 flowchart LR
     DRV["TB command driver (RISC-V stand-in)"] -->|"register bus"| REGS["Register block"]
     REGS <--> CTRL["Control FSM"]
     CTRL -->|"one command"| CORE["GEMM core"]
-    ACT["TB ACT0 / ACT1"] --> CORE
-    WGT["TB WGT0 / WGT1"] --> CORE
-    PRM["TB PRM (two read ports)"] --> CORE
-    PRM --> RQ
+    ACT["TB ACT0 / ACT1 backing"] --> AB["Adapters + activationBuffer"] --> CORE
+    WGT["TB WGT0 / WGT1 backing"] --> WB["Adapters + weightBuffer"] --> CORE
+    PRM["TB PRM backing (two read ports)"] --> PB["Adapters + parameterBuffer"] --> CORE
+    PB --> RQ
     CORE -->|"INT32"| RQ["PARAM loader + requant/clamp"]
     RQ -->|"INT8"| WR["Result writer"]
-    WR --> OUT["TB OUT0"]
+    WR --> OB["Adapter + outputBuffer"] --> OUT["TB OUT0 backing"]
     WR -->|"last byte stored"| CTRL
 ```
 
@@ -274,14 +277,19 @@ python tests/rtl/integration/run_questa.py --tests T1,T4
 
 Questa is located the same way as for the compute runner (`--questa-bin`, QUESTA_BIN or
 PATH). The runner checks that immediate and concurrent assertions execute, compiles the
-compute, control, operator and top RTL with the integration testbench, exports fixtures
+compute, control, memory, operator and top RTL with the integration testbench, exports fixtures
 from `tests/vectors/prealpha/`, and runs T1–T15. It then checks every dumped INT8 result
-again with `tools/goldens/compare_prealpha.py`. Output goes to a fresh directory under
+again with `tools/goldens/compare_prealpha.py`. The default `USE_TILE_BUFFERS=1` path
+uses the real native buffers. A full run also repeats T1–T15 with
+`USE_TILE_BUFFERS=0`, compares both configurations byte for byte, and exercises
+adapter address reuse, held responses, all output byte lanes, sparse/full strobes
+and reset cancellation. Output goes to a fresh directory under
 `build/tests/integration/questa/`. `--no-sva-guard` runs on a simulator without
 concurrent assertions (for example ModelSim Intel FPGA Edition) and marks the report
 `"sva_checked": false`. Such a run is not acceptance evidence.
 
-The tests are T1 reset values, T2 register access, T3 NOP, T4 the six valid fixtures back
+The tests are T1 reset values, T2 register access, T3 NOP, T4 the six valid fixtures and
+a zero-extended K=33 case at the ends of all four bank allocations back
 to back, T5 shared multiplier/shift, T6 padded output pitch, T7 bank routing, T8 random
 memory and write stalls on every valid case, T9 zero K, T10 ten control-detected errors,
 T11 core-detected errors including PARAM alignment/span, T12 START while busy,
@@ -290,8 +298,11 @@ rewrites during a run. Every valid result is
 compared byte for byte, and every other OUT0 byte must still hold its 0xA5 guard value.
 
 **Verification status:** all 15 tests pass with Questa Intel Starter FPGA Edition-64
-2021.2 and both assertion guards enabled: **49 PASS records, 698 checks and 20 independent
-INT8 comparisons**. The full runner also checks `COLS=1` reset/NOP operation (43 checks).
+2021.2 and both assertion guards enabled: **51 PASS records, 721 checks and 22 independent
+INT8 comparisons in each of the buffered and direct configurations**. Both produce
+identical bytes. The runner also passes 1,536 adapter checks and `COLS=1` reset/NOP
+operation (43 checks). Four isolated native-buffer read corruptions are rejected by
+the integrated INT8 scoreboard, confirming that all four buffer types affect the result.
 See the [source-hash/result report](evidence/questa/integration/results.json),
 [combined execution log](evidence/questa/integration/verification.log) and
 [validation fixes](docs/plans/nahjay_control_integration_prealpha.md#licensed-questa-validation).
@@ -301,8 +312,9 @@ See the [source-hash/result report](evidence/questa/integration/results.json),
 - Everything listed as out of scope in the [plan](docs/plans/nahjay_control_integration_prealpha.md#9-out-of-scope-document-as-known-limitations):
   the command queue, the bank-state interlock, ABORT/ZERO_LOCAL, AXI4-Lite, multi-tile and
   K-chunk commands, DMA, the RISC-V and firmware, synthesis and timing.
-- The bank models are testbench stand-ins. Taylor's buffers use asynchronous active-high
-  reset and smaller row-based ports, so they are not connected yet.
+- Full-capacity backing banks are testbench stand-ins. The connected native buffers
+  stage each transaction and add latency; they do not implement the full scratchpad,
+  DMA, ownership or an optimized tile-prefetch/reuse path.
 - The core has no timeout, so a memory that never responds hangs the command until
   SOFT_RESET.
 - Control does not range-check Q_SHIFT or Q_MULT. Values outside the TFLM range

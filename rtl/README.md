@@ -3,13 +3,15 @@
 The compute directory contains the MAC PE, parameterized array, operand frontend
 and single-microtile GEMM controller. They are verified in standalone RTL
 simulation. See the [implementation and run instructions](../README.md#compute-implementation-and-tests).
-The [memory directory](memory/README.md) contains a standalone activation buffer,
-and [operators](operators/README.md) contains a standalone one-lane
+The [memory directory](memory/README.md) contains activation, weight, parameter and
+output buffers plus adapters connecting them to the pre-alpha pipeline,
+and [operators](operators/README.md) contains a one-lane
 requantization/clamp block. Their benches are under `tests/rtl/`. The control
 directory contains the pre-alpha register block and single-command FSM. The top
 directory contains the pre-alpha NPU simulation top (`raven_npu_top`), which connects
 control, the GEMM core, a PARAM-loading wrapper around Quan's requant block, and the INT8
-result writer. Its banks are top-level ports, served by testbench models for now. See
+result writer. Every bank transfer passes through the native memory-buffer RTL by
+default. Full-capacity backing banks are top-level ports served by testbench models. See
 [Control pre-alpha and integration](../README.md#control-pre-alpha-and-integration) and the
 [control plan](../docs/plans/nahjay_control_integration_prealpha.md). Common interfaces
 remain reserved, and an integrated FPGA build is not supplied. See the

@@ -164,10 +164,44 @@ The integration logic must ensure that required data has been written before it 
 ## Future Work
 
 - Define and verify memory ownership and bounds checks.
-- Coordinate memory interfaces with the compute core and output operators.
-- Integrate the buffers with the control and integration harness (in progress)
-- Verify the complete GEMM operation against the golden reference (in progress)
+- Optimize the connected staging path for tile prefetch and reuse.
+- Replace simulation backing banks with physical storage and verify board operation.
 - Evaluate FPGA synthesis and memory inference.
 - Expand output storage to support future INT32 partial-sum requirements.
 
-This directory currently represents the initial memory subsystem implementation for RAVEN pre-alpha. System integration has been tested/verfied as well but can be found under evidence/prealpha/memory.
+## Pre-alpha pipeline adapters
+
+`raven_npu_top` defaults to `USE_TILE_BUFFERS=1`. The two adapter modules connect
+these four native buffers to the existing 128-bit bank interfaces without changing
+the compute RTL, command layout or architectural capacities. Backing storage still
+provides 16 KiB per ACT/WGT bank, 4 KiB PRM and 8 KiB OUT0; the small native buffers
+are staging slots refilled for each transaction.
+
+| Adapter | Native operations |
+|---|---|
+| `raven_read_buffer_adapter`, KIND=0 | Write one ACT word into the slot selected by address bits 6:4; read K=0..15 and gather that slot's lane into the returned 128-bit word. |
+| `raven_read_buffer_adapter`, KIND=1 | Write the low/high halves into consecutive WGT rows, then read both rows back. |
+| `raven_read_buffer_adapter`, KIND=2 | Write corrected bias, multiplier and shift into the selected channel, then read it back. Set native per-channel modes after reset. Reserved PARAM bytes pass through; command zero-point/clamp stay in the operator configuration. |
+| `raven_output_buffer_adapter` | Write/read each strobed 64-bit half through `outputBuffer`, then issue the original address/strobes to backing storage. Upstream ready is asserted only with the accepted backing write, so DONE still means stored. |
+
+ACT0/ACT1 and WGT0/WGT1 each have a staging instance; the two independent PRM ports
+also have separate instances. Full addresses go to backing storage. Low bits choose
+reused staging slots and do not truncate the architectural bank address. Each read
+port permits one outstanding transaction and holds its response during a stall.
+
+All adapters use `local_rst_no`; native buffers receive its inverse. Hardware or
+soft reset cancels pending adapter traffic. The backing responder must reset with
+them and discard pending replies. ACT/WGT arrays may retain data, PARAM clears on
+reset, and OUT row-valid bits clear; every consumed slot is rewritten before read.
+
+Run `python tests/rtl/integration/run_questa.py` from the repository root. The suite
+checks the buffered pipeline against independent INT8 goldens, repeats it with the
+direct-bank configuration, and tests adapter address reuse, stalls, reset recovery,
+all output byte lanes and sparse/full strobes. A K=33 zero-extension at the bank
+ends checks that staging capacity does not limit the supported command span. See
+the [integration report](../../evidence/questa/integration/results.json) and
+[project run instructions](../../README.md#run-the-integration-tests).
+
+This path adds staging latency and does not yet provide optimized tile reuse,
+physical backing BRAM, DMA or bank ownership. Standalone screenshots remain under
+`evidence/prealpha/memory/`.

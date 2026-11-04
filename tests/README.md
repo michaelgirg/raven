@@ -15,23 +15,26 @@ The [operator suite](../rtl/operators/README.md#verification) runs with
 [activation-buffer bench](rtl/memory/README.md) has standalone simulation
 instructions. [Golden fixtures and extra GEMM checks](../evidence/prealpha/compute/README.md)
 provide additional compute coverage. The control/integration suite runs control,
-compute, requantization and INT8 storage together on the golden fixtures:
+compute, all four native memory buffers, requantization and INT8 storage together
+on the golden fixtures:
 
 ```sh
 python tests/rtl/integration/run_questa.py
 ```
 
 See [Control pre-alpha and integration](../README.md#control-pre-alpha-and-integration)
-for T1–T15 and its verification status. Integration through physical memories and the
+for T1–T15 and its verification status. A full run also checks the original direct-bank
+configuration against the buffered outputs and runs dedicated adapter stall, address,
+byte-strobe and reset tests. Integration through physical backing banks and the
 RISC-V remains future work. See the [current subsystem boundaries](../README.md#current-subsystem-status-and-integration).
 
 | Directory | Intended contents | Lead |
 |---|---|---|
 | `rtl/compute/` | PE/core GEMM, partial tiles, K tails, backpressure and coordinated reset/restart tests; saved-PSUM/K-chunk continuation remains future work | Michael |
 | `rtl/operators/` | Implemented requantization/clamp bench; broader activation, pool and EWADD tests remain planned | Quan |
-| `rtl/memory/` | Implemented activation-buffer bench; scratchpad/DMA/ownership integration tests remain planned | Taylor |
+| `rtl/memory/` | Standalone activation, weight, parameter and output benches; scratchpad/DMA/ownership tests remain planned | Taylor |
 | `rtl/control/` | CSR, queue/dispatch, IRQ, interlock, and recovery tests (pre-alpha control is covered by `rtl/integration/`) | Nahjay |
-| `rtl/integration/` | Pre-alpha NPU top: command driver, bank models, fixture exporter and T1–T15 | Nahjay |
+| `rtl/integration/` | Buffered/direct NPU top, memory-adapter benches, command driver, bank models, fixture exporter and T1–T15 | Shared |
 | `integration/` | Cross-subsystem simulation and on-board hardware/software checks | Shared; assign a lead per milestone |
 | `formal/` | Optional future assertion/property harnesses and formal-run configuration | Scope and owner TBD; no formal flow implemented |
 | `vectors/` | Small, reproducible fixtures with documented dtype, shape, layout, quantization, and provenance | Jackie with test owner |

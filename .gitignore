@@ -43,3 +43,5 @@ Thumbs.db
 !/evidence/questa/integration/experiments/01-soft-reset-assertions.log
 !/evidence/questa/integration/experiments/02-premature-parameter-reads.log
 !/evidence/questa/integration/experiments/03-single-column-elaboration.log
+!/evidence/questa/integration/experiments/04-buffer-timescale.log
+!/evidence/questa/integration/experiments/05-buffer-optimizer.log
