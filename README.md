@@ -6,7 +6,7 @@ RAVEN is a senior capstone project developing a programmable INT8 neural process
 
 The goal is to execute multiple supported model graphs using one FPGA bitstream and one runtime binary. Intended applications include audio anomaly detection, keyword spotting, and visual wake-word person detection, with inference performed locally on the board.
 
-**Current status: standalone compute, activation-buffer and requantization/clamp RTL, with testbenches and golden-fixture tools.** The compute implementation performs one resident INT8 GEMM tile and returns signed INT32 results. Command driving, operand memories and the result consumer in its tests are stand-ins. The three RTL blocks are not yet connected into a full system. Full-system integration and FPGA measurements remain future work; the broader architecture below is a proposal.
+**Current status: standalone compute, memory-buffer and requantization/clamp RTL, plus a pre-alpha control block and a simulation top that connects control, compute, requantization and INT8 result storage.** One register-bus command runs one resident INT8 GEMM tile through to stored INT8 bytes, checked against the golden fixtures. In that integration test the command driver (standing in for the RISC-V) and the bank memories are simulation models. Physical memories, DMA, the RISC-V, full-system integration and FPGA measurements remain future work; the broader architecture below is a proposal. See [Control pre-alpha and integration](#control-pre-alpha-and-integration).
 
 
 ## Documentation and ownership
@@ -33,7 +33,8 @@ are review snapshots; their interface and capacity descriptions may be supersede
 | Compute — Michael | Resident INT8 GEMM microtile, INT32 output, reset/backpressure/error tests | Production operand responders, command control and output storage |
 | Memory — Taylor | 128-byte activation buffer, eight-lane reads, standalone bench | Adapter/frontend agreement, weight/parameter storage, DMA and bank ownership |
 | Operators — Quan | One-lane INT32-to-INT8 requantization/clamp, tags and elastic output, standalone bench | Channel mapping, per-channel parameter delivery and destination storage |
-| Goldens — Jackie | Reproducible fixtures, byte comparator and three extra INT32 GEMM cases | Connected memory-to-GEMM-to-INT8 tests against the independent outputs |
+| Goldens — Jackie | Reproducible fixtures, byte comparator and three extra INT32 GEMM cases | Fixtures for overflow/bad-pitch errors (currently derived in the integration exporter) |
+| Control — Nahjay | Register block, single-command FSM, NPU simulation top (control → compute → requant → INT8 writer), command driver and T1–T15 integration tests | AXI4-Lite/generated CSR, command queue, bank-state interlock, physical banks, RISC-V firmware |
 
 Compute's operand frontend requests 128-bit words with bank-local byte offsets
 and gathers lanes internally. The activation buffer instead returns eight bytes
@@ -45,8 +46,9 @@ The compute result lane supplies data, row, column, index and last. The operator
 tail also needs a channel tag and that channel's multiplier, shift, output
 zero-point and clamp range. Channel/base mapping and parameter delivery remain
 integration work. Backpressure must propagate through the tail, and system
-completion must follow final output acceptance/storage. No connected
-memory → GEMM → INT8 → storage result is claimed by the standalone tests.
+completion must follow final output acceptance/storage. The pre-alpha
+[integration top](#control-pre-alpha-and-integration) does this with simulation
+bank models; no result through physical memories is claimed yet.
 
 ## Proposed system architecture
 
@@ -202,6 +204,106 @@ exhaustive proof of every possible sequence.
 - No synthesis, DSP inference/resource measurement, routed timing, board test or
   full-model inference is claimed. The 10 ns simulation clock is stimulus.
 
+## Control pre-alpha and integration
+
+The pre-alpha control block accepts one command at a time over a small register bus,
+validates it, launches it on the compute core and reports completion only after the INT8
+results are stored. A simulation top connects control, Michael's unmodified GEMM core,
+Quan's requantization/clamp block and an INT8 result writer. A testbench command driver
+stands in for the RISC-V. The design decisions are in the
+[control plan](docs/plans/nahjay_control_integration_prealpha.md).
+
+| Design file | What it does |
+|---|---|
+| [raven_ctrl_pkg.sv](rtl/control/raven_ctrl_pkg.sv) | Register offsets, opcodes, flags, bank IDs, error codes and FSM state codes |
+| [raven_ctrl_regs.sv](rtl/control/raven_ctrl_regs.sv) | Register bus with the [§6.2](docs/RISCV_Research.md) offsets: staging, RO/W1S/W1C behavior and the IRQ line |
+| [raven_ctrl.sv](rtl/control/raven_ctrl.sv) | Snapshots staging on START, validates, issues one core command, retires, and keeps errors, sequence numbers and counters |
+| [raven_requant.sv](rtl/top/raven_requant.sv) | Loads per-channel multiplier/shift PARAM records through a second PRM read port and feeds [raven_requantize_clamp](rtl/operators/raven_requantize_clamp.sv) |
+| [raven_result_writer.sv](rtl/top/raven_result_writer.sv) | Turns INT8 results into byte-strobed OUT0 writes at `dst + row*pitch + col`, and reports when the last byte is stored |
+| [raven_npu_top.sv](rtl/top/raven_npu_top.sv) | Connects the blocks and routes A to ACT0/ACT1 and B to WGT0/WGT1; every bank is a top-level port |
+
+```mermaid
+flowchart LR
+    DRV["TB command driver (RISC-V stand-in)"] -->|"register bus"| REGS["Register block"]
+    REGS <--> CTRL["Control FSM"]
+    CTRL -->|"one command"| CORE["GEMM core"]
+    ACT["TB ACT0 / ACT1"] --> CORE
+    WGT["TB WGT0 / WGT1"] --> CORE
+    PRM["TB PRM (two read ports)"] --> CORE
+    PRM --> RQ
+    CORE -->|"INT32"| RQ["PARAM loader + requant/clamp"]
+    RQ -->|"INT8"| WR["Result writer"]
+    WR --> OUT["TB OUT0"]
+    WR -->|"last byte stored"| CTRL
+```
+
+Implemented behavior:
+
+- Opcodes `0x00 NOP` and `0x02 GEMM` (one resident tile, M and N ≤ 8, full K, flags
+  `ACC_INIT|ACC_LAST|REQUANT_EN`, optional `RELU_EN` and `PER_CHANNEL`). Any other opcode
+  is `ERR_ILLEGAL_OP`.
+- Before launch, control checks reserved bits, flags, bank IDs and types, dimensions and the
+  destination span, and reports the first failure with ERR_INFO set to the offending
+  register's offset. A rejected command never reaches the core. The core's own pitch, span
+  and overflow errors (0x02, 0x03, 0x08) pass through with ERR_INFO 0.
+- A command retires only after the core has finished without error **and** the last INT8
+  byte has been accepted by OUT0. DONE_SEQ, CMD_COUNT and IRQ DONE update then.
+- Any error halts the FSM. CLEAR_ERR clears the diagnostics; only SOFT_RESET returns to
+  IDLE. SOFT_RESET also resets the datapath and the bank ports through `local_rst_no`.
+
+Differences from the full [§5–§6 control design](docs/RISCV_Research.md):
+
+- A plain register bus instead of AXI4-Lite and the generated CSR. The offsets and field
+  layouts are the same.
+- Queue depth 1, so `STATUS.Q_FULL` is set while a command is active. FETCH and WAIT_DEP
+  are never entered.
+- No bank states. RELEASE flags are accepted and ignored. OUT1 is absent.
+- ABORT and ZERO_LOCAL are ignored, and QUIESCENT reads as `!BUSY`.
+- START while busy latches ERR_Q_OVERFLOW at once. The in-flight command still finishes
+  and retires, and the FSM then halts.
+- OUT0 is taken as 8 KiB, the contract's lower bound.
+
+### Run the integration tests
+
+```sh
+python tests/rtl/integration/run_questa.py
+python tests/rtl/integration/run_questa.py --tests T1,T4
+```
+
+Questa is located the same way as for the compute runner (`--questa-bin`, QUESTA_BIN or
+PATH). The runner checks that immediate and concurrent assertions execute, compiles the
+compute, control, operator and top RTL with the integration testbench, exports fixtures
+from `tests/vectors/prealpha/`, and runs T1–T15. It then checks every dumped INT8 result
+again with `tools/goldens/compare_prealpha.py`. Output goes to a fresh directory under
+`build/tests/integration/questa/`. `--no-sva-guard` runs on a simulator without
+concurrent assertions (for example ModelSim Intel FPGA Edition) and marks the report
+`"sva_checked": false`. Such a run is not acceptance evidence.
+
+The tests are T1 reset values, T2 register access, T3 NOP, T4 the six valid fixtures back
+to back, T5 shared multiplier/shift, T6 padded output pitch, T7 bank routing, T8 random
+memory and write stalls on every valid case, T9 zero K, T10 ten control-detected errors,
+T11 core-detected errors, T12 START while busy, T13 halted behavior, T14 hardware and soft
+reset during RUN and DRAIN, and T15 staging rewrites during a run. Every valid result is
+compared byte for byte, and every other OUT0 byte must still hold its 0xA5 guard value.
+
+**Verification status:** all 15 tests pass (47 PASS records, 657 checks, 20 independent
+INT8 comparisons) with ModelSim Intel FPGA 2020.1 using `--no-sva-guard`. That means
+**the concurrent SVA assertions have not been executed yet.** A run on licensed Questa,
+and the evidence under `evidence/questa/integration/`, are still to come.
+
+### Control limitations
+
+- Everything listed as out of scope in the [plan](docs/plans/nahjay_control_integration_prealpha.md#9-out-of-scope-document-as-known-limitations):
+  the command queue, the bank-state interlock, ABORT/ZERO_LOCAL, AXI4-Lite, multi-tile and
+  K-chunk commands, DMA, the RISC-V and firmware, synthesis and timing.
+- The bank models are testbench stand-ins. Taylor's buffers use asynchronous active-high
+  reset and smaller row-based ports, so they are not connected yet.
+- The core has no timeout, so a memory that never responds hangs the command until
+  SOFT_RESET.
+- Control does not range-check Q_SHIFT or Q_MULT. Values outside the TFLM range
+  (`-31 ≤ shift ≤ 30`, multiplier ≥ 0) are caught only by a simulation assertion in
+  `raven_requant`.
+
 ## Initial design targets
 
 | Parameter | Proposed target |
@@ -289,11 +391,11 @@ raven/
 ├── data/               # Local raw/processed datasets; contents ignored by Git
 ├── docs/               # Research, decisions, interface contracts, diagrams, and guides
 ├── evidence/           # Simulation results, verification notes and screenshots
-├── rtl/                # Standalone compute, activation buffer and INT8 tail; future integration
+├── rtl/                # Compute, memory buffers, INT8 tail, pre-alpha control and NPU top
 ├── hw/                 # Future Vivado Tcl, constraints, and IP configuration
 ├── software/           # Future firmware, runtime, drivers, HAL, and host tests
 ├── tools/              # Golden-fixture tools; future model export and register generation
-├── tests/              # Standalone RTL tests and goldens; future integrated tests
+├── tests/              # Standalone RTL tests, goldens and the pre-alpha integration test
 ├── benchmarks/         # Future workload definitions and measured result summaries
 ├── models/             # Five original candidate quantized TFLite models
 ├── third_party/        # Future explicitly vendored upstream dependencies
@@ -301,6 +403,6 @@ raven/
 └── README.md
 ```
 
-See the [full directory map and ownership guide](docs/REPOSITORY_STRUCTURE.md) for where each teammate's work belongs. Area READMEs describe current implementations and planned work; [automation notes](.github/AUTOMATION.md) cover future CI. `.gitkeep` files retain empty implementation folders in Git. Control, runtime, physical memory/DMA and full-system integration remain future work.
+See the [full directory map and ownership guide](docs/REPOSITORY_STRUCTURE.md) for where each teammate's work belongs. Area READMEs describe current implementations and planned work; [automation notes](.github/AUTOMATION.md) cover future CI. `.gitkeep` files retain empty implementation folders in Git. The command queue, runtime, physical memory/DMA and full-system integration remain future work.
 
 Generated products belong under the Git-ignored `build/` directory. See the compute run instructions in this README; additional build instructions will accompany their corresponding implementations.
