@@ -8,7 +8,7 @@
 // Plusargs:
 //   +FIXTURES=<dir>  export_fixtures.py output (required)
 //   +OUT=<dir>       where traces and actual_int8 dumps go (default: FIXTURES)
-//   +TESTS=<list>    tests to run, e.g. "T1,T4,T12" (default: all, T1-T15)
+//   +TESTS=<list>    tests to run, e.g. "T1,T4,T12" (default: all, T1-T16)
 //
 // Independent monitors count core command handshakes and OUT writes, record the cycle of
 // the last OUT write and of every DONE_SEQ change, and fail if completion comes first.
@@ -28,6 +28,67 @@ module tb_raven_npu_top #(
     raven_reg_bus_if bus_if(clk);
     wire irq, lrst_n;
     bit stalls; // Random stalls in every bank model.
+    wire [6:0] native_response;
+    logic [127:0] injected_read;
+    logic [63:0] injected_output;
+    generate
+        if (USE_TILE_BUFFERS) begin : g_integrity_taps
+            for (genvar b = 0; b < 6; b++) begin : g_read
+                assign native_response[b] = dut.g_read_ports[b].g_buffered.u_adapter.native_rsp_valid
+                    && dut.g_read_ports[b].g_buffered.u_adapter.state_q == dut.g_read_ports[b].g_buffered.u_adapter.READ_RSP;
+            end
+            assign native_response[6] = dut.g_output_buffer.u_adapter.rd_valid
+                && dut.g_output_buffer.u_adapter.state_q == dut.g_output_buffer.u_adapter.READ_RSP;
+            task automatic corrupt_beat(input int p);
+                case (p)
+                    0: begin
+                        injected_read = dut.g_read_ports[0].g_buffered.u_adapter.native_data ^ 128'd1;
+                        force dut.g_read_ports[0].g_buffered.u_adapter.native_data = injected_read;
+                    end
+                    1: begin
+                        injected_read = dut.g_read_ports[1].g_buffered.u_adapter.native_data ^ 128'd1;
+                        force dut.g_read_ports[1].g_buffered.u_adapter.native_data = injected_read;
+                    end
+                    2: begin
+                        injected_read = dut.g_read_ports[2].g_buffered.u_adapter.native_data ^ 128'd1;
+                        force dut.g_read_ports[2].g_buffered.u_adapter.native_data = injected_read;
+                    end
+                    3: begin
+                        injected_read = dut.g_read_ports[3].g_buffered.u_adapter.native_data ^ 128'd1;
+                        force dut.g_read_ports[3].g_buffered.u_adapter.native_data = injected_read;
+                    end
+                    4: begin
+                        injected_read = dut.g_read_ports[4].g_buffered.u_adapter.native_data ^ 128'd1;
+                        force dut.g_read_ports[4].g_buffered.u_adapter.native_data = injected_read;
+                    end
+                    5: begin
+                        injected_read = dut.g_read_ports[5].g_buffered.u_adapter.native_data ^ (128'd1 << 32);
+                        force dut.g_read_ports[5].g_buffered.u_adapter.native_data = injected_read;
+                    end
+                    6: begin
+                        injected_output = dut.g_output_buffer.u_adapter.rd_data;
+                        for (int b = 0; b < 8; b++)
+                            if (dut.g_output_buffer.u_adapter.strb_q[b] || dut.g_output_buffer.u_adapter.strb_q[b+8])
+                                injected_output[8*b] = !injected_output[8*b];
+                        force dut.g_output_buffer.u_adapter.rd_data = injected_output;
+                    end
+                endcase
+                @(negedge clk);
+                release dut.g_read_ports[0].g_buffered.u_adapter.native_data;
+                release dut.g_read_ports[1].g_buffered.u_adapter.native_data;
+                release dut.g_read_ports[2].g_buffered.u_adapter.native_data;
+                release dut.g_read_ports[3].g_buffered.u_adapter.native_data;
+                release dut.g_read_ports[4].g_buffered.u_adapter.native_data;
+                release dut.g_read_ports[5].g_buffered.u_adapter.native_data;
+                release dut.g_output_buffer.u_adapter.rd_data;
+            endtask
+        end else begin : g_integrity_taps
+            task automatic corrupt_beat(input int p);
+                $fatal(1, "No protected staging path in the direct configuration");
+            endtask
+            assign native_response = 0;
+        end
+    endgenerate
 
     // Bank model wiring. Index: 0 ACT0, 1 ACT1, 2 WGT0, 3 WGT1, 4 PRM port A, 5 PRM port B.
     wire rq_valid [6], rq_ready [6], rs_valid [6], rs_ready [6];
@@ -90,7 +151,7 @@ module tb_raven_npu_top #(
     logic [23:0] dbg_addr;
 
     always @(posedge clk) begin
-        if (dbg_held &&
+        if (lrst_n && dbg_held &&
             (!rq_valid[5] || rq_addr[5] !== dbg_addr)) begin
             $display(
                 "DEBUG PRM_B: t=%0t rst=%b soft_reset=%b core_error=%b valid=%b ready=%b addr=%h previous=%h loading=%b",
@@ -317,7 +378,7 @@ module tb_raven_npu_top #(
     endfunction
 
     // Run one fixture end to end and check everything the plan asks for it.
-    task automatic run_case(input string name, input bit force_stall = 0);
+    task automatic run_case(input string name, input bit force_stall = 0, input string tag_override = "");
         meta_t mt;
         logic [15:0] seq;
         logic [31:0] err;
@@ -325,6 +386,7 @@ module tb_raven_npu_top #(
         int unsigned launch0, wr0, read0;
         string tag = name;
         if (force_stall) tag = {name, "_stalled"};
+        if (tag_override != "") tag = tag_override;
         prepare_case(name, force_stall, tag, mt);
         launch0 = launches; wr0 = out_wr; read0 = total_bank_reads();
         raven_start(seq, st);
@@ -685,6 +747,88 @@ module tb_raven_npu_top #(
         $display("PASS t15_staging_rewrite"); passed++;
     endtask
 
+    // T16 injects a single changed bit after a trusted backing read, inside the
+    // actual native readback path. The hardware must report ERR_UNIT and flush
+    // traffic without DONE. Every fault is followed by reset, reload and a new
+    // command checked against the independent INT8 golden.
+    task automatic t16_integrity_recovery();
+        meta_t mt, partial_mt;
+        logic [15:0] seq;
+        logic [31:0] err, v, fault_ref, old_done, old_count;
+        raven_status_t st;
+        int port_id, waited;
+        int unsigned writes_before, writes_at_start;
+        string fixture, tag, restart_tag;
+        for (int mode = 0; mode < 2; mode++)
+            for (int p = 0; p < 7; p++) begin
+                fixture = (p == 1 || p == 3) ? "t7_normal_act1_wgt1" : "t4_bank_edges_k33";
+                tag = $sformatf("t16_port%0d_stalls%0d", p, mode);
+                restart_tag = {tag, "_restart"};
+                if (!USE_TILE_BUFFERS) begin
+                    // Direct banks are the numerical reference; no parity is advertised.
+                    run_case(fixture, mode != 0, restart_tag);
+                    continue;
+                end
+                npu_read32(REG_DONE_SEQ, old_done); npu_read32(REG_CMD_COUNT, old_count);
+                prepare_case(fixture, mode != 0, tag, mt);
+                writes_at_start = out_wr;
+                raven_start(seq, st); expect_eq({tag, ": start"}, st, RAVEN_OK);
+                if (p == 6 && mode == 1) begin
+                    // Also exercise a fault after three valid bytes have committed.
+                    repeat (3) begin
+                        waited = 0;
+                        while (!native_response[6] && waited < WAIT_CYCLES) begin @(negedge clk); waited++; end
+                        expect_eq({tag, ": earlier output reached"}, native_response[6], 1);
+                        @(negedge clk);
+                        while (native_response[6]) @(negedge clk);
+                    end
+                end
+                waited = 0;
+                while (!native_response[p] && waited < WAIT_CYCLES) begin @(negedge clk); waited++; end
+                expect_eq({tag, ": native readback reached"}, native_response[p], 1);
+                port_id = p < 4 ? p : p < 6 ? BANK_PRM : BANK_OUT0;
+                fault_ref = {4'(port_id), 4'd0, p == 6 ? ow_addr : rq_addr[p]};
+                g_integrity_taps.corrupt_beat(p);
+                raven_wait(seq, WAIT_CYCLES, err, st);
+                expect_eq({tag, ": runtime hardware error"}, st, RAVEN_E_HW);
+                expect_eq({tag, ": ERR_UNIT and sequence"}, err, {seq, 8'd0, ERR_UNIT});
+                expect_reg({tag, ": fault bank/address"}, REG_ERR_INFO, fault_ref);
+                repeat (2) @(negedge clk);
+                npu_read32(REG_STATUS, v);
+                expect_eq({tag, ": HALTED"}, v[STATUS_HALTED], 1);
+                expect_reg({tag, ": no successful retirement"}, REG_DONE_SEQ, old_done);
+                expect_reg({tag, ": no successful command counted"}, REG_CMD_COUNT, old_count);
+                npu_read32(REG_IRQ_STATUS, v); expect_eq({tag, ": error IRQ"}, v[IRQ_ERROR], 1);
+                expect_eq({tag, ": no DONE IRQ"}, v[IRQ_DONE], 0);
+                expect_eq({tag, ": interrupt asserted"}, irq, 1);
+                expect_eq({tag, ": data path held in reset"}, lrst_n, 0);
+                expect_eq({tag, ": all read requests stopped"}, {rq_valid[5], rq_valid[4], rq_valid[3],
+                          rq_valid[2], rq_valid[1], rq_valid[0]}, 0);
+                expect_eq({tag, ": write request stopped"}, ow_valid, 0);
+                // Already committed bytes remain; the corrupt byte must not commit.
+                if (p == 6) begin
+                    partial_mt = mt; partial_mt.m = mode == 0 ? 0 : 1; partial_mt.n = mode == 0 ? 0 : 3;
+                    check_out_bank(fixture, partial_mt, tag);
+                    expect_eq({tag, ": only earlier valid bytes committed"}, out_wr-writes_at_start, mode == 0 ? 0 : 3);
+                end
+                writes_before = out_wr;
+                raven_clear_err();
+                npu_write32(REG_CTRL, 32'd1 << CTRL_START);
+                repeat (8) @(negedge clk);
+                npu_read32(REG_STATUS, v);
+                expect_eq({tag, ": CLEAR_ERR/START cannot resume"}, v[STATUS_HALTED], 1);
+                expect_eq({tag, ": no writes after fault"}, out_wr, writes_before);
+                expect_reg({tag, ": no extra sequence consumed"}, REG_NEXT_SEQ, 32'(seq)+1);
+                raven_soft_reset();
+                expect_reg({tag, ": reset to IDLE"}, REG_STATUS, 32'h0000_1010);
+                expect_reg({tag, ": error cleared"}, REG_ERR_CODE, 0);
+                expect_eq({tag, ": data path released"}, lrst_n, 1);
+                raven_close_trace(); stalls = 0;
+                $display("PASS %s ERR_UNIT=%02h fault_ref=%08h", tag, ERR_UNIT, fault_ref); passed++;
+                run_case(fixture, mode != 0, restart_tag);
+            end
+    endtask
+
     // ---------------------------------------------------------------- main
     initial begin
         raven_status_t st;
@@ -713,6 +857,7 @@ module tb_raven_npu_top #(
         if (want("T13")) begin t13_halted(); $display("TEST T13 PASS"); end
         if (want("T14")) begin t14_reset_mid_operation(); $display("TEST T14 PASS"); end
         if (want("T15")) begin t15_staging_rewrite(); $display("TEST T15 PASS"); end
+        if (want("T16")) begin t16_integrity_recovery(); $display("TEST T16 PASS"); end
 
         $display("SUMMARY: %0d passed, %0d failed, %0d checks", passed, failed, checks);
         if (failed == 0) $display("ALL TESTS PASSED");

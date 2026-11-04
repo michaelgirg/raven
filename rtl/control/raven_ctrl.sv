@@ -40,6 +40,8 @@ module raven_ctrl
     input wire core_compute_done_i, // Last product committed.
     input wire core_result_done_i, // Every INT32 result accepted, or the command was rejected.
     input wire core_error_i, // Command rejected; code on core_error_code_i.
+    input wire memory_error_i, // Staging parity failure: abort this command.
+    input wire [31:0] memory_error_info_i, // Faulting {bank, reserved zero, byte offset}.
     input wire [7:0] core_error_code_i, // Core error code, held until the next command.
     input wire [31:0] core_input_stall_cycles_i, // Core's per-command operand stall count.
     // Output path.
@@ -53,7 +55,7 @@ module raven_ctrl
     logic error_q; // STATUS.ERROR: an error is latched and not yet cleared.
     logic [7:0] err_code_q; // ERR_CODE[7:0].
     logic [15:0] err_seq_q; // ERR_CODE[31:16].
-    logic [11:0] err_info_q; // ERR_INFO: offending register offset, or 0.
+    logic [31:0] err_info_q; // Register offset, core zero, or the faulting memory reference.
     logic halt_pending_q; // START while busy: finish this command, then HALT (D10).
     logic result_done_q, stored_q; // The two retirement events, which may arrive in either order.
     logic [63:0] cyc_total_q, cyc_busy_q; // Performance counters.
@@ -142,7 +144,7 @@ module raven_ctrl
     wire stored_seen = stored_q || stored_last_i;
     // The active command fails on this clock; a simultaneous extra START must not hide its code.
     wire raising_error = (state_q == FSM_CHECK && chk_code != ERR_NONE)
-                         || (state_q inside {FSM_RUN, FSM_DRAIN} && core_error_i);
+                         || (state_q inside {FSM_RUN, FSM_DRAIN} && (core_error_i || memory_error_i));
 
     assign local_rst_no = rst_ni && !soft_reset_i;
     assign cmd_o = cmd_q;
@@ -218,7 +220,13 @@ module raven_ctrl
                 // Exactly one handshake: ISSUE is left on the clock the core accepts.
                 FSM_ISSUE: if (core_cmd_ready_i) state_q <= FSM_RUN;
                 FSM_RUN, FSM_DRAIN: begin
-                    if (core_error_i) begin
+                    if (memory_error_i) begin
+                        if (!error_q || clear_err_i) begin
+                            err_code_q <= ERR_UNIT; err_seq_q <= seq_q; err_info_q <= memory_error_info_i;
+                        end
+                        error_q <= 1; irq_err_set_o <= 1;
+                        state_q <= FSM_ERROR;
+                    end else if (core_error_i) begin
                         // Keep an earlier, still-latched error (START-while-busy) visible.
                         if (!error_q || clear_err_i) begin
                             err_code_q <= map_core_error(core_error_code_i);

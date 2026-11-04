@@ -1,0 +1,1229 @@
+RAVEN merged pre-alpha validation
+Tested RTL revision: 3577d48d063182e0e2e9560623f58cf0804621ae
+Production RTL and testbench source files were unchanged during validation.
+Expected-failure guards and fault-injection runs must reject their deliberately broken cases.
+Three PowerShell launches were blocked by host execution policy; direct replacement tests passed.
+The policy was not changed. Both the original launches and direct replacements are retained.
+
+========================================================================
+compute-full: pass
+RUN vsim-version
+PASS vsim-version (0.062 s)
+RUN vlog-version
+PASS vlog-version (0.047 s)
+RUN vmap-local
+PASS vmap-local (0.047 s)
+RUN vlib
+PASS vlib (0.047 s)
+RUN vmap-work
+PASS vmap-work (0.047 s)
+RUN compile
+PASS compile (0.093 s)
+RUN guard-immediate
+PASS guard-immediate (1.453 s)
+RUN guard-sva
+PASS guard-sva (1.063 s)
+RUN pe
+PASS pe (2.625 s)
+RUN vectors-8x8
+PASS vectors-8x8 (0.281 s)
+RUN core-8x8
+PASS core-8x8 (10.032 s)
+RUN vectors-4x4
+PASS vectors-4x4 (0.265 s)
+RUN core-4x4
+PASS core-4x4 (8.921 s)
+RUN vectors-2x4
+PASS vectors-2x4 (0.234 s)
+RUN core-2x4
+PASS core-2x4 (9.688 s)
+RUN vectors-1x1
+PASS vectors-1x1 (0.25 s)
+RUN core-1x1
+PASS core-1x1 (10.0 s)
+RUN guard-manifest-empty
+PASS guard-manifest-empty (1.547 s)
+RUN guard-manifest-partial
+PASS guard-manifest-partial (1.156 s)
+RUN guard-manifest-short
+PASS guard-manifest-short (1.266 s)
+RUN demo
+PASS demo (1.656 s)
+Evidence: <repo>\build\tests\compute\questa\run_20261104T200110_790541Z
+
+========================================================================
+operators: pass
+RUN vmap-local
+PASS vmap-local
+RUN vlib
+PASS vlib
+RUN vmap-work
+PASS vmap-work
+RUN compile
+PASS compile
+RUN guard-immediate
+PASS guard-immediate
+RUN guard-sva
+PASS guard-sva
+RUN requant
+PASS requant
+PASS operator Questa test
+Evidence: <repo>\build\tests\operators\questa\run_20261104T200201_924834Z
+
+========================================================================
+integration-full: pass
+RUN vsim-version
+PASS vsim-version (0.047 s)
+RUN vlog-version
+PASS vlog-version (0.047 s)
+RUN vmap-local
+PASS vmap-local (0.031 s)
+RUN vlib
+PASS vlib (0.047 s)
+RUN vmap-work
+PASS vmap-work (0.047 s)
+RUN compile
+PASS compile (0.109 s)
+RUN guard-immediate
+PASS guard-immediate (1.375 s)
+RUN guard-sva
+PASS guard-sva (1.063 s)
+RUN read-adapter-0
+PASS read-adapter-0 (1.406 s)
+RUN read-adapter-1
+PASS read-adapter-1 (1.391 s)
+RUN read-adapter-2
+PASS read-adapter-2 (1.422 s)
+RUN output-adapter
+PASS output-adapter (1.406 s)
+RUN fixtures
+PASS fixtures (0.172 s)
+RUN integration
+PASS integration (10.031 s)
+RUN compare-channel_scales_relu_clamp
+PASS compare-channel_scales_relu_clamp (0.063 s)
+RUN compare-channel_scales_relu_clamp_stalled
+PASS compare-channel_scales_relu_clamp_stalled (0.062 s)
+RUN compare-normal_8x16x8
+PASS compare-normal_8x16x8 (0.063 s)
+RUN compare-normal_8x16x8_stalled
+PASS compare-normal_8x16x8_stalled (0.062 s)
+RUN compare-partial_tile_7x13x5
+PASS compare-partial_tile_7x13x5 (0.062 s)
+RUN compare-partial_tile_7x13x5_stalled
+PASS compare-partial_tile_7x13x5_stalled (0.063 s)
+RUN compare-positive_negative_saturation
+PASS compare-positive_negative_saturation (0.062 s)
+RUN compare-positive_negative_saturation_stalled
+PASS compare-positive_negative_saturation_stalled (0.063 s)
+RUN compare-rounding_ties
+PASS compare-rounding_ties (0.062 s)
+RUN compare-rounding_ties_stalled
+PASS compare-rounding_ties_stalled (0.063 s)
+RUN compare-signed_nonzero_zp_stalled
+PASS compare-signed_nonzero_zp_stalled (0.062 s)
+RUN compare-signed_nonzero_zp_stalled_stalled
+PASS compare-signed_nonzero_zp_stalled_stalled (0.063 s)
+RUN compare-t12_start_while_busy
+PASS compare-t12_start_while_busy (0.062 s)
+RUN compare-t15_staging_rewrite
+PASS compare-t15_staging_rewrite (0.063 s)
+RUN compare-t4_bank_edges_k33
+PASS compare-t4_bank_edges_k33 (0.062 s)
+RUN compare-t4_bank_edges_k33_stalled
+PASS compare-t4_bank_edges_k33_stalled (0.063 s)
+RUN compare-t5_normal_shared_scale
+PASS compare-t5_normal_shared_scale (0.062 s)
+RUN compare-t5_normal_shared_scale_stalled
+PASS compare-t5_normal_shared_scale_stalled (0.063 s)
+RUN compare-t6_partial_pitch16_dst100
+PASS compare-t6_partial_pitch16_dst100 (0.062 s)
+RUN compare-t6_partial_pitch16_dst100_stalled
+PASS compare-t6_partial_pitch16_dst100_stalled (0.063 s)
+RUN compare-t7_normal_act1_wgt1
+PASS compare-t7_normal_act1_wgt1 (0.078 s)
+RUN compare-t7_normal_act1_wgt1_stalled
+PASS compare-t7_normal_act1_wgt1_stalled (0.062 s)
+RUN direct-banks
+PASS direct-banks (3.813 s)
+RUN compare-direct-channel_scales_relu_clamp
+PASS compare-direct-channel_scales_relu_clamp (0.063 s)
+RUN compare-direct-channel_scales_relu_clamp_stalled
+PASS compare-direct-channel_scales_relu_clamp_stalled (0.047 s)
+RUN compare-direct-normal_8x16x8
+PASS compare-direct-normal_8x16x8 (0.062 s)
+RUN compare-direct-normal_8x16x8_stalled
+PASS compare-direct-normal_8x16x8_stalled (0.063 s)
+RUN compare-direct-partial_tile_7x13x5
+PASS compare-direct-partial_tile_7x13x5 (0.062 s)
+RUN compare-direct-partial_tile_7x13x5_stalled
+PASS compare-direct-partial_tile_7x13x5_stalled (0.063 s)
+RUN compare-direct-positive_negative_saturation
+PASS compare-direct-positive_negative_saturation (0.047 s)
+RUN compare-direct-positive_negative_saturation_stalled
+PASS compare-direct-positive_negative_saturation_stalled (0.062 s)
+RUN compare-direct-rounding_ties
+PASS compare-direct-rounding_ties (0.063 s)
+RUN compare-direct-rounding_ties_stalled
+PASS compare-direct-rounding_ties_stalled (0.062 s)
+RUN compare-direct-signed_nonzero_zp_stalled
+PASS compare-direct-signed_nonzero_zp_stalled (0.047 s)
+RUN compare-direct-signed_nonzero_zp_stalled_stalled
+PASS compare-direct-signed_nonzero_zp_stalled_stalled (0.047 s)
+RUN compare-direct-t12_start_while_busy
+PASS compare-direct-t12_start_while_busy (0.062 s)
+RUN compare-direct-t15_staging_rewrite
+PASS compare-direct-t15_staging_rewrite (0.063 s)
+RUN compare-direct-t4_bank_edges_k33
+PASS compare-direct-t4_bank_edges_k33 (0.062 s)
+RUN compare-direct-t4_bank_edges_k33_stalled
+PASS compare-direct-t4_bank_edges_k33_stalled (0.063 s)
+RUN compare-direct-t5_normal_shared_scale
+PASS compare-direct-t5_normal_shared_scale (0.046 s)
+RUN compare-direct-t5_normal_shared_scale_stalled
+PASS compare-direct-t5_normal_shared_scale_stalled (0.063 s)
+RUN compare-direct-t6_partial_pitch16_dst100
+PASS compare-direct-t6_partial_pitch16_dst100 (0.062 s)
+RUN compare-direct-t6_partial_pitch16_dst100_stalled
+PASS compare-direct-t6_partial_pitch16_dst100_stalled (0.063 s)
+RUN compare-direct-t7_normal_act1_wgt1
+PASS compare-direct-t7_normal_act1_wgt1 (0.062 s)
+RUN compare-direct-t7_normal_act1_wgt1_stalled
+PASS compare-direct-t7_normal_act1_wgt1_stalled (0.047 s)
+RUN single-column
+PASS single-column (1.641 s)
+RUN fault_activation-vlib
+PASS fault_activation-vlib (0.031 s)
+RUN fault_activation-vmap
+PASS fault_activation-vmap (0.047 s)
+RUN fault_activation-compile
+PASS fault_activation-compile (0.125 s)
+RUN fault_activation
+PASS fault_activation (1.625 s)
+RUN fault_weight-vlib
+PASS fault_weight-vlib (0.047 s)
+RUN fault_weight-vmap
+PASS fault_weight-vmap (0.046 s)
+RUN fault_weight-compile
+PASS fault_weight-compile (0.125 s)
+RUN fault_weight
+PASS fault_weight (1.657 s)
+RUN fault_parameter-vlib
+PASS fault_parameter-vlib (0.047 s)
+RUN fault_parameter-vmap
+PASS fault_parameter-vmap (0.046 s)
+RUN fault_parameter-compile
+PASS fault_parameter-compile (0.125 s)
+RUN fault_parameter
+PASS fault_parameter (1.594 s)
+RUN fault_output-vlib
+PASS fault_output-vlib (0.047 s)
+RUN fault_output-vmap
+PASS fault_output-vmap (0.031 s)
+RUN fault_output-compile
+PASS fault_output-compile (0.125 s)
+RUN fault_output
+PASS fault_output (1.641 s)
+Evidence: <repo>\build\tests\integration\questa\run_20261104T200206_286880Z
+
+========================================================================
+native-memory-and-faults: pass
+{
+  "status": "pass",
+  "cases": {
+    "activation": {
+      "expected_pass": true,
+      "pass_marker": true,
+      "fatal": []
+    },
+    "weight": {
+      "expected_pass": true,
+      "pass_marker": true,
+      "fatal": []
+    },
+    "parameter": {
+      "expected_pass": true,
+      "pass_marker": true,
+      "fatal": []
+    },
+    "output": {
+      "expected_pass": true,
+      "pass_marker": true,
+      "fatal": []
+    },
+    "activation_bad_reset": {
+      "expected_pass": false,
+      "pass_marker": false,
+      "fatal": [
+        "# ** Fatal: Reset did not discard the held activation response"
+      ]
+    },
+    "weight_bad_reset": {
+      "expected_pass": false,
+      "pass_marker": false,
+      "fatal": [
+        "# ** Fatal: Reset did not discard the held weight response"
+      ]
+    },
+    "parameter_bad_reset": {
+      "expected_pass": false,
+      "pass_marker": false,
+      "fatal": [
+        "# ** Fatal: Reset did not clear the parameter response"
+      ]
+    },
+    "output_bad_reset": {
+      "expected_pass": false,
+      "pass_marker": false,
+      "fatal": [
+        "# ** Fatal: Reset did not discard the held output"
+      ]
+    },
+    "no_validity": {
+      "expected_pass": false,
+      "pass_marker": false,
+      "fatal": [
+        "# ** Fatal: Unwritten output row was readable"
+      ]
+    },
+    "retain_validity": {
+      "expected_pass": false,
+      "pass_marker": false,
+      "fatal": [
+        "# ** Fatal: Unwritten output row was readable"
+      ]
+    },
+    "retain_multiplier_per_channel": {
+      "expected_pass": false,
+      "pass_marker": false,
+      "fatal": [
+        "# ** Fatal: Multiplier mismatch on channel 4"
+      ]
+    },
+    "retain_shift_per_channel": {
+      "expected_pass": false,
+      "pass_marker": false,
+      "fatal": [
+        "# ** Fatal: Shift mismatch on channel 4"
+      ]
+    }
+  },
+  "evidence": "C:\\Users\\micha\\Documents\\Codex\\2026-11-01\\preview-attachment-raven-michael-questa-handoff\\work\\raven-final-validation\\build\\tests\\memory\\full-validation\\run_20261104T200240_584053Z"
+}
+
+========================================================================
+golden-activation-normal_8x16x8: pass
+Prepared 8x16 activations: 128 valid values, 0 padding bytes (8x16 physical buffer)
+RUN vlib
+PASS vlib
+RUN compile
+PASS compile
+RUN activation-golden
+PASS activation-golden
+PASS ACTIVATION GOLDEN: 128/128 INT8 values matched (normal_8x16x8); 128/128 valid values; output stalls verified
+Evidence: <repo>\build\tests\memory\golden\normal_8x16x8\activation-golden.console.log
+
+========================================================================
+golden-activation-signed_nonzero_zp_stalled: pass
+Prepared 8x16 activations: 128 valid values, 0 padding bytes (8x16 physical buffer)
+RUN vlib
+PASS vlib
+RUN compile
+PASS compile
+RUN activation-golden
+PASS activation-golden
+PASS ACTIVATION GOLDEN: 128/128 INT8 values matched (signed_nonzero_zp_stalled); 128/128 valid values; output stalls verified
+Evidence: <repo>\build\tests\memory\golden\signed_nonzero_zp_stalled\activation-golden.console.log
+
+========================================================================
+golden-activation-partial_tile_7x13x5: pass
+Prepared 7x13 activations: 91 valid values, 37 padding bytes (8x16 physical buffer)
+RUN vlib
+PASS vlib
+RUN compile
+PASS compile
+RUN activation-golden
+PASS activation-golden
+PASS ACTIVATION GOLDEN: 128/128 INT8 values matched (partial_tile_7x13x5); 91/91 valid values; output stalls verified
+Evidence: <repo>\build\tests\memory\golden\partial_tile_7x13x5\activation-golden.console.log
+
+========================================================================
+golden-activation-positive_negative_saturation: pass
+Prepared 8x16 activations: 128 valid values, 0 padding bytes (8x16 physical buffer)
+RUN vlib
+PASS vlib
+RUN compile
+PASS compile
+RUN activation-golden
+PASS activation-golden
+PASS ACTIVATION GOLDEN: 128/128 INT8 values matched (positive_negative_saturation); 128/128 valid values; output stalls verified
+Evidence: <repo>\build\tests\memory\golden\positive_negative_saturation\activation-golden.console.log
+
+========================================================================
+golden-activation-rounding_ties: pass
+Prepared 2x1 activations: 2 valid values, 126 padding bytes (8x16 physical buffer)
+RUN vlib
+PASS vlib
+RUN compile
+PASS compile
+RUN activation-golden
+PASS activation-golden
+PASS ACTIVATION GOLDEN: 128/128 INT8 values matched (rounding_ties); 2/2 valid values; output stalls verified
+Evidence: <repo>\build\tests\memory\golden\rounding_ties\activation-golden.console.log
+
+========================================================================
+golden-activation-channel_scales_relu_clamp: pass
+Prepared 8x16 activations: 128 valid values, 0 padding bytes (8x16 physical buffer)
+RUN vlib
+PASS vlib
+RUN compile
+PASS compile
+RUN activation-golden
+PASS activation-golden
+PASS ACTIVATION GOLDEN: 128/128 INT8 values matched (channel_scales_relu_clamp); 128/128 valid values; output stalls verified
+Evidence: <repo>\build\tests\memory\golden\channel_scales_relu_clamp\activation-golden.console.log
+
+========================================================================
+golden-weight-normal_8x16x8: pass
+Prepared K=16, N=8 weights: 128 valid values, 0 padding positions (16x8 physical buffer)
+RUN vlib
+PASS vlib
+RUN compile
+PASS compile
+RUN weight-golden
+PASS weight-golden
+PASS WEIGHT GOLDEN: 128/128 INT8 values matched (normal_8x16x8); 128/128 valid values; output stalls verified
+Evidence: <repo>\build\tests\memory\golden_weight\normal_8x16x8\weight-golden.console.log
+
+========================================================================
+golden-weight-signed_nonzero_zp_stalled: pass
+Prepared K=16, N=8 weights: 128 valid values, 0 padding positions (16x8 physical buffer)
+RUN vlib
+PASS vlib
+RUN compile
+PASS compile
+RUN weight-golden
+PASS weight-golden
+PASS WEIGHT GOLDEN: 128/128 INT8 values matched (signed_nonzero_zp_stalled); 128/128 valid values; output stalls verified
+Evidence: <repo>\build\tests\memory\golden_weight\signed_nonzero_zp_stalled\weight-golden.console.log
+
+========================================================================
+golden-weight-partial_tile_7x13x5: pass
+Prepared K=13, N=5 weights: 65 valid values, 63 padding positions (16x8 physical buffer)
+RUN vlib
+PASS vlib
+RUN compile
+PASS compile
+RUN weight-golden
+PASS weight-golden
+PASS WEIGHT GOLDEN: 128/128 INT8 values matched (partial_tile_7x13x5); 65/65 valid values; output stalls verified
+Evidence: <repo>\build\tests\memory\golden_weight\partial_tile_7x13x5\weight-golden.console.log
+
+========================================================================
+golden-weight-positive_negative_saturation: pass
+Prepared K=16, N=8 weights: 128 valid values, 0 padding positions (16x8 physical buffer)
+RUN vlib
+PASS vlib
+RUN compile
+PASS compile
+RUN weight-golden
+PASS weight-golden
+PASS WEIGHT GOLDEN: 128/128 INT8 values matched (positive_negative_saturation); 128/128 valid values; output stalls verified
+Evidence: <repo>\build\tests\memory\golden_weight\positive_negative_saturation\weight-golden.console.log
+
+========================================================================
+golden-weight-rounding_ties: pass
+Prepared K=1, N=4 weights: 4 valid values, 124 padding positions (16x8 physical buffer)
+RUN vlib
+PASS vlib
+RUN compile
+PASS compile
+RUN weight-golden
+PASS weight-golden
+PASS WEIGHT GOLDEN: 128/128 INT8 values matched (rounding_ties); 4/4 valid values; output stalls verified
+Evidence: <repo>\build\tests\memory\golden_weight\rounding_ties\weight-golden.console.log
+
+========================================================================
+golden-weight-channel_scales_relu_clamp: pass
+Prepared K=16, N=8 weights: 128 valid values, 0 padding positions (16x8 physical buffer)
+RUN vlib
+PASS vlib
+RUN compile
+PASS compile
+RUN weight-golden
+PASS weight-golden
+PASS WEIGHT GOLDEN: 128/128 INT8 values matched (channel_scales_relu_clamp); 128/128 valid values; output stalls verified
+Evidence: <repo>\build\tests\memory\golden_weight\channel_scales_relu_clamp\weight-golden.console.log
+
+========================================================================
+golden-parameter-normal_8x16x8: pass
+Prepared normal_8x16x8: 8 valid channels, 8 physical channels; 29 write registers
+RUN vlib
+PASS vlib
+RUN compile
+PASS compile
+RUN parameter-golden
+PASS parameter-golden
+PASS PARAMETER GOLDEN: 8/8 channels matched (normal_8x16x8); per-channel and shared modes; output stalls verified
+Evidence: <repo>\build\tests\memory\golden_parameter\normal_8x16x8\parameter-golden.console.log
+
+========================================================================
+golden-parameter-signed_nonzero_zp_stalled: pass
+Prepared signed_nonzero_zp_stalled: 8 valid channels, 8 physical channels; 29 write registers
+RUN vlib
+PASS vlib
+RUN compile
+PASS compile
+RUN parameter-golden
+PASS parameter-golden
+PASS PARAMETER GOLDEN: 8/8 channels matched (signed_nonzero_zp_stalled); per-channel and shared modes; output stalls verified
+Evidence: <repo>\build\tests\memory\golden_parameter\signed_nonzero_zp_stalled\parameter-golden.console.log
+
+========================================================================
+golden-parameter-partial_tile_7x13x5: pass
+Prepared partial_tile_7x13x5: 5 valid channels, 8 physical channels; 29 write registers
+RUN vlib
+PASS vlib
+RUN compile
+PASS compile
+RUN parameter-golden
+PASS parameter-golden
+PASS PARAMETER GOLDEN: 8/8 channels matched (partial_tile_7x13x5); per-channel and shared modes; output stalls verified
+Evidence: <repo>\build\tests\memory\golden_parameter\partial_tile_7x13x5\parameter-golden.console.log
+
+========================================================================
+golden-parameter-positive_negative_saturation: pass
+Prepared positive_negative_saturation: 8 valid channels, 8 physical channels; 29 write registers
+RUN vlib
+PASS vlib
+RUN compile
+PASS compile
+RUN parameter-golden
+PASS parameter-golden
+PASS PARAMETER GOLDEN: 8/8 channels matched (positive_negative_saturation); per-channel and shared modes; output stalls verified
+Evidence: <repo>\build\tests\memory\golden_parameter\positive_negative_saturation\parameter-golden.console.log
+
+========================================================================
+golden-parameter-rounding_ties: pass
+Prepared rounding_ties: 4 valid channels, 8 physical channels; 29 write registers
+RUN vlib
+PASS vlib
+RUN compile
+PASS compile
+RUN parameter-golden
+PASS parameter-golden
+PASS PARAMETER GOLDEN: 8/8 channels matched (rounding_ties); per-channel and shared modes; output stalls verified
+Evidence: <repo>\build\tests\memory\golden_parameter\rounding_ties\parameter-golden.console.log
+
+========================================================================
+golden-parameter-channel_scales_relu_clamp: pass
+Prepared channel_scales_relu_clamp: 8 valid channels, 8 physical channels; 29 write registers
+RUN vlib
+PASS vlib
+RUN compile
+PASS compile
+RUN parameter-golden
+PASS parameter-golden
+PASS PARAMETER GOLDEN: 8/8 channels matched (channel_scales_relu_clamp); per-channel and shared modes; output stalls verified
+Evidence: <repo>\build\tests\memory\golden_parameter\channel_scales_relu_clamp\parameter-golden.console.log
+
+========================================================================
+golden-output-normal_8x16x8: pass
+Prepared normal_8x16x8: 8x8 INT8 outputs, 64 valid values, 0 padding bytes (8x8 output buffer)
+RUN vlib
+PASS vlib
+RUN compile
+PASS compile
+RUN output-golden
+PASS output-golden
+PASS OUTPUT GOLDEN: 64/64 INT8 positions matched (normal_8x16x8); 64/64 valid values; output stalls verified
+Evidence: <repo>\build\tests\memory\golden_output\normal_8x16x8\output-golden.console.log
+
+========================================================================
+golden-output-signed_nonzero_zp_stalled: pass
+Prepared signed_nonzero_zp_stalled: 8x8 INT8 outputs, 64 valid values, 0 padding bytes (8x8 output buffer)
+RUN vlib
+PASS vlib
+RUN compile
+PASS compile
+RUN output-golden
+PASS output-golden
+PASS OUTPUT GOLDEN: 64/64 INT8 positions matched (signed_nonzero_zp_stalled); 64/64 valid values; output stalls verified
+Evidence: <repo>\build\tests\memory\golden_output\signed_nonzero_zp_stalled\output-golden.console.log
+
+========================================================================
+golden-output-partial_tile_7x13x5: pass
+Prepared partial_tile_7x13x5: 7x5 INT8 outputs, 35 valid values, 29 padding bytes (8x8 output buffer)
+RUN vlib
+PASS vlib
+RUN compile
+PASS compile
+RUN output-golden
+PASS output-golden
+PASS OUTPUT GOLDEN: 64/64 INT8 positions matched (partial_tile_7x13x5); 35/35 valid values; output stalls verified
+Evidence: <repo>\build\tests\memory\golden_output\partial_tile_7x13x5\output-golden.console.log
+
+========================================================================
+golden-output-positive_negative_saturation: pass
+Prepared positive_negative_saturation: 8x8 INT8 outputs, 64 valid values, 0 padding bytes (8x8 output buffer)
+RUN vlib
+PASS vlib
+RUN compile
+PASS compile
+RUN output-golden
+PASS output-golden
+PASS OUTPUT GOLDEN: 64/64 INT8 positions matched (positive_negative_saturation); 64/64 valid values; output stalls verified
+Evidence: <repo>\build\tests\memory\golden_output\positive_negative_saturation\output-golden.console.log
+
+========================================================================
+golden-output-rounding_ties: pass
+Prepared rounding_ties: 2x4 INT8 outputs, 8 valid values, 56 padding bytes (8x8 output buffer)
+RUN vlib
+PASS vlib
+RUN compile
+PASS compile
+RUN output-golden
+PASS output-golden
+PASS OUTPUT GOLDEN: 64/64 INT8 positions matched (rounding_ties); 8/8 valid values; output stalls verified
+Evidence: <repo>\build\tests\memory\golden_output\rounding_ties\output-golden.console.log
+
+========================================================================
+golden-output-channel_scales_relu_clamp: pass
+Prepared channel_scales_relu_clamp: 8x8 INT8 outputs, 64 valid values, 0 padding bytes (8x8 output buffer)
+RUN vlib
+PASS vlib
+RUN compile
+PASS compile
+RUN output-golden
+PASS output-golden
+PASS OUTPUT GOLDEN: 64/64 INT8 positions matched (channel_scales_relu_clamp); 64/64 valid values; output stalls verified
+Evidence: <repo>\build\tests\memory\golden_output\channel_scales_relu_clamp\output-golden.console.log
+
+========================================================================
+golden-requant-normal_8x16x8: pass
+RUN vmap-local
+PASS vmap-local
+RUN vlib
+PASS vlib
+RUN vmap-work
+PASS vmap-work
+RUN compile
+PASS compile
+RUN requant-golden
+PASS requant-golden
+PASS REQUANT GOLDEN: 64/64 INT8 outputs matched (normal_8x16x8)
+Evidence: <repo>\build\tests\operators\golden\normal_8x16x8\requant-golden.console.log
+
+========================================================================
+golden-requant-stall-normal_8x16x8: pass
+RUN vmap-local
+PASS vmap-local
+RUN vlib
+PASS vlib
+RUN vmap-work
+PASS vmap-work
+RUN compile
+PASS compile
+RUN requant-golden
+PASS requant-golden
+PASS REQUANT GOLDEN: 64/64 INT8 outputs matched (normal_8x16x8)
+Evidence: <repo>\build\tests\operators\golden\normal_8x16x8\requant-golden.console.log
+
+========================================================================
+golden-requant-signed_nonzero_zp_stalled: pass
+RUN vmap-local
+PASS vmap-local
+RUN vlib
+PASS vlib
+RUN vmap-work
+PASS vmap-work
+RUN compile
+PASS compile
+RUN requant-golden
+PASS requant-golden
+PASS REQUANT GOLDEN: 64/64 INT8 outputs matched (signed_nonzero_zp_stalled)
+Evidence: <repo>\build\tests\operators\golden\signed_nonzero_zp_stalled\requant-golden.console.log
+
+========================================================================
+golden-requant-stall-signed_nonzero_zp_stalled: pass
+RUN vmap-local
+PASS vmap-local
+RUN vlib
+PASS vlib
+RUN vmap-work
+PASS vmap-work
+RUN compile
+PASS compile
+RUN requant-golden
+PASS requant-golden
+PASS REQUANT GOLDEN: 64/64 INT8 outputs matched (signed_nonzero_zp_stalled)
+Evidence: <repo>\build\tests\operators\golden\signed_nonzero_zp_stalled\requant-golden.console.log
+
+========================================================================
+golden-requant-partial_tile_7x13x5: pass
+RUN vmap-local
+PASS vmap-local
+RUN vlib
+PASS vlib
+RUN vmap-work
+PASS vmap-work
+RUN compile
+PASS compile
+RUN requant-golden
+PASS requant-golden
+PASS REQUANT GOLDEN: 35/35 INT8 outputs matched (partial_tile_7x13x5)
+Evidence: <repo>\build\tests\operators\golden\partial_tile_7x13x5\requant-golden.console.log
+
+========================================================================
+golden-requant-stall-partial_tile_7x13x5: pass
+RUN vmap-local
+PASS vmap-local
+RUN vlib
+PASS vlib
+RUN vmap-work
+PASS vmap-work
+RUN compile
+PASS compile
+RUN requant-golden
+PASS requant-golden
+PASS REQUANT GOLDEN: 35/35 INT8 outputs matched (partial_tile_7x13x5)
+Evidence: <repo>\build\tests\operators\golden\partial_tile_7x13x5\requant-golden.console.log
+
+========================================================================
+golden-requant-positive_negative_saturation: pass
+RUN vmap-local
+PASS vmap-local
+RUN vlib
+PASS vlib
+RUN vmap-work
+PASS vmap-work
+RUN compile
+PASS compile
+RUN requant-golden
+PASS requant-golden
+PASS REQUANT GOLDEN: 64/64 INT8 outputs matched (positive_negative_saturation)
+Evidence: <repo>\build\tests\operators\golden\positive_negative_saturation\requant-golden.console.log
+
+========================================================================
+golden-requant-stall-positive_negative_saturation: pass
+RUN vmap-local
+PASS vmap-local
+RUN vlib
+PASS vlib
+RUN vmap-work
+PASS vmap-work
+RUN compile
+PASS compile
+RUN requant-golden
+PASS requant-golden
+PASS REQUANT GOLDEN: 64/64 INT8 outputs matched (positive_negative_saturation)
+Evidence: <repo>\build\tests\operators\golden\positive_negative_saturation\requant-golden.console.log
+
+========================================================================
+golden-requant-rounding_ties: pass
+RUN vmap-local
+PASS vmap-local
+RUN vlib
+PASS vlib
+RUN vmap-work
+PASS vmap-work
+RUN compile
+PASS compile
+RUN requant-golden
+PASS requant-golden
+PASS REQUANT GOLDEN: 8/8 INT8 outputs matched (rounding_ties)
+Evidence: <repo>\build\tests\operators\golden\rounding_ties\requant-golden.console.log
+
+========================================================================
+golden-requant-stall-rounding_ties: pass
+RUN vmap-local
+PASS vmap-local
+RUN vlib
+PASS vlib
+RUN vmap-work
+PASS vmap-work
+RUN compile
+PASS compile
+RUN requant-golden
+PASS requant-golden
+PASS REQUANT GOLDEN: 8/8 INT8 outputs matched (rounding_ties)
+Evidence: <repo>\build\tests\operators\golden\rounding_ties\requant-golden.console.log
+
+========================================================================
+golden-requant-channel_scales_relu_clamp: pass
+RUN vmap-local
+PASS vmap-local
+RUN vlib
+PASS vlib
+RUN vmap-work
+PASS vmap-work
+RUN compile
+PASS compile
+RUN requant-golden
+PASS requant-golden
+PASS REQUANT GOLDEN: 64/64 INT8 outputs matched (channel_scales_relu_clamp)
+Evidence: <repo>\build\tests\operators\golden\channel_scales_relu_clamp\requant-golden.console.log
+
+========================================================================
+golden-requant-stall-channel_scales_relu_clamp: pass
+RUN vmap-local
+PASS vmap-local
+RUN vlib
+PASS vlib
+RUN vmap-work
+PASS vmap-work
+RUN compile
+PASS compile
+RUN requant-golden
+PASS requant-golden
+PASS REQUANT GOLDEN: 64/64 INT8 outputs matched (channel_scales_relu_clamp)
+Evidence: <repo>\build\tests\operators\golden\channel_scales_relu_clamp\requant-golden.console.log
+
+========================================================================
+compute-golden-normal: fail
+File <workspace>\work\raven-final-validat
+ion\tools\goldens\run_compute_rtl.ps1 cannot be loaded because running scripts is disabled on this system. For more
+information, see about_Execution_Policies at https:/go.microsoft.com/fwlink/?LinkID=135170.
+    + CategoryInfo          : SecurityError: (:) [], ParentContainsErrorRecordException
+    + FullyQualifiedErrorId : UnauthorizedAccess
+
+========================================================================
+compute-golden-signed: fail
+File <workspace>\work\raven-final-validat
+ion\tools\goldens\run_compute_rtl.ps1 cannot be loaded because running scripts is disabled on this system. For more
+information, see about_Execution_Policies at https:/go.microsoft.com/fwlink/?LinkID=135170.
+    + CategoryInfo          : SecurityError: (:) [], ParentContainsErrorRecordException
+    + FullyQualifiedErrorId : UnauthorizedAccess
+
+========================================================================
+compute-golden-partial: fail
+File <workspace>\work\raven-final-validat
+ion\tools\goldens\run_compute_rtl.ps1 cannot be loaded because running scripts is disabled on this system. For more
+information, see about_Execution_Policies at https:/go.microsoft.com/fwlink/?LinkID=135170.
+    + CategoryInfo          : SecurityError: (:) [], ParentContainsErrorRecordException
+    + FullyQualifiedErrorId : UnauthorizedAccess
+
+========================================================================
+regenerate-fixtures: pass
+Generated 7 pre-alpha cases in <repo>\build\tests\prealpha\reproducibility
+
+========================================================================
+comparator-negative: pass
+  MISMATCH [0][0] expected=-8 actual=-7
+FAIL normal_8x16x8: 1/64 int8 mismatches
+
+========================================================================
+comparator-invalid-command: pass
+usage: compare_prealpha.py [-h] --case CASE --kind {int32,int8} --actual
+                           ACTUAL [--max-print MAX_PRINT]
+compare_prealpha.py: error: This is an invalid-command case; check the RTL error code instead
+
+========================================================================
+supplemental-compute-normal: pass
+Prepared Michael-compatible INT32 fixture: <repo>\build\tests\prealpha\supplemental\normal_8x16x8 (M=8, N=8, K=16)
+Only the compute stage is tested; INT8 requantization is not involved.
+Reading pref.tcl
+
+# 2021.2
+
+# vsim -c -onfinish exit -t 1ps -sva -immedassert -l supplemental-normal.log work.tb_raven_gemm_core "+FIXTURES=<repo>/build/tests/prealpha/supplemental/normal_8x16x8" "+DEMO_ONLY" -do "do run_batch.do" -gCOLS=8 -gROWS=8
+# Start time: 15:05:05 on Nov 04,2026
+# ** Note: (vsim-8009) Loading existing optimized design _opt
+# //  Questa Intel Starter FPGA Edition-64
+# //  Version 2021.2 win64 Apr 14 2021
+# //
+# //  Copyright 1991-2021 Mentor Graphics Corporation
+# //  All Rights Reserved.
+# //
+# //  QuestaSim and its associated documentation contain trade
+# //  secrets and commercial or financial information that are the property of
+# //  Mentor Graphics Corporation and are privileged, confidential,
+# //  and exempt from disclosure under the Freedom of Information Act,
+# //  5 U.S.C. Section 552. Furthermore, this information
+# //  is prohibited from disclosure under the Trade Secrets Act,
+# //  18 U.S.C. Section 1905.
+# //
+# Loading sv_std.std
+# Loading work.tb_raven_gemm_core(fast)
+# do run_batch.do
+# INT32 result matrix (each element checked against Python oracle):
+#        -8      -23        7       37      -20       -6       22      -40
+#        19       17       22       44      -48       34      -22       25
+#        46        2      -88       44      -31        2       53      -32
+#        35       42       14       32       -7      -27      -20        7
+#        14       12       14       37      -41       31       24       -2
+#        20       15       18       45      -15      -62        5        1
+#        43       95        1       13       -8       22       12       -4
+#         8       -1      -70      -27       12        6       25        7
+# PASS GEMM 8x8 case 0 M=8 N=8 K=16 error=0 cycles=293 in_stall=89 out_stall=63
+# PASS CORE 8x8: 1 fixtures and 0 in-flight reset/restart phases
+# ** Note: $finish    : ../../../../../tests/rtl/compute/tb_raven_gemm_core.sv(192)
+#    Time: 3010 ns  Iteration: 1  Instance: /tb_raven_gemm_core
+# End time: 15:05:05 on Nov 04,2026, Elapsed time: 0:00:00
+# Errors: 0, Warnings: 0
+
+========================================================================
+supplemental-compute-signed: pass
+Prepared Michael-compatible INT32 fixture: <repo>\build\tests\prealpha\supplemental\signed_nonzero_zp_stalled (M=8, N=8, K=16)
+Only the compute stage is tested; INT8 requantization is not involved.
+Reading pref.tcl
+
+# 2021.2
+
+# vsim -c -onfinish exit -t 1ps -sva -immedassert -l supplemental-signed.log work.tb_raven_gemm_core "+FIXTURES=<repo>/build/tests/prealpha/supplemental/signed_nonzero_zp_stalled" "+DEMO_ONLY" -do "do run_batch.do" -gCOLS=8 -gROWS=8
+# Start time: 15:05:06 on Nov 04,2026
+# ** Note: (vsim-8009) Loading existing optimized design _opt
+# //  Questa Intel Starter FPGA Edition-64
+# //  Version 2021.2 win64 Apr 14 2021
+# //
+# //  Copyright 1991-2021 Mentor Graphics Corporation
+# //  All Rights Reserved.
+# //
+# //  QuestaSim and its associated documentation contain trade
+# //  secrets and commercial or financial information that are the property of
+# //  Mentor Graphics Corporation and are privileged, confidential,
+# //  and exempt from disclosure under the Freedom of Information Act,
+# //  5 U.S.C. Section 552. Furthermore, this information
+# //  is prohibited from disclosure under the Trade Secrets Act,
+# //  18 U.S.C. Section 1905.
+# //
+# Loading sv_std.std
+# Loading work.tb_raven_gemm_core(fast)
+# do run_batch.do
+# INT32 result matrix (each element checked against Python oracle):
+#      -205    16248   -25375    -1000   -12774   -12158    23143    12010
+#     -3015     3817     1046    14940    18075    10554    -7809   -39184
+#      6423    30222   -39018     -692   -24203    17946    30250   -17100
+#    -17990   -22727    -3139    25435    25524    17345    -5731   -14923
+#    -28057   -10540    22547   -35724    17850    39754    13284   -14182
+#       816   -35523    29327    29813    -6526    -8515     9199    23073
+#     17152    15756   -32408    42964     3994    27570    18296    22860
+#     -7301    -2179    22729     2203     2680   -23820    -4128     1956
+# PASS GEMM 8x8 case 0 M=8 N=8 K=16 error=0 cycles=293 in_stall=89 out_stall=63
+# PASS CORE 8x8: 1 fixtures and 0 in-flight reset/restart phases
+# ** Note: $finish    : ../../../../../tests/rtl/compute/tb_raven_gemm_core.sv(192)
+#    Time: 3010 ns  Iteration: 1  Instance: /tb_raven_gemm_core
+# End time: 15:05:07 on Nov 04,2026, Elapsed time: 0:00:01
+# Errors: 0, Warnings: 0
+
+========================================================================
+supplemental-compute-partial: pass
+Prepared Michael-compatible INT32 fixture: <repo>\build\tests\prealpha\supplemental\partial_tile_7x13x5 (M=7, N=5, K=13)
+Only the compute stage is tested; INT8 requantization is not involved.
+Reading pref.tcl
+
+# 2021.2
+
+# vsim -c -onfinish exit -t 1ps -sva -immedassert -l supplemental-partial.log work.tb_raven_gemm_core "+FIXTURES=<repo>/build/tests/prealpha/supplemental/partial_tile_7x13x5" "+DEMO_ONLY" -do "do run_batch.do" -gCOLS=8 -gROWS=8
+# Start time: 15:05:08 on Nov 04,2026
+# ** Note: (vsim-8009) Loading existing optimized design _opt
+# //  Questa Intel Starter FPGA Edition-64
+# //  Version 2021.2 win64 Apr 14 2021
+# //
+# //  Copyright 1991-2021 Mentor Graphics Corporation
+# //  All Rights Reserved.
+# //
+# //  QuestaSim and its associated documentation contain trade
+# //  secrets and commercial or financial information that are the property of
+# //  Mentor Graphics Corporation and are privileged, confidential,
+# //  and exempt from disclosure under the Freedom of Information Act,
+# //  5 U.S.C. Section 552. Furthermore, this information
+# //  is prohibited from disclosure under the Trade Secrets Act,
+# //  18 U.S.C. Section 1905.
+# //
+# Loading sv_std.std
+# Loading work.tb_raven_gemm_core(fast)
+# do run_batch.do
+# INT32 result matrix (each element checked against Python oracle):
+#       134       25       98      -40       27
+#        80       13       55      -32       42
+#        72      -28       68      -83      -69
+#       120       87       72      -18       -3
+#       134       69       26       -5      -30
+#        65        0       43      -20      -83
+#        45       -1       97      -60       -6
+# PASS GEMM 8x8 case 0 M=7 N=5 K=13 error=0 cycles=210 in_stall=66 out_stall=56
+# PASS CORE 8x8: 1 fixtures and 0 in-flight reset/restart phases
+# ** Note: $finish    : ../../../../../tests/rtl/compute/tb_raven_gemm_core.sv(192)
+#    Time: 2180 ns  Iteration: 1  Instance: /tb_raven_gemm_core
+# End time: 15:05:08 on Nov 04,2026, Elapsed time: 0:00:00
+# Errors: 0, Warnings: 0
+
+========================================================================
+Cycle measurement reproduction: pass
+Measurement output: <workspace>\work\main-perf\ry2myzwgv
+RUN pipeline mode 1
+PASS measured pipeline mode 1
+RUN pipeline mode 0
+PASS measured pipeline mode 0
+PASS measurement: <workspace>\work\main-perf\ry2myzwgv\measurement_results.json
+
+========================================================================
+Fresh out-of-context synthesis: pass
+{
+  "status": "pass",
+  "tool": "Vivado 2025.2",
+  "part": "xczu3eg-sbva484-1-e",
+  "scope": "out-of-context block synthesis, not board sign-off",
+  "lut": 15346,
+  "ff": 14839,
+  "dsp": 16,
+  "ramb36": 0,
+  "ramb18": 0,
+  "clock_period_ns": 10,
+  "estimated_setup_slack_ns": 1.169,
+  "warnings": 207,
+  "critical_warnings": 0,
+  "errors": 0
+}
+Known synthesis warnings and board limitations remain as documented in the FPGA readiness review.
+========================================================================
+Documented standalone memory commands: all four passed
+Questa Intel Starter FPGA Edition-64 vmap 2021.2 Lib Mapping Utility 2021.04 Apr 14 2021
+vmap -c
+Copying C:/intelFPGA/21.1/questa_fse/win64/../modelsim.ini to modelsim.ini
+
+
+Questa Intel Starter FPGA Edition-64 vmap 2021.2 Lib Mapping Utility 2021.04 Apr 14 2021
+vmap work work
+Modifying modelsim.ini
+
+Questa Intel Starter FPGA Edition-64 vlog 2021.2 Compiler 2021.04 Apr 14 2021
+Start time: 15:20:30 on Nov 04,2026
+vlog -sv ../../../../rtl/memory/activation_buffer.sv ../../../../tests/rtl/memory/tb_activation_buffer.sv
+-- Compiling module activationBuffer
+-- Compiling module tb_activation_buffer
+
+Top level modules:
+	tb_activation_buffer
+End time: 15:20:30 on Nov 04,2026, Elapsed time: 0:00:00
+Errors: 0, Warnings: 0
+
+Questa Intel Starter FPGA Edition-64 vlog 2021.2 Compiler 2021.04 Apr 14 2021
+Start time: 15:20:30 on Nov 04,2026
+vlog -sv ../../../../rtl/memory/weight_buffer.sv ../../../../tests/rtl/memory/tb_weight_buffer.sv
+-- Compiling module weightBuffer
+-- Compiling module tb_weight_buffer
+
+Top level modules:
+	tb_weight_buffer
+End time: 15:20:30 on Nov 04,2026, Elapsed time: 0:00:00
+Errors: 0, Warnings: 0
+
+Questa Intel Starter FPGA Edition-64 vlog 2021.2 Compiler 2021.04 Apr 14 2021
+Start time: 15:20:30 on Nov 04,2026
+vlog -sv ../../../../rtl/memory/parameter_buffer.sv ../../../../tests/rtl/memory/tb_parameter_buffer.sv
+-- Compiling module parameterBuffer
+-- Compiling module tb_parameter_buffer
+
+Top level modules:
+	tb_parameter_buffer
+End time: 15:20:30 on Nov 04,2026, Elapsed time: 0:00:00
+Errors: 0, Warnings: 0
+
+Questa Intel Starter FPGA Edition-64 vlog 2021.2 Compiler 2021.04 Apr 14 2021
+Start time: 15:20:30 on Nov 04,2026
+vlog -sv ../../../../rtl/memory/output_buffer.sv ../../../../tests/rtl/memory/tb_output_buffer.sv
+-- Compiling module outputBuffer
+-- Compiling module tb_output_buffer
+
+Top level modules:
+	tb_output_buffer
+End time: 15:20:30 on Nov 04,2026, Elapsed time: 0:00:00
+Errors: 0, Warnings: 0
+
+Reading pref.tcl
+
+# 2021.2
+
+# vsim -c -onfinish exit -sva -immedassert work.tb_activation_buffer -do "run -all; quit -f"
+# Start time: 15:20:31 on Nov 04,2026
+# ** Note: (vsim-3812) Design is being optimized...
+# //  Questa Intel Starter FPGA Edition-64
+# //  Version 2021.2 win64 Apr 14 2021
+# //
+# //  Copyright 1991-2021 Mentor Graphics Corporation
+# //  All Rights Reserved.
+# //
+# //  QuestaSim and its associated documentation contain trade
+# //  secrets and commercial or financial information that are the property of
+# //  Mentor Graphics Corporation and are privileged, confidential,
+# //  and exempt from disclosure under the Freedom of Information Act,
+# //  5 U.S.C. Section 552. Furthermore, this information
+# //  is prohibited from disclosure under the Trade Secrets Act,
+# //  18 U.S.C. Section 1905.
+# //
+# Loading sv_std.std
+# Loading work.tb_activation_buffer(fast)
+# run -all
+# --------------------------------
+# Starting activation buffer tests
+# --------------------------------
+# PASS: Reset
+# PASS: All eight banks written
+# PASS: Read K=0 returned all 8 expected values
+# PASS: Read K=1 returned all 8 expected values
+# PASS: Read K=2 returned all 8 expected values
+# PASS: Read K=3 returned all 8 expected values
+# PASS: Read K=4 returned all 8 expected values
+# PASS: Read K=5 returned all 8 expected values
+# PASS: Read K=6 returned all 8 expected values
+# PASS: Read K=7 returned all 8 expected values
+# PASS: Read K=8 returned all 8 expected values
+# PASS: Read K=9 returned all 8 expected values
+# PASS: Read K=10 returned all 8 expected values
+# PASS: Read K=11 returned all 8 expected values
+# PASS: Read K=12 returned all 8 expected values
+# PASS: Read K=13 returned all 8 expected values
+# PASS: Read K=14 returned all 8 expected values
+# PASS: Read K=15 returned all 8 expected values
+# PASS: All 16 K positions verified
+# Testing output backpressure
+# PASS: Backpressure holds valid data
+# PASS: Output consumed successfully
+# PASS: Read K=0 returned all 8 expected values
+# PASS: Read K=1 returned all 8 expected values
+# PASS: Read K=2 returned all 8 expected values
+# PASS: Read K=3 returned all 8 expected values
+# PASS: Read K=4 returned all 8 expected values
+# PASS: Read K=5 returned all 8 expected values
+# PASS: Read K=6 returned all 8 expected values
+# PASS: Read K=7 returned all 8 expected values
+# PASS: Read K=8 returned all 8 expected values
+# PASS: Read K=9 returned all 8 expected values
+# PASS: Read K=10 returned all 8 expected values
+# PASS: Read K=11 returned all 8 expected values
+# PASS: Read K=12 returned all 8 expected values
+# PASS: Read K=13 returned all 8 expected values
+# PASS: Read K=14 returned all 8 expected values
+# PASS: Read K=15 returned all 8 expected values
+# PASS: Reset discards held activation data and fresh writes restart reads
+# --------------------------------
+# ALL ACTIVATION BUFFER TESTS PASSED
+# --------------------------------
+# ** Note: $finish    : ../../../../tests/rtl/memory/tb_activation_buffer.sv(244)
+#    Time: 1400 ns  Iteration: 1  Instance: /tb_activation_buffer
+# End time: 15:20:32 on Nov 04,2026, Elapsed time: 0:00:01
+# Errors: 0, Warnings: 0
+
+Reading pref.tcl
+
+# 2021.2
+
+# vsim -c -onfinish exit -sva -immedassert work.tb_weight_buffer -do "run -all; quit -f"
+# Start time: 15:20:33 on Nov 04,2026
+# ** Note: (vsim-3812) Design is being optimized...
+# //  Questa Intel Starter FPGA Edition-64
+# //  Version 2021.2 win64 Apr 14 2021
+# //
+# //  Copyright 1991-2021 Mentor Graphics Corporation
+# //  All Rights Reserved.
+# //
+# //  QuestaSim and its associated documentation contain trade
+# //  secrets and commercial or financial information that are the property of
+# //  Mentor Graphics Corporation and are privileged, confidential,
+# //  and exempt from disclosure under the Freedom of Information Act,
+# //  5 U.S.C. Section 552. Furthermore, this information
+# //  is prohibited from disclosure under the Trade Secrets Act,
+# //  18 U.S.C. Section 1905.
+# //
+# Loading sv_std.std
+# Loading work.tb_weight_buffer(fast)
+# run -all
+#
+# --- WEIGHT BUFFER TEST ---
+# PASS: All 16 weight banks written
+# PASS: All 16 K positions verified
+# PASS: All 128 signed INT8 values verified
+# PASS: Backpressure holds output data
+# PASS: Response consumed successfully
+# PASS: Weight bank overwrite verified
+# PASS: Reset discards held weight data and fresh writes restart reads
+#
+# ALL WEIGHT BUFFER TESTS PASSED
+# ** Note: $finish    : ../../../../tests/rtl/memory/tb_weight_buffer.sv(249)
+#    Time: 1020 ns  Iteration: 1  Instance: /tb_weight_buffer
+# End time: 15:20:33 on Nov 04,2026, Elapsed time: 0:00:00
+# Errors: 0, Warnings: 0
+
+Reading pref.tcl
+
+# 2021.2
+
+# vsim -c -onfinish exit -sva -immedassert work.tb_parameter_buffer -do "run -all; quit -f"
+# Start time: 15:20:34 on Nov 04,2026
+# ** Note: (vsim-3812) Design is being optimized...
+# //  Questa Intel Starter FPGA Edition-64
+# //  Version 2021.2 win64 Apr 14 2021
+# //
+# //  Copyright 1991-2021 Mentor Graphics Corporation
+# //  All Rights Reserved.
+# //
+# //  QuestaSim and its associated documentation contain trade
+# //  secrets and commercial or financial information that are the property of
+# //  Mentor Graphics Corporation and are privileged, confidential,
+# //  and exempt from disclosure under the Freedom of Information Act,
+# //  5 U.S.C. Section 552. Furthermore, this information
+# //  is prohibited from disclosure under the Trade Secrets Act,
+# //  18 U.S.C. Section 1905.
+# //
+# Loading sv_std.std
+# Loading work.tb_parameter_buffer(fast)
+# run -all
+#
+# --- PARAMETER BUFFER TEST ---
+# PASS: All parameter values written
+# PASS: Per-channel bias, multiplier, and shift verified
+# PASS: Shared multiplier and shift verified
+# PASS: Shared zero-point and clamp values verified
+# PASS: Per-channel multiplier with shared shift verified
+# PASS: Shared multiplier with per-channel shift verified
+# PASS: Parameter backpressure verified
+# PASS: Reset clears parameters and modes, then fresh writes restart reads
+#
+# ALL PARAMETER BUFFER TESTS PASSED
+# ** Note: $finish    : ../../../../tests/rtl/memory/tb_parameter_buffer.sv(331)
+#    Time: 2050 ns  Iteration: 1  Instance: /tb_parameter_buffer
+# End time: 15:20:35 on Nov 04,2026, Elapsed time: 0:00:01
+# Errors: 0, Warnings: 0
+
+Reading pref.tcl
+
+# 2021.2
+
+# vsim -c -onfinish exit -sva -immedassert work.tb_output_buffer -do "run -all; quit -f"
+# Start time: 15:20:35 on Nov 04,2026
+# ** Note: (vsim-3812) Design is being optimized...
+# //  Questa Intel Starter FPGA Edition-64
+# //  Version 2021.2 win64 Apr 14 2021
+# //
+# //  Copyright 1991-2021 Mentor Graphics Corporation
+# //  All Rights Reserved.
+# //
+# //  QuestaSim and its associated documentation contain trade
+# //  secrets and commercial or financial information that are the property of
+# //  Mentor Graphics Corporation and are privileged, confidential,
+# //  and exempt from disclosure under the Freedom of Information Act,
+# //  5 U.S.C. Section 552. Furthermore, this information
+# //  is prohibited from disclosure under the Trade Secrets Act,
+# //  18 U.S.C. Section 1905.
+# //
+# Loading sv_std.std
+# Loading work.tb_output_buffer(fast)
+# run -all
+#
+# --- OUTPUT BUFFER TEST ---
+# PASS: Unwritten row waits for initialization
+# PASS: All eight output rows written
+# PASS: All 64 output bytes verified
+# PASS: Signed INT8 values verified
+# PASS: Row overwrite verified
+# PASS: Output backpressure verified
+# PASS: Reset invalidates every row and new writes restart reads
+# PASS: Same-row read/write returns old data and stores new data
+#
+# ALL OUTPUT BUFFER TESTS PASSED
+# ** Note: $finish    : ../../../../tests/rtl/memory/tb_output_buffer.sv(305)
+#    Time: 1240 ns  Iteration: 1  Instance: /tb_output_buffer
+# End time: 15:20:36 on Nov 04,2026, Elapsed time: 0:00:01
+# Errors: 0, Warnings: 0

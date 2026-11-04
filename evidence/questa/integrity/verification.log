@@ -1,0 +1,702 @@
+RAVEN runtime integrity regression and recovery
+Implementation revision: eea3a1c97e0dbfcf9aa49e1dbd961fe34a73f282
+Simulation-defined fault checks are separate from actual synthesized runtime parity logic.
+
+========================================================================
+read-adapter-0
+Reading pref.tcl
+
+# 2021.2
+
+# vsim -c -onfinish exit -t 1ps -voptargs="+acc" -sva -immedassert -l read-adapter-0.log -wlf read-adapter-0.wlf work.tb_raven_read_buffer_adapter -do "run_batch.do" -gKIND=0
+# ** Note: (vsim-3812) Design is being optimized...
+# ** Note: (vopt-143) Recognized 1 FSM in module "raven_read_buffer_adapter(fast)".
+# //  Questa Intel Starter FPGA Edition-64
+# //  Version 2021.2 win64 Apr 14 2021
+# //
+# //  Copyright 1991-2021 Mentor Graphics Corporation
+# //  All Rights Reserved.
+# //
+# //  QuestaSim and its associated documentation contain trade
+# //  secrets and commercial or financial information that are the property of
+# //  Mentor Graphics Corporation and are privileged, confidential,
+# //  and exempt from disclosure under the Freedom of Information Act,
+# //  5 U.S.C. Section 552. Furthermore, this information
+# //  is prohibited from disclosure under the Trade Secrets Act,
+# //  18 U.S.C. Section 1905.
+# //
+# Loading sv_std.std
+# Loading work.tb_raven_read_buffer_adapter(fast)
+# Loading work.raven_integrity_pkg(fast)
+# Loading work.raven_read_buffer_adapter(fast)
+# Loading work.activationBuffer(fast)
+# do run_batch.do
+# READ ADAPTER PASS kind=0 checks=1368
+# ** Note: $finish    : ../../../../../tests/rtl/integration/tb_raven_memory_adapters.sv(123)
+#    Time: 76860 ns  Iteration: 1  Instance: /tb_raven_read_buffer_adapter
+# Errors: 0, Warnings: 0
+
+========================================================================
+read-adapter-1
+Reading pref.tcl
+
+# 2021.2
+
+# vsim -c -onfinish exit -t 1ps -voptargs="+acc" -sva -immedassert -l read-adapter-1.log -wlf read-adapter-1.wlf work.tb_raven_read_buffer_adapter -do "run_batch.do" -gKIND=1
+# ** Note: (vsim-3812) Design is being optimized...
+# ** Note: (vopt-143) Recognized 1 FSM in module "raven_read_buffer_adapter(fast)".
+# //  Questa Intel Starter FPGA Edition-64
+# //  Version 2021.2 win64 Apr 14 2021
+# //
+# //  Copyright 1991-2021 Mentor Graphics Corporation
+# //  All Rights Reserved.
+# //
+# //  QuestaSim and its associated documentation contain trade
+# //  secrets and commercial or financial information that are the property of
+# //  Mentor Graphics Corporation and are privileged, confidential,
+# //  and exempt from disclosure under the Freedom of Information Act,
+# //  5 U.S.C. Section 552. Furthermore, this information
+# //  is prohibited from disclosure under the Trade Secrets Act,
+# //  18 U.S.C. Section 1905.
+# //
+# Loading sv_std.std
+# Loading work.tb_raven_read_buffer_adapter(fast)
+# Loading work.raven_integrity_pkg(fast)
+# Loading work.raven_read_buffer_adapter(fast)
+# Loading work.weightBuffer(fast)
+# do run_batch.do
+# READ ADAPTER PASS kind=1 checks=1368
+# ** Note: $finish    : ../../../../../tests/rtl/integration/tb_raven_memory_adapters.sv(123)
+#    Time: 36370 ns  Iteration: 1  Instance: /tb_raven_read_buffer_adapter
+# Errors: 0, Warnings: 0
+
+========================================================================
+read-adapter-2
+Reading pref.tcl
+
+# 2021.2
+
+# vsim -c -onfinish exit -t 1ps -voptargs="+acc" -sva -immedassert -l read-adapter-2.log -wlf read-adapter-2.wlf work.tb_raven_read_buffer_adapter -do "run_batch.do" -gKIND=2
+# ** Note: (vsim-3812) Design is being optimized...
+# ** Note: (vopt-143) Recognized 1 FSM in module "raven_read_buffer_adapter(fast)".
+# //  Questa Intel Starter FPGA Edition-64
+# //  Version 2021.2 win64 Apr 14 2021
+# //
+# //  Copyright 1991-2021 Mentor Graphics Corporation
+# //  All Rights Reserved.
+# //
+# //  QuestaSim and its associated documentation contain trade
+# //  secrets and commercial or financial information that are the property of
+# //  Mentor Graphics Corporation and are privileged, confidential,
+# //  and exempt from disclosure under the Freedom of Information Act,
+# //  5 U.S.C. Section 552. Furthermore, this information
+# //  is prohibited from disclosure under the Trade Secrets Act,
+# //  18 U.S.C. Section 1905.
+# //
+# Loading sv_std.std
+# Loading work.tb_raven_read_buffer_adapter(fast)
+# Loading work.raven_integrity_pkg(fast)
+# Loading work.raven_read_buffer_adapter(fast)
+# Loading work.parameterBuffer(fast)
+# do run_batch.do
+# READ ADAPTER PASS kind=2 checks=1368
+# ** Note: $finish    : ../../../../../tests/rtl/integration/tb_raven_memory_adapters.sv(123)
+#    Time: 34880 ns  Iteration: 1  Instance: /tb_raven_read_buffer_adapter
+# Errors: 0, Warnings: 0
+
+========================================================================
+output-adapter
+Reading pref.tcl
+
+# 2021.2
+
+# vsim -c -onfinish exit -t 1ps -voptargs="+acc" -sva -immedassert -l output-adapter.log -wlf output-adapter.wlf work.tb_raven_output_buffer_adapter -do "run_batch.do"
+# ** Note: (vsim-3812) Design is being optimized...
+# ** Note: (vopt-143) Recognized 1 FSM in module "raven_output_buffer_adapter(fast)".
+# //  Questa Intel Starter FPGA Edition-64
+# //  Version 2021.2 win64 Apr 14 2021
+# //
+# //  Copyright 1991-2021 Mentor Graphics Corporation
+# //  All Rights Reserved.
+# //
+# //  QuestaSim and its associated documentation contain trade
+# //  secrets and commercial or financial information that are the property of
+# //  Mentor Graphics Corporation and are privileged, confidential,
+# //  and exempt from disclosure under the Freedom of Information Act,
+# //  5 U.S.C. Section 552. Furthermore, this information
+# //  is prohibited from disclosure under the Trade Secrets Act,
+# //  18 U.S.C. Section 1905.
+# //
+# Loading sv_std.std
+# Loading work.tb_raven_output_buffer_adapter(fast)
+# Loading work.raven_integrity_pkg(fast)
+# Loading work.raven_output_buffer_adapter(fast)
+# Loading work.outputBuffer(fast)
+# do run_batch.do
+# OUTPUT ADAPTER PASS checks=1693
+# ** Note: $finish    : ../../../../../tests/rtl/integration/tb_raven_memory_adapters.sv(225)
+#    Time: 19950 ns  Iteration: 1  Instance: /tb_raven_output_buffer_adapter
+# Errors: 0, Warnings: 0
+
+========================================================================
+integration
+Reading pref.tcl
+
+# 2021.2
+
+# vsim -c -onfinish exit -t 1ps -voptargs="+acc" -sva -immedassert -l integration.log -wlf integration.wlf work.tb_raven_npu_top "+FIXTURES=fixtures" "+OUT=out" "+TESTS=T1,T2,T3,T4,T5,T6,T7,T8,T9,T10,T11,T12,T13,T14,T15,T16" -do "run_batch.do"
+# ** Note: (vsim-3812) Design is being optimized...
+# ** Note: (vopt-143) Recognized 1 FSM in module "raven_ctrl(fast)".
+# ** Note: (vopt-143) Recognized 1 FSM in module "raven_gemm_core(fast)".
+# ** Note: (vopt-143) Recognized 1 FSM in module "raven_read_buffer_adapter(fast__2)".
+# ** Note: (vopt-143) Recognized 1 FSM in module "raven_read_buffer_adapter(fast__1)".
+# ** Note: (vopt-143) Recognized 1 FSM in module "raven_read_buffer_adapter(fast)".
+# ** Note: (vopt-143) Recognized 2 FSMs in module "raven_gemm_frontend(fast)".
+# ** Note: (vopt-143) Recognized 1 FSM in module "raven_output_buffer_adapter(fast)".
+# //  Questa Intel Starter FPGA Edition-64
+# //  Version 2021.2 win64 Apr 14 2021
+# //
+# //  Copyright 1991-2021 Mentor Graphics Corporation
+# //  All Rights Reserved.
+# //
+# //  QuestaSim and its associated documentation contain trade
+# //  secrets and commercial or financial information that are the property of
+# //  Mentor Graphics Corporation and are privileged, confidential,
+# //  and exempt from disclosure under the Freedom of Information Act,
+# //  5 U.S.C. Section 552. Furthermore, this information
+# //  is prohibited from disclosure under the Trade Secrets Act,
+# //  18 U.S.C. Section 1905.
+# //
+# Loading sv_std.std
+# Loading work.raven_reg_bus_if(fast)
+# Loading work.raven_ctrl_pkg(fast)
+# Loading work.raven_tb_driver_pkg(fast)
+# Loading work.tb_raven_npu_top(fast)
+# Loading work.raven_reg_bus_if(fast__2)
+# Loading work.raven_npu_top(fast)
+# Loading work.raven_ctrl_regs(fast)
+# Loading work.raven_ctrl(fast)
+# Loading work.raven_gemm_core(fast)
+# Loading work.raven_gemm_frontend(fast)
+# Loading work.raven_mac_array(fast)
+# Loading work.raven_mac_pe(fast)
+# Loading work.raven_requant(fast)
+# Loading work.raven_requantize_clamp(fast)
+# Loading work.raven_result_writer(fast)
+# Loading work.raven_integrity_pkg(fast)
+# Loading work.raven_read_buffer_adapter(fast)
+# Loading work.activationBuffer(fast)
+# Loading work.raven_read_buffer_adapter(fast__1)
+# Loading work.weightBuffer(fast)
+# Loading work.raven_read_buffer_adapter(fast__2)
+# Loading work.parameterBuffer(fast)
+# Loading work.raven_output_buffer_adapter(fast)
+# Loading work.outputBuffer(fast)
+# Loading work.sim_read_memory(fast)
+# Loading work.sim_read_memory(fast__1)
+# Loading work.sim_read_memory(fast__2)
+# Loading work.sim_read_memory(fast__3)
+# Loading work.sim_read_memory(fast__4)
+# Loading work.sim_read_memory(fast__5)
+# Loading work.sim_write_memory(fast)
+# do run_batch.do
+# PASS t1_reset_values
+# TEST T1 PASS
+# PASS t2_register_access
+# TEST T2 PASS
+# PASS t3_nop
+# TEST T3 PASS
+# PASS normal_8x16x8
+# PASS signed_nonzero_zp_stalled
+# PASS partial_tile_7x13x5
+# PASS positive_negative_saturation
+# PASS rounding_ties
+# PASS channel_scales_relu_clamp
+# PASS t4_bank_edges_k33
+# TEST T4 PASS
+# PASS t5_normal_shared_scale
+# TEST T5 PASS
+# PASS t6_partial_pitch16_dst100
+# TEST T6 PASS
+# PASS t7_normal_act1_wgt1
+# TEST T7 PASS
+# PASS normal_8x16x8_stalled
+# PASS signed_nonzero_zp_stalled_stalled
+# PASS partial_tile_7x13x5_stalled
+# PASS positive_negative_saturation_stalled
+# PASS rounding_ties_stalled
+# PASS channel_scales_relu_clamp_stalled
+# PASS t4_bank_edges_k33_stalled
+# PASS t5_normal_shared_scale_stalled
+# PASS t6_partial_pitch16_dst100_stalled
+# PASS t7_normal_act1_wgt1_stalled
+# TEST T8 PASS
+# PASS invalid_zero_k
+# TEST T9 PASS
+# PASS t10_illegal_opcode
+# PASS t10_reserved_src_a
+# PASS t10_reserved_p5
+# PASS t10_missing_acc_last
+# PASS t10_src_a_prm_bank
+# PASS t10_dst_out1_bank
+# PASS t10_m9
+# PASS t10_p4_below_n
+# PASS t10_dst_misaligned
+# PASS t10_dst_span_overflow
+# TEST T10 PASS
+# PASS t11_a_pitch_short
+# PASS t11_a_base_misaligned
+# PASS t11_param_base_misaligned
+# PASS t11_param_span_overflow
+# PASS t11_acc_overflow
+# TEST T11 PASS
+# PASS t12_start_while_busy
+# TEST T12 PASS
+# PASS t13_halted
+# PASS normal_8x16x8
+# TEST T13 PASS
+# PASS t14_soft_reset_in_run
+# PASS normal_8x16x8
+# PASS t14_hw_reset_in_run
+# PASS normal_8x16x8
+# PASS t14_soft_reset_in_drain
+# PASS normal_8x16x8
+# PASS t14_hw_reset_in_drain
+# PASS normal_8x16x8
+# TEST T14 PASS
+# PASS t15_staging_rewrite
+# TEST T15 PASS
+# PASS t16_port0_stalls0 ERR_UNIT=09 fault_ref=00003e80
+# PASS t16_port0_stalls0_restart
+# PASS t16_port1_stalls0 ERR_UNIT=09 fault_ref=10000000
+# PASS t16_port1_stalls0_restart
+# PASS t16_port2_stalls0 ERR_UNIT=09 fault_ref=20003ef0
+# PASS t16_port2_stalls0_restart
+# PASS t16_port3_stalls0 ERR_UNIT=09 fault_ref=30000000
+# PASS t16_port3_stalls0_restart
+# PASS t16_port4_stalls0 ERR_UNIT=09 fault_ref=60000f80
+# PASS t16_port4_stalls0_restart
+# PASS t16_port5_stalls0 ERR_UNIT=09 fault_ref=60000f80
+# PASS t16_port5_stalls0_restart
+# PASS t16_port6_stalls0 ERR_UNIT=09 fault_ref=40001fc0
+# PASS t16_port6_stalls0_restart
+# PASS t16_port0_stalls1 ERR_UNIT=09 fault_ref=00003e80
+# PASS t16_port0_stalls1_restart
+# PASS t16_port1_stalls1 ERR_UNIT=09 fault_ref=10000000
+# PASS t16_port1_stalls1_restart
+# PASS t16_port2_stalls1 ERR_UNIT=09 fault_ref=20003ef0
+# PASS t16_port2_stalls1_restart
+# PASS t16_port3_stalls1 ERR_UNIT=09 fault_ref=30000000
+# PASS t16_port3_stalls1_restart
+# PASS t16_port4_stalls1 ERR_UNIT=09 fault_ref=60000f80
+# PASS t16_port4_stalls1_restart
+# PASS t16_port5_stalls1 ERR_UNIT=09 fault_ref=60000f80
+# PASS t16_port5_stalls1_restart
+# PASS t16_port6_stalls1 ERR_UNIT=09 fault_ref=40001fc0
+# PASS t16_port6_stalls1_restart
+# TEST T16 PASS
+# SUMMARY: 79 passed, 0 failed, 1162 checks
+# ALL TESTS PASSED
+# ** Note: $finish    : ../../../../../tests/rtl/integration/tb_raven_npu_top.sv(864)
+#    Time: 494970 ns  Iteration: 1  Instance: /tb_raven_npu_top
+# Errors: 0, Warnings: 0
+
+========================================================================
+integrity-synthesis-define
+Reading pref.tcl
+
+# 2021.2
+
+# vsim -c -onfinish exit -t 1ps -voptargs="+acc" -sva -immedassert -l integrity-synthesis-define.log -wlf integrity-synthesis-define.wlf rtl_synthesis.tb_raven_npu_top "+FIXTURES=fixtures" "+OUT=out-synthesis-define" "+TESTS=T16" -do "run_batch.do"
+# ** Note: (vsim-3812) Design is being optimized...
+# ** Note: (vopt-143) Recognized 1 FSM in module "raven_ctrl(fast)".
+# ** Note: (vopt-143) Recognized 1 FSM in module "raven_gemm_core(fast)".
+# ** Note: (vopt-143) Recognized 1 FSM in module "raven_read_buffer_adapter(fast__2)".
+# ** Note: (vopt-143) Recognized 1 FSM in module "raven_read_buffer_adapter(fast__1)".
+# ** Note: (vopt-143) Recognized 1 FSM in module "raven_read_buffer_adapter(fast)".
+# ** Note: (vopt-143) Recognized 2 FSMs in module "raven_gemm_frontend(fast)".
+# ** Note: (vopt-143) Recognized 1 FSM in module "raven_output_buffer_adapter(fast)".
+# //  Questa Intel Starter FPGA Edition-64
+# //  Version 2021.2 win64 Apr 14 2021
+# //
+# //  Copyright 1991-2021 Mentor Graphics Corporation
+# //  All Rights Reserved.
+# //
+# //  QuestaSim and its associated documentation contain trade
+# //  secrets and commercial or financial information that are the property of
+# //  Mentor Graphics Corporation and are privileged, confidential,
+# //  and exempt from disclosure under the Freedom of Information Act,
+# //  5 U.S.C. Section 552. Furthermore, this information
+# //  is prohibited from disclosure under the Trade Secrets Act,
+# //  18 U.S.C. Section 1905.
+# //
+# Loading sv_std.std
+# Loading work.raven_reg_bus_if(fast)
+# Loading work.raven_ctrl_pkg(fast)
+# Loading work.raven_tb_driver_pkg(fast)
+# Loading work.tb_raven_npu_top(fast)
+# Loading work.raven_reg_bus_if(fast__2)
+# Loading work.raven_npu_top(fast)
+# Loading work.raven_ctrl_regs(fast)
+# Loading work.raven_ctrl(fast)
+# Loading work.raven_gemm_core(fast)
+# Loading work.raven_gemm_frontend(fast)
+# Loading work.raven_mac_array(fast)
+# Loading work.raven_mac_pe(fast)
+# Loading work.raven_requant(fast)
+# Loading work.raven_requantize_clamp(fast)
+# Loading work.raven_result_writer(fast)
+# Loading work.raven_integrity_pkg(fast)
+# Loading work.raven_read_buffer_adapter(fast)
+# Loading work.activationBuffer(fast)
+# Loading work.raven_read_buffer_adapter(fast__1)
+# Loading work.weightBuffer(fast)
+# Loading work.raven_read_buffer_adapter(fast__2)
+# Loading work.parameterBuffer(fast)
+# Loading work.raven_output_buffer_adapter(fast)
+# Loading work.outputBuffer(fast)
+# Loading work.sim_read_memory(fast)
+# Loading work.sim_read_memory(fast__1)
+# Loading work.sim_read_memory(fast__2)
+# Loading work.sim_read_memory(fast__3)
+# Loading work.sim_read_memory(fast__4)
+# Loading work.sim_read_memory(fast__5)
+# Loading work.sim_write_memory(fast)
+# do run_batch.do
+# PASS t16_port0_stalls0 ERR_UNIT=09 fault_ref=00003e80
+# PASS t16_port0_stalls0_restart
+# PASS t16_port1_stalls0 ERR_UNIT=09 fault_ref=10000000
+# PASS t16_port1_stalls0_restart
+# PASS t16_port2_stalls0 ERR_UNIT=09 fault_ref=20003ef0
+# PASS t16_port2_stalls0_restart
+# PASS t16_port3_stalls0 ERR_UNIT=09 fault_ref=30000000
+# PASS t16_port3_stalls0_restart
+# PASS t16_port4_stalls0 ERR_UNIT=09 fault_ref=60000f80
+# PASS t16_port4_stalls0_restart
+# PASS t16_port5_stalls0 ERR_UNIT=09 fault_ref=60000f80
+# PASS t16_port5_stalls0_restart
+# PASS t16_port6_stalls0 ERR_UNIT=09 fault_ref=40001fc0
+# PASS t16_port6_stalls0_restart
+# PASS t16_port0_stalls1 ERR_UNIT=09 fault_ref=00003e80
+# PASS t16_port0_stalls1_restart
+# PASS t16_port1_stalls1 ERR_UNIT=09 fault_ref=10000000
+# PASS t16_port1_stalls1_restart
+# PASS t16_port2_stalls1 ERR_UNIT=09 fault_ref=20003ef0
+# PASS t16_port2_stalls1_restart
+# PASS t16_port3_stalls1 ERR_UNIT=09 fault_ref=30000000
+# PASS t16_port3_stalls1_restart
+# PASS t16_port4_stalls1 ERR_UNIT=09 fault_ref=60000f80
+# PASS t16_port4_stalls1_restart
+# PASS t16_port5_stalls1 ERR_UNIT=09 fault_ref=60000f80
+# PASS t16_port5_stalls1_restart
+# PASS t16_port6_stalls1 ERR_UNIT=09 fault_ref=40001fc0
+# PASS t16_port6_stalls1_restart
+# TEST T16 PASS
+# SUMMARY: 28 passed, 0 failed, 442 checks
+# ALL TESTS PASSED
+# ** Note: $finish    : ../../../../../tests/rtl/integration/tb_raven_npu_top.sv(864)
+#    Time: 226910 ns  Iteration: 1  Instance: /tb_raven_npu_top
+# Errors: 0, Warnings: 0
+
+========================================================================
+compute
+RUN vsim-version
+PASS vsim-version (0.079 s)
+RUN vlog-version
+PASS vlog-version (0.031 s)
+RUN vmap-local
+PASS vmap-local (0.047 s)
+RUN vlib
+PASS vlib (0.047 s)
+RUN vmap-work
+PASS vmap-work (0.046 s)
+RUN compile
+PASS compile (0.079 s)
+RUN guard-immediate
+PASS guard-immediate (1.468 s)
+RUN guard-sva
+PASS guard-sva (1.109 s)
+RUN pe
+PASS pe (2.782 s)
+RUN vectors-8x8
+PASS vectors-8x8 (0.296 s)
+RUN core-8x8
+PASS core-8x8 (10.188 s)
+RUN vectors-4x4
+PASS vectors-4x4 (0.25 s)
+RUN core-4x4
+PASS core-4x4 (9.875 s)
+RUN vectors-2x4
+PASS vectors-2x4 (0.234 s)
+RUN core-2x4
+PASS core-2x4 (10.063 s)
+RUN vectors-1x1
+PASS vectors-1x1 (0.234 s)
+RUN core-1x1
+PASS core-1x1 (10.219 s)
+RUN guard-manifest-empty
+PASS guard-manifest-empty (1.5 s)
+RUN guard-manifest-partial
+PASS guard-manifest-partial (1.078 s)
+RUN guard-manifest-short
+PASS guard-manifest-short (1.109 s)
+RUN demo
+PASS demo (1.563 s)
+Evidence: <repo>\build\tests\compute\questa\run_20261104T210303_267592Z
+
+========================================================================
+operators
+RUN vmap-local
+PASS vmap-local
+RUN vlib
+PASS vlib
+RUN vmap-work
+PASS vmap-work
+RUN compile
+PASS compile
+RUN guard-immediate
+PASS guard-immediate
+RUN guard-sva
+PASS guard-sva
+RUN requant
+PASS requant
+PASS operator Questa test
+Evidence: <repo>\build\tests\operators\questa\run_20261104T210355_829573Z
+
+========================================================================
+Cycle reproduction: pass, all normal-path counts unchanged
+{
+  "1": [
+    {
+      "case": "normal_8x16x8",
+      "busy_cycles": 786,
+      "input_stall_cycles": 365,
+      "output_stall_cycles": 256
+    },
+    {
+      "case": "signed_nonzero_zp_stalled",
+      "busy_cycles": 938,
+      "input_stall_cycles": 419,
+      "output_stall_cycles": 309
+    },
+    {
+      "case": "partial_tile_7x13x5",
+      "busy_cycles": 560,
+      "input_stall_cycles": 317,
+      "output_stall_cycles": 140
+    },
+    {
+      "case": "positive_negative_saturation",
+      "busy_cycles": 786,
+      "input_stall_cycles": 365,
+      "output_stall_cycles": 256
+    },
+    {
+      "case": "rounding_ties",
+      "busy_cycles": 163,
+      "input_stall_cycles": 77,
+      "output_stall_cycles": 32
+    },
+    {
+      "case": "channel_scales_relu_clamp",
+      "busy_cycles": 786,
+      "input_stall_cycles": 365,
+      "output_stall_cycles": 256
+    },
+    {
+      "case": "board_perf_1x640x8",
+      "busy_cycles": 3984,
+      "input_stall_cycles": 3219,
+      "output_stall_cycles": 32
+    },
+    {
+      "case": "t4_bank_edges_k33",
+      "busy_cycles": 1321,
+      "input_stall_cycles": 883,
+      "output_stall_cycles": 256
+    }
+  ],
+  "0": [
+    {
+      "case": "normal_8x16x8",
+      "busy_cycles": 146,
+      "input_stall_cycles": 37,
+      "output_stall_cycles": 0
+    },
+    {
+      "case": "signed_nonzero_zp_stalled",
+      "busy_cycles": 317,
+      "input_stall_cycles": 88,
+      "output_stall_cycles": 86
+    },
+    {
+      "case": "partial_tile_7x13x5",
+      "busy_cycles": 100,
+      "input_stall_cycles": 32,
+      "output_stall_cycles": 0
+    },
+    {
+      "case": "positive_negative_saturation",
+      "busy_cycles": 146,
+      "input_stall_cycles": 37,
+      "output_stall_cycles": 0
+    },
+    {
+      "case": "rounding_ties",
+      "busy_cycles": 33,
+      "input_stall_cycles": 7,
+      "output_stall_cycles": 0
+    },
+    {
+      "case": "channel_scales_relu_clamp",
+      "busy_cycles": 146,
+      "input_stall_cycles": 37,
+      "output_stall_cycles": 0
+    },
+    {
+      "case": "board_perf_1x640x8",
+      "busy_cycles": 1319,
+      "input_stall_cycles": 642,
+      "output_stall_cycles": 0
+    },
+    {
+      "case": "t4_bank_edges_k33",
+      "busy_cycles": 181,
+      "input_stall_cycles": 55,
+      "output_stall_cycles": 0
+    }
+  ]
+}
+========================================================================
+Synthesis and retained hardware state
+{
+  "status": "pass",
+  "tool": "Vivado 2025.2",
+  "part": "xczu3eg-sbva484-1-e",
+  "scope": "out-of-context; not board timing sign-off",
+  "lut": 15981,
+  "ff": 15322,
+  "dsp": 16,
+  "ramb36": 0,
+  "ramb18": 0,
+  "clock_period_ns": 10,
+  "estimated_setup_slack_ns": 1.243,
+  "synthesis_warnings": 210,
+  "critical_warnings": 0,
+  "errors": 0,
+  "netlist_parity_registers": 97,
+  "netlist_error_registers": 7
+}
+Retained parity registers: 97
+Retained integrity error registers: 7
+g_read_ports[0].g_buffered.u_adapter/ parity=16 integrity_errors=1
+g_read_ports[1].g_buffered.u_adapter/ parity=16 integrity_errors=1
+g_read_ports[2].g_buffered.u_adapter/ parity=16 integrity_errors=1
+g_read_ports[3].g_buffered.u_adapter/ parity=16 integrity_errors=1
+g_read_ports[4].g_buffered.u_adapter/ parity=16 integrity_errors=1
+g_read_ports[5].g_buffered.u_adapter/ parity=16 integrity_errors=1
+g_output_buffer.u_adapter/ parity=1 integrity_errors=1
+g_output_buffer.u_adapter/parity_q_reg[15]
+g_read_ports[0].g_buffered.u_adapter/parity_q_reg[0]
+g_read_ports[0].g_buffered.u_adapter/parity_q_reg[10]
+g_read_ports[0].g_buffered.u_adapter/parity_q_reg[11]
+g_read_ports[0].g_buffered.u_adapter/parity_q_reg[12]
+g_read_ports[0].g_buffered.u_adapter/parity_q_reg[13]
+g_read_ports[0].g_buffered.u_adapter/parity_q_reg[14]
+g_read_ports[0].g_buffered.u_adapter/parity_q_reg[15]
+g_read_ports[0].g_buffered.u_adapter/parity_q_reg[1]
+g_read_ports[0].g_buffered.u_adapter/parity_q_reg[2]
+g_read_ports[0].g_buffered.u_adapter/parity_q_reg[3]
+g_read_ports[0].g_buffered.u_adapter/parity_q_reg[4]
+g_read_ports[0].g_buffered.u_adapter/parity_q_reg[5]
+g_read_ports[0].g_buffered.u_adapter/parity_q_reg[6]
+g_read_ports[0].g_buffered.u_adapter/parity_q_reg[7]
+g_read_ports[0].g_buffered.u_adapter/parity_q_reg[8]
+g_read_ports[0].g_buffered.u_adapter/parity_q_reg[9]
+g_read_ports[1].g_buffered.u_adapter/parity_q_reg[0]
+g_read_ports[1].g_buffered.u_adapter/parity_q_reg[10]
+g_read_ports[1].g_buffered.u_adapter/parity_q_reg[11]
+g_read_ports[1].g_buffered.u_adapter/parity_q_reg[12]
+g_read_ports[1].g_buffered.u_adapter/parity_q_reg[13]
+g_read_ports[1].g_buffered.u_adapter/parity_q_reg[14]
+g_read_ports[1].g_buffered.u_adapter/parity_q_reg[15]
+g_read_ports[1].g_buffered.u_adapter/parity_q_reg[1]
+g_read_ports[1].g_buffered.u_adapter/parity_q_reg[2]
+g_read_ports[1].g_buffered.u_adapter/parity_q_reg[3]
+g_read_ports[1].g_buffered.u_adapter/parity_q_reg[4]
+g_read_ports[1].g_buffered.u_adapter/parity_q_reg[5]
+g_read_ports[1].g_buffered.u_adapter/parity_q_reg[6]
+g_read_ports[1].g_buffered.u_adapter/parity_q_reg[7]
+g_read_ports[1].g_buffered.u_adapter/parity_q_reg[8]
+g_read_ports[1].g_buffered.u_adapter/parity_q_reg[9]
+g_read_ports[2].g_buffered.u_adapter/parity_q_reg[0]
+g_read_ports[2].g_buffered.u_adapter/parity_q_reg[10]
+g_read_ports[2].g_buffered.u_adapter/parity_q_reg[11]
+g_read_ports[2].g_buffered.u_adapter/parity_q_reg[12]
+g_read_ports[2].g_buffered.u_adapter/parity_q_reg[13]
+g_read_ports[2].g_buffered.u_adapter/parity_q_reg[14]
+g_read_ports[2].g_buffered.u_adapter/parity_q_reg[15]
+g_read_ports[2].g_buffered.u_adapter/parity_q_reg[1]
+g_read_ports[2].g_buffered.u_adapter/parity_q_reg[2]
+g_read_ports[2].g_buffered.u_adapter/parity_q_reg[3]
+g_read_ports[2].g_buffered.u_adapter/parity_q_reg[4]
+g_read_ports[2].g_buffered.u_adapter/parity_q_reg[5]
+g_read_ports[2].g_buffered.u_adapter/parity_q_reg[6]
+g_read_ports[2].g_buffered.u_adapter/parity_q_reg[7]
+g_read_ports[2].g_buffered.u_adapter/parity_q_reg[8]
+g_read_ports[2].g_buffered.u_adapter/parity_q_reg[9]
+g_read_ports[3].g_buffered.u_adapter/parity_q_reg[0]
+g_read_ports[3].g_buffered.u_adapter/parity_q_reg[10]
+g_read_ports[3].g_buffered.u_adapter/parity_q_reg[11]
+g_read_ports[3].g_buffered.u_adapter/parity_q_reg[12]
+g_read_ports[3].g_buffered.u_adapter/parity_q_reg[13]
+g_read_ports[3].g_buffered.u_adapter/parity_q_reg[14]
+g_read_ports[3].g_buffered.u_adapter/parity_q_reg[15]
+g_read_ports[3].g_buffered.u_adapter/parity_q_reg[1]
+g_read_ports[3].g_buffered.u_adapter/parity_q_reg[2]
+g_read_ports[3].g_buffered.u_adapter/parity_q_reg[3]
+g_read_ports[3].g_buffered.u_adapter/parity_q_reg[4]
+g_read_ports[3].g_buffered.u_adapter/parity_q_reg[5]
+g_read_ports[3].g_buffered.u_adapter/parity_q_reg[6]
+g_read_ports[3].g_buffered.u_adapter/parity_q_reg[7]
+g_read_ports[3].g_buffered.u_adapter/parity_q_reg[8]
+g_read_ports[3].g_buffered.u_adapter/parity_q_reg[9]
+g_read_ports[4].g_buffered.u_adapter/parity_q_reg[0]
+g_read_ports[4].g_buffered.u_adapter/parity_q_reg[10]
+g_read_ports[4].g_buffered.u_adapter/parity_q_reg[11]
+g_read_ports[4].g_buffered.u_adapter/parity_q_reg[12]
+g_read_ports[4].g_buffered.u_adapter/parity_q_reg[13]
+g_read_ports[4].g_buffered.u_adapter/parity_q_reg[14]
+g_read_ports[4].g_buffered.u_adapter/parity_q_reg[15]
+g_read_ports[4].g_buffered.u_adapter/parity_q_reg[1]
+g_read_ports[4].g_buffered.u_adapter/parity_q_reg[2]
+g_read_ports[4].g_buffered.u_adapter/parity_q_reg[3]
+g_read_ports[4].g_buffered.u_adapter/parity_q_reg[4]
+g_read_ports[4].g_buffered.u_adapter/parity_q_reg[5]
+g_read_ports[4].g_buffered.u_adapter/parity_q_reg[6]
+g_read_ports[4].g_buffered.u_adapter/parity_q_reg[7]
+g_read_ports[4].g_buffered.u_adapter/parity_q_reg[8]
+g_read_ports[4].g_buffered.u_adapter/parity_q_reg[9]
+g_read_ports[5].g_buffered.u_adapter/parity_q_reg[0]
+g_read_ports[5].g_buffered.u_adapter/parity_q_reg[10]
+g_read_ports[5].g_buffered.u_adapter/parity_q_reg[11]
+g_read_ports[5].g_buffered.u_adapter/parity_q_reg[12]
+g_read_ports[5].g_buffered.u_adapter/parity_q_reg[13]
+g_read_ports[5].g_buffered.u_adapter/parity_q_reg[14]
+g_read_ports[5].g_buffered.u_adapter/parity_q_reg[15]
+g_read_ports[5].g_buffered.u_adapter/parity_q_reg[1]
+g_read_ports[5].g_buffered.u_adapter/parity_q_reg[2]
+g_read_ports[5].g_buffered.u_adapter/parity_q_reg[3]
+g_read_ports[5].g_buffered.u_adapter/parity_q_reg[4]
+g_read_ports[5].g_buffered.u_adapter/parity_q_reg[5]
+g_read_ports[5].g_buffered.u_adapter/parity_q_reg[6]
+g_read_ports[5].g_buffered.u_adapter/parity_q_reg[7]
+g_read_ports[5].g_buffered.u_adapter/parity_q_reg[8]
+g_read_ports[5].g_buffered.u_adapter/parity_q_reg[9]
+g_output_buffer.u_adapter/integrity_error_o_reg
+g_read_ports[0].g_buffered.u_adapter/integrity_error_o_reg
+g_read_ports[1].g_buffered.u_adapter/integrity_error_o_reg
+g_read_ports[2].g_buffered.u_adapter/integrity_error_o_reg
+g_read_ports[3].g_buffered.u_adapter/integrity_error_o_reg
+g_read_ports[4].g_buffered.u_adapter/integrity_error_o_reg
+g_read_ports[5].g_buffered.u_adapter/integrity_error_o_reg

@@ -6,7 +6,12 @@ This directory contains SystemVerilog testbenches for verifying the individual m
 
 The testbenches are designed to verify basic read/write functionality, data integrity, signed-value handling, valid/ready handshaking, and output backpressure.
 
-Each memory component is tested independently using Icarus Verilog.
+All four components passed independently with Questa Intel Starter FPGA Edition-64
+2021.2 on merged revision `3577d48d063182e0e2e9560623f58cf0804621ae`. The
+[full validation record](../../../evidence/questa/final-prealpha/results.json)
+also includes eight rejected reset/validity/mode faults and the six-case golden
+matrix. Connected pipeline coverage is described in the
+[main test README](../../README.md#verified-pre-alpha-results).
 
 ## Directory Contents
 
@@ -19,53 +24,27 @@ Each memory component is tested independently using Icarus Verilog.
 
 ## Running the Tests
 
-The testbenches use Icarus Verilog.
+Add Questa's commands to PATH. Create and enter
+`build/tests/memory/standalone` under the repository, then run:
 
-Compile and run each test independently from the project root.
-
-### Activation Buffer
-
-```bash
-iverilog -g2012 -s tb_activation_buffer \
-    -o activation_test \
-    rtl/memory/activation_buffer.sv \
-    test/rtl/memory/tb_activation_buffer.sv
-
-vvp activation_test
+```sh
+vmap -c
+vlib work
+vmap work work
+vlog -sv ../../../../rtl/memory/activation_buffer.sv ../../../../tests/rtl/memory/tb_activation_buffer.sv
+vlog -sv ../../../../rtl/memory/weight_buffer.sv ../../../../tests/rtl/memory/tb_weight_buffer.sv
+vlog -sv ../../../../rtl/memory/parameter_buffer.sv ../../../../tests/rtl/memory/tb_parameter_buffer.sv
+vlog -sv ../../../../rtl/memory/output_buffer.sv ../../../../tests/rtl/memory/tb_output_buffer.sv
+vsim -c -onfinish exit -sva -immedassert work.tb_activation_buffer -do "run -all; quit -f"
+vsim -c -onfinish exit -sva -immedassert work.tb_weight_buffer -do "run -all; quit -f"
+vsim -c -onfinish exit -sva -immedassert work.tb_parameter_buffer -do "run -all; quit -f"
+vsim -c -onfinish exit -sva -immedassert work.tb_output_buffer -do "run -all; quit -f"
 ```
 
-### Weight Buffer
-
-```bash
-iverilog -g2012 -s tb_weight_buffer \
-    -o weight_test \
-    rtl/memory/weight_buffer.sv \
-    test/rtl/memory/tb_weight_buffer.sv
-
-vvp weight_test
-```
-
-### Parameter Buffer
-
-```bash
-iverilog -g2012 -s tb_parameter_buffer \
-    -o parameter_test \
-    rtl/memory/parameter_buffer.sv \
-    test/rtl/memory/tb_parameter_buffer.sv
-
-vvp parameter_test
-```
-
-### Output Buffer
-
-```bash
-iverilog -g2012 -s tb_output_buffer \
-    -o output_test \
-    rtl/memory/output_buffer.sv \
-    test/rtl/memory/tb_output_buffer.sv
-
-vvp output_test
-```
+Run simulations sequentially if the license permits only one active simulation.
+Require the matching `ALL ... BUFFER TESTS PASSED` marker and zero simulator
+errors; this Questa configuration can return exit code zero even after `$fatal`.
+The golden-buffer runners also check completion markers and data comparisons.
 
 ## Test Coverage
 
@@ -96,7 +75,7 @@ The weight buffer testbench verifies:
 - Response-valid clearing after consumption.
 - Overwriting an existing weight bank.
 
-**Simulation result:** Testbench prepared; execution and verification pending.
+**Simulation result:** All weight buffer tests passed.
 
 ### 3. Parameter Buffer
 
@@ -152,17 +131,16 @@ A successful simulation ends with an `ALL ... BUFFER TESTS PASSED` message.
 
 These testbenches verify the individual buffer RTL implementations in simulation.
 
-They do not yet verify:
+The [integration suite](../integration/run_questa.py) separately verifies the
+connected GEMM, buffer and operator path against golden INT8 outputs. It covers
+command rejection, stalls, reset recovery, destination bounds and guard bytes.
+Standalone NPU block synthesis also passed; the
+[FPGA review](../../../docs/reviews/RAVEN_BOARD_READINESS_REVIEW.md) explains its
+memory-inference warnings and limited scope.
 
-- Integration with the compute core.
-- Integration with the output operators.
-- Full-system memory ownership and bounds checking.
-- Complete GEMM execution.
-- Golden-reference comparison of the final GEMM output.
-- FPGA synthesis or BRAM inference.
-- Physical FPGA hardware operation.
-
-These items remain part of the broader RAVEN pre-alpha integration and verification effort.
+Physical backing BRAM, DMA/bank ownership, complete board timing and physical
+FPGA operation remain future work. These small buffer tests do not establish a
+working full-capacity scratchpad or a full-model implementation.
 
 ## Development Notes
 

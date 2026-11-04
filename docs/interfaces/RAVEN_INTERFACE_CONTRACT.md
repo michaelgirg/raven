@@ -6,6 +6,12 @@ This document defines shared behavior used by the five research documents. The r
 
 ## 1. Operand and result delivery
 
+The implemented pre-alpha buffered path additionally uses the
+[staging-integrity subset](RAVEN_STAGING_INTEGRITY.md): local per-byte parity,
+existing ERR_UNIT reporting with a faulting bank/word reference in ERR_INFO, and
+halt/reset/reload recovery. This does not add authentication or end-to-end backing
+memory protection to the broader proposed interface below.
+
 The baseline remains an 8×8 output-stationary array, signed INT8 raw multiplication, architectural INT32 sums, and a 100 MHz target. RESULT_LANES=1 is the bring-up configuration; four lanes remain an evaluation configuration.
 
 ### Logical memory ports and GEMM A

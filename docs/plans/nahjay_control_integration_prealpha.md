@@ -4,6 +4,12 @@
 See [Licensed Questa validation](#licensed-questa-validation) and the known limitations below.
 **Owner:** Nahjay (control/runtime). **Integration branch:** `main`.
 
+The subsequent [runtime staging-integrity implementation](../interfaces/RAVEN_STAGING_INTEGRITY.md)
+adds parity, ERR_UNIT bank/address reporting, a datapath/bank flush while control
+remains active, and T16 corruption/reset/reload recovery. Current counts and source
+hashes are in the [integrity validation record](../../evidence/questa/integrity/results.json).
+Earlier counts below describe the preceding control/integration validation.
+
 This plan is written for a coding agent working in a fresh session. Read all of it before
 writing code. The **Decisions** section settles the open design choices. Don't reopen them
 unless a teammate's merged RTL conflicts with them, and if one does, stop and report the conflict.
