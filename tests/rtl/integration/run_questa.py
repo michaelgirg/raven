@@ -33,6 +33,7 @@ SOURCES = [ROOT / p for p in (
     'rtl/operators/raven_requantize_clamp.sv',
     'rtl/memory/activation_buffer.sv', 'rtl/memory/weight_buffer.sv',
     'rtl/memory/parameter_buffer.sv', 'rtl/memory/output_buffer.sv',
+    'rtl/memory/raven_integrity_pkg.sv',
     'rtl/memory/raven_read_buffer_adapter.sv', 'rtl/memory/raven_output_buffer_adapter.sv',
     'rtl/top/raven_requant.sv', 'rtl/top/raven_result_writer.sv', 'rtl/top/raven_npu_top.sv',
     'tests/rtl/compute/sim_read_memory.sv',
@@ -44,7 +45,7 @@ SCRIPTS = [TEST / 'export_fixtures.py', TEST / 'run_questa.py', TEST / 'run_batc
            ROOT / 'tools/goldens/compare_prealpha.py']
 VECTORS = ROOT / 'tests/vectors/prealpha'
 # Tests the testbench must report, each by at least one "PASS ..." line.
-TESTS = [f'T{i}' for i in range(1, 16)]
+TESTS = [f'T{i}' for i in range(1, 17)]
 ERROR = re.compile(r'\*\*\s+(?:Warning|Error|Fatal)\b|^\s*#?\s*Errors:\s*[1-9]', re.M)
 BENIGN_WARNING = re.compile(r'^.*\*\*\s+Warning:\s+\(vopt-10587\).*$', re.M)
 # ModelSim-only: SVA is parsed but not simulated. Allowed only with --no-sva-guard.
@@ -92,7 +93,7 @@ def main():
         parser.error('--timeout must be positive')
     wanted = [t for t in args.tests.split(',') if t] or TESTS
     if any(t not in TESTS for t in wanted):
-        parser.error('--tests takes names from T1..T15')
+        parser.error('--tests takes names from T1..T16')
     questa_bin = args.questa_bin
     if questa_bin is None and os.environ.get('QUESTA_BIN'):
         questa_bin = Path(os.environ['QUESTA_BIN']).expanduser()
@@ -275,9 +276,35 @@ def main():
                 'tests': ['T1', 'T3'], 'pass_records': int(config_summary.group(1)),
                 'checks': int(config_summary.group(3))}
 
+            # Remove simulation-only RTL properties and repeat the corruption/
+            # recovery test. Error detection must still come from actual logic.
+            command('synthesis-define-vlib', [tools['vlib'], 'rtl_synthesis'])
+            command('synthesis-define-vmap', [tools['vmap'], 'rtl_synthesis', 'rtl_synthesis'])
+            command('synthesis-define-compile', [tools['vlog'], '-sv', '+define+SYNTHESIS',
+                    '-timescale', '1ns/1ps', '-work', 'rtl_synthesis', '-l', 'synthesis-define-compile.log',
+                    *[run_path(p) for p in SOURCES]])
+            (run / 'out-synthesis-define').mkdir()
+            synthesis_text = simulate('integrity-synthesis-define', 'tb_raven_npu_top',
+                ['+FIXTURES=fixtures', '+OUT=out-synthesis-define', '+TESTS=T16'],
+                library='rtl_synthesis', marker='ALL TESTS PASSED')
+            synthesis_summary = re.search(r'SUMMARY: (\d+) passed, (\d+) failed, (\d+) checks', synthesis_text)
+            if not synthesis_summary or int(synthesis_summary.group(2)) != 0:
+                raise RuntimeError('Integrity checks with simulation-only RTL assertions removed failed')
+            synthesis_dumps = dict(line.split() for line in
+                (run / 'out-synthesis-define/dumps.txt').read_text().splitlines())
+            if sorted(synthesis_dumps) != sorted(tag for tag in dumps if tag.startswith('t16_')) or len(synthesis_dumps) != 14:
+                raise RuntimeError('SYNTHESIS-defined recovery dumps missing')
+            for tag in synthesis_dumps:
+                if ((run / f'out-synthesis-define/actual_int8_{tag}.bin').read_bytes()
+                        != (run / f'out/actual_int8_{tag}.bin').read_bytes()):
+                    raise RuntimeError('SYNTHESIS-defined recovery bytes differ: ' + tag)
+            configuration_checks['SYNTHESIS=defined'] = {
+                'tests': ['T16'], 'pass_records': int(synthesis_summary.group(1)),
+                'checks': int(synthesis_summary.group(3)), 'matching_recovery_dumps': len(synthesis_dumps)}
+
             # Prove that the numerical pipeline consumes all four native buffers.
             # Compile isolated copies with a broken read value, then require the
-            # independent OUT0 scoreboard to reject the normal GEMM fixture.
+            # normal GEMM success check to reject runtime/scoreboard failures.
             faults = {
                 'activation': ('mem[i][rd_k]', "8'sd0"),
                 'weight': ('mem[rd_k][j]', "8'sd0"),
@@ -303,7 +330,7 @@ def main():
                 simulate(library, 'tb_raven_npu_top',
                          ['+FIXTURES=fixtures', '+OUT=out-' + library, '+TESTS=T4'], library=library,
                          rejection=True, marker='CHECK FAILED: normal_8x16x8:')
-                report['buffer_fault_checks'][name] = 'wrong native read value rejected by INT8 scoreboard'
+                report['buffer_fault_checks'][name] = 'broken native read path rejected by runtime/scoreboard checks'
 
         report['status'] = 'pass'
         report['configuration_checks'] = configuration_checks

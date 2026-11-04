@@ -27,6 +27,7 @@ foreach source {
     rtl/memory/weight_buffer.sv
     rtl/memory/parameter_buffer.sv
     rtl/memory/output_buffer.sv
+    rtl/memory/raven_integrity_pkg.sv
     rtl/memory/raven_read_buffer_adapter.sv
     rtl/memory/raven_output_buffer_adapter.sv
     rtl/top/raven_requant.sv

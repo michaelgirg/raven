@@ -3,7 +3,9 @@
 // KIND 0: activationBuffer, 1: weightBuffer, 2: parameterBuffer.
 // Full bank addresses go to backing memory; low address bits select a reused
 // staging slot. Every request refills that slot before returning its contents.
-module raven_read_buffer_adapter #(
+module raven_read_buffer_adapter
+    import raven_integrity_pkg::*;
+#(
     parameter int KIND = 0
 ) (
     input wire clk_i, rst_ni,
@@ -18,13 +20,17 @@ module raven_read_buffer_adapter #(
     output wire [23:0] mem_req_addr_o,
     input wire mem_rsp_valid_i,
     output wire mem_rsp_ready_o,
-    input wire [127:0] mem_rsp_data_i
+    input wire [127:0] mem_rsp_data_i,
+    output logic integrity_error_o, // Sticky until reset; no bad response is released.
+    output wire [23:0] integrity_addr_o
 );
     typedef enum logic [3:0] {MODE_MULT, MODE_SHIFT, IDLE, FETCH_REQ,
-        FETCH_RSP, WRITE_SLOT, READ_REQ, READ_RSP, RESPONSE} state_t;
+        FETCH_RSP, WRITE_SLOT, READ_REQ, READ_RSP, RESPONSE, FAULT} state_t;
     state_t state_q;
     logic [23:0] addr_q;
     logic [127:0] word_q;
+    logic [15:0] parity_q; // Baseline captured before the native buffer write/read.
+    wire parity_bad = byte_parity(word_q) != parity_q;
     logic [1:0] write_step_q;
     logic [3:0] read_step_q;
     wire native_wr_ready, native_rd_ready, native_rsp_valid;
@@ -35,11 +41,13 @@ module raven_read_buffer_adapter #(
         (KIND == 2 && state_q inside {MODE_MULT, MODE_SHIFT}));
 
     assign req_ready_o = rst_ni && state_q == IDLE;
-    assign rsp_valid_o = rst_ni && state_q == RESPONSE;
+    // Check continuously while held, including before the first acceptance.
+    assign rsp_valid_o = rst_ni && state_q == RESPONSE && !parity_bad;
     assign rsp_data_o = word_q;
     assign mem_req_valid_o = rst_ni && state_q == FETCH_REQ;
     assign mem_req_addr_o = addr_q;
     assign mem_rsp_ready_o = rst_ni && state_q == FETCH_RSP;
+    assign integrity_addr_o = addr_q;
 
     generate
         if (KIND == 0) begin : g_activation
@@ -96,6 +104,7 @@ module raven_read_buffer_adapter #(
         if (!rst_ni) begin
             state_q <= KIND == 2 ? MODE_MULT : IDLE;
             addr_q <= 0; word_q <= 0; write_step_q <= 0; read_step_q <= 0;
+            parity_q <= 0; integrity_error_o <= 0;
         end else begin
             case (state_q)
                 MODE_MULT: if (native_wr_ready) state_q <= MODE_SHIFT;
@@ -104,6 +113,7 @@ module raven_read_buffer_adapter #(
                 FETCH_REQ: if (mem_req_ready_i) state_q <= FETCH_RSP;
                 FETCH_RSP: if (mem_rsp_valid_i) begin
                     word_q <= mem_rsp_data_i; write_step_q <= 0; read_step_q <= 0;
+                    parity_q <= byte_parity(mem_rsp_data_i);
                     state_q <= WRITE_SLOT;
                 end
                 WRITE_SLOT: if (native_wr_ready) begin
@@ -120,7 +130,11 @@ module raven_read_buffer_adapter #(
                             (KIND == 1 && read_step_q == 1) || KIND == 2) state_q <= RESPONSE;
                     else begin read_step_q <= read_step_q + 1; state_q <= READ_REQ; end
                 end
-                RESPONSE: if (rsp_ready_i) state_q <= IDLE;
+                RESPONSE: begin
+                    if (parity_bad) begin integrity_error_o <= 1; state_q <= FAULT; end
+                    else if (rsp_ready_i) state_q <= IDLE;
+                end
+                FAULT: ; // Recovery requires reset and a refill from trusted backing data.
                 default: state_q <= KIND == 2 ? MODE_MULT : IDLE;
             endcase
         end
@@ -132,7 +146,8 @@ module raven_read_buffer_adapter #(
         req_valid_i && req_ready_o |-> req_addr_i[3:0] == 0);
     assert property (@(posedge clk_i) disable iff (!rst_ni || !$sampled(rst_ni))
         mem_req_valid_o && !mem_req_ready_i |=> mem_req_valid_o && $stable(mem_req_addr_o));
-    assert property (@(posedge clk_i) disable iff (!rst_ni || !$sampled(rst_ni))
+    assert property (@(posedge clk_i) disable iff (!rst_ni || !$sampled(rst_ni)
+        || integrity_error_o || (state_q == RESPONSE && parity_bad))
         rsp_valid_o && !rsp_ready_i |=> rsp_valid_o && $stable(rsp_data_o));
 `endif
 endmodule

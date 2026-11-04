@@ -10,12 +10,17 @@ module tb_raven_read_buffer_adapter #(parameter int KIND = 0);
     wire req_ready, rsp_valid, mem_req_valid, mem_rsp_ready;
     wire [23:0] mem_addr;
     wire [127:0] rsp_data;
+    wire integrity_error;
+    wire [23:0] integrity_addr;
+    logic [127:0] fault_value;
     int requests = 0, responses = 0, checks = 0;
+    int responses_before_fault;
     raven_read_buffer_adapter #(.KIND(KIND)) dut (
         .clk_i(clk), .rst_ni(rst_n), .req_valid_i(req_valid), .req_ready_o(req_ready), .req_addr_i(addr),
         .rsp_valid_o(rsp_valid), .rsp_ready_i(rsp_ready), .rsp_data_o(rsp_data),
         .mem_req_valid_o(mem_req_valid), .mem_req_ready_i(mem_req_ready), .mem_req_addr_o(mem_addr),
-        .mem_rsp_valid_i(mem_rsp_valid), .mem_rsp_ready_o(mem_rsp_ready), .mem_rsp_data_i(mem_data)
+        .mem_rsp_valid_i(mem_rsp_valid), .mem_rsp_ready_o(mem_rsp_ready), .mem_rsp_data_i(mem_data),
+        .integrity_error_o(integrity_error), .integrity_addr_o(integrity_addr)
     );
     always @(posedge clk) if (rst_n) begin
         if (mem_req_valid && mem_req_ready) requests++;
@@ -36,7 +41,7 @@ module tb_raven_read_buffer_adapter #(parameter int KIND = 0);
         tick(3);
         check(!rsp_valid && !mem_req_valid, "reset must cancel pending traffic");
         rst_n = 1; tick(4);
-        check(req_ready, "ready after reset and parameter-mode initialization");
+        check(req_ready && !integrity_error, "ready after reset and parameter-mode initialization");
     endtask
     task automatic start_read(input logic [23:0] address);
         check(req_ready, "request slot ready");
@@ -73,7 +78,8 @@ module tb_raven_read_buffer_adapter #(parameter int KIND = 0);
         rsp_ready = 1; tick(); rsp_ready = 0;
         tick(3);
         check(!rsp_valid && req_ready, "response retired without a duplicate");
-        check(requests == old_requests+1 && responses == old_responses+1, "exactly one fetch and response");
+        check(requests == old_requests+1 && responses == old_responses+1 && !integrity_error,
+              "exactly one fetch and response without a false parity error");
     endtask
     initial begin
         tick(); reset_adapter();
@@ -92,6 +98,27 @@ module tb_raven_read_buffer_adapter #(parameter int KIND = 0);
         complete_read(24'h000450, 44);
         start_read(24'h000560); fetch_word(pattern(45)); wait_response(); reset_adapter();
         complete_read(24'h000560, 46);
+        // Flip every retained response bit while the consumer is stalled.
+        // The parity circuit, not a golden scoreboard, must block the response.
+        for (int b = 0; b < 128; b++) begin
+            reset_adapter(); start_read(24'h000670); fetch_word(pattern(b+51)); wait_response();
+            dut.word_q[b] = !dut.word_q[b];
+            tick();
+            check(integrity_error && !rsp_valid && !req_ready && integrity_addr == 24'h000670,
+                  "single-bit corruption detected before response acceptance");
+            tick(3); check(integrity_error && !rsp_valid, "fault stays latched until reset");
+        end
+        // Corrupt a beat on the real native-buffer readback path as it is gathered.
+        reset_adapter(); start_read(24'h000780); fetch_word(pattern(199));
+        responses_before_fault = responses; rsp_ready = 1;
+        while (!(dut.state_q == dut.READ_RSP && dut.native_rsp_valid)) tick();
+        fault_value = dut.native_data ^ 128'd1;
+        force dut.native_data = fault_value;
+        tick(); release dut.native_data;
+        repeat (80) tick();
+        check(integrity_error && !rsp_valid && responses == responses_before_fault,
+              "native readback corruption never reaches a ready consumer");
+        reset_adapter(); complete_read(24'h000780, 200);
         $display("READ ADAPTER PASS kind=%0d checks=%0d", KIND, checks);
         $finish;
     end
@@ -109,12 +136,15 @@ module tb_raven_output_buffer_adapter;
     wire [23:0] mem_addr;
     wire [127:0] mem_data;
     wire [15:0] mem_strb;
+    wire integrity_error;
+    wire [23:0] integrity_addr;
     int accepted = 0, committed = 0, checks = 0;
     raven_output_buffer_adapter dut (
         .clk_i(clk), .rst_ni(rst_n), .w_valid_i(valid), .w_ready_o(ready),
         .w_addr_i(addr), .w_data_i(data), .w_strb_i(strb),
         .mem_w_valid_o(mem_valid), .mem_w_ready_i(mem_ready),
-        .mem_w_addr_o(mem_addr), .mem_w_data_o(mem_data), .mem_w_strb_o(mem_strb)
+        .mem_w_addr_o(mem_addr), .mem_w_data_o(mem_data), .mem_w_strb_o(mem_strb),
+        .integrity_error_o(integrity_error), .integrity_addr_o(integrity_addr)
     );
     always @(posedge clk) if (rst_n) begin
         if (valid && ready) accepted++;
@@ -130,7 +160,7 @@ module tb_raven_output_buffer_adapter;
     endtask
     task automatic reset_adapter;
         rst_n = 0; valid = 0; mem_ready = 0;
-        tick(3); check(!ready && !mem_valid, "reset cancels uncommitted write");
+        tick(3); check(!ready && !mem_valid && !integrity_error, "reset cancels uncommitted write and parity fault");
         rst_n = 1; tick(2);
     endtask
     task automatic start_write(input logic [23:0] address, input logic [15:0] mask, input int tag);
@@ -167,7 +197,7 @@ module tb_raven_output_buffer_adapter;
         check(observed === expected, "byte-enable storage preserves guards");
         mem_ready = 1; tick(); valid = 0; mem_ready = 0;
         tick(3);
-        check(accepted == old_accepted+1 && committed == old_committed+1 && !mem_valid,
+        check(accepted == old_accepted+1 && committed == old_committed+1 && !mem_valid && !integrity_error,
               "exactly one acknowledgement and committed write");
     endtask
     initial begin
@@ -182,6 +212,15 @@ module tb_raven_output_buffer_adapter;
         start_write(24'h000220, 16'h0080, 43); wait_commit(); tick(3); reset_adapter();
         complete_write(24'h000220, 16'h8000, 44);
         check(accepted == 21 && committed == 21, "reset attempts did not commit");
+        for (int b = 0; b < 128; b++) begin
+            reset_adapter(); start_write(24'h000330, 16'b1 << (b/8), b+51); wait_commit();
+            dut.staged_q[b] = !dut.staged_q[b];
+            tick();
+            check(integrity_error && !ready && !mem_valid && integrity_addr == 24'h000330,
+                  "each strobed-bit corruption blocks both write and acknowledgement");
+            tick(3); check(integrity_error && committed == 21, "no bad write while fault is latched");
+        end
+        reset_adapter(); complete_write(24'h000330, 16'hffff, 200);
         $display("OUTPUT ADAPTER PASS checks=%0d", checks);
         $finish;
     end
