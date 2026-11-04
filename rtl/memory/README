@@ -161,6 +161,31 @@ The integration logic must ensure that required data has been written before it 
 | Parameter buffer | RTL implemented; simulation tests passed. |
 | Output buffer | RTL implemented; simulation tests passed. |
 
+## Known Limitations and Future Improvements (some could be condisdered as bugs)
+
+- Activation and parameter buffers do not currently track whether
+  individual entries have been initialized.
+- Output buffer tracks written rows but does not prevent reads
+  from unwritten rows.
+- Read/write collision behavior should be explicitly defined
+  during integration.
+- Current output buffer supports 64 bytes of INT8 output data.
+  Additional capacity and addressing will be required for future
+  INT32 partial-sum storage.
+- Activation buffer uses conservative write gating while read
+  requests or responses are pending.
+- Parameter buffer does not currently track whether all required
+  parameters have been loaded.
+- Weight buffer verification is pending.
+
+## Integration Considerations
+
+- The controller must ensure that data is written before it is read.
+- Read requests and response consumption must follow the valid/ready
+  handshake protocol.
+- Simultaneous reads and writes to the same storage location
+  require a defined collision policy.
+
 ## Future Work
 
 - Define and verify memory ownership and bounds checks.
