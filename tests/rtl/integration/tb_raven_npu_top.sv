@@ -8,7 +8,7 @@
 // Plusargs:
 //   +FIXTURES=<dir>  export_fixtures.py output (required)
 //   +OUT=<dir>       where traces and actual_int8 dumps go (default: FIXTURES)
-//   +TESTS=<list>    tests to run, e.g. "T1,T4,T7" (default: all implemented, T1-T8)
+//   +TESTS=<list>    tests to run, e.g. "T1,T4,T10" (default: all implemented, T1-T11)
 //
 // Independent monitors count core command handshakes and OUT writes, record the cycle of
 // the last OUT write and of every DONE_SEQ change, and fail if completion comes first.
@@ -444,6 +444,22 @@ module tb_raven_npu_top;
         foreach (tests[i]) run_test_cases(tests[i], 1);
     endtask
 
+    // T9: Jackie's zero-K case: ERR_BAD_DIM at P1, no launch, no OUT0 write.
+    task automatic t9_zero_k();
+        run_test_cases("T9");
+    endtask
+
+    // T10: every control-detected rule, each with its exact ERR_INFO, no launch, no writes.
+    task automatic t10_control_errors();
+        run_test_cases("T10");
+    endtask
+
+    // T11: rules only the core checks (pitch, A alignment, accumulator overflow): one launch,
+    // the core's code passed through with ERR_INFO 0, and no OUT0 writes.
+    task automatic t11_core_errors();
+        run_test_cases("T11");
+    endtask
+
     // ---------------------------------------------------------------- main
     initial begin
         raven_status_t st;
@@ -465,6 +481,9 @@ module tb_raven_npu_top;
         if (want("T6")) begin t6_output_pitch(); $display("TEST T6 PASS"); end
         if (want("T7")) begin t7_bank_routing(); $display("TEST T7 PASS"); end
         if (want("T8")) begin t8_backpressure(); $display("TEST T8 PASS"); end
+        if (want("T9")) begin t9_zero_k(); $display("TEST T9 PASS"); end
+        if (want("T10")) begin t10_control_errors(); $display("TEST T10 PASS"); end
+        if (want("T11")) begin t11_core_errors(); $display("TEST T11 PASS"); end
 
         $display("SUMMARY: %0d passed, %0d failed, %0d checks", passed, failed, checks);
         if (failed == 0) $display("ALL TESTS PASSED");
