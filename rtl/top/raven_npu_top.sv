@@ -4,16 +4,18 @@
 //   reg bus -> raven_ctrl_regs <-> raven_ctrl --cmd--> raven_gemm_core --INT32-->
 //   raven_requant (PRM port B, Quan's raven_requantize_clamp) --INT8--> raven_result_writer --> OUT0
 //
-// The memories stay outside (D6): ACT0/ACT1/WGT0/WGT1 read ports, two PRM read ports and
-// an OUT0 write port are top-level ports, so testbench models now and Taylor's banks later
-// attach to the same wires. The core's A port is routed to ACT0 or ACT1 and its B port to
+// Full-capacity backing memories stay outside: ACT0/ACT1/WGT0/WGT1 read ports, two
+// PRM read ports and an OUT0 write port. Tile-buffer adapters stage each transfer
+// through the memory RTL; testbench models currently supply the backing storage.
+// The core's A port is routed to ACT0 or ACT1 and its B port to
 // WGT0 or WGT1 by the snapshot's BANK_IDs (D8); control has already rejected any other ID.
 // The datapath and every bank port run on local_rst_no = rst_ni && !SOFT_RESET (D11).
 module raven_npu_top
     import raven_ctrl_pkg::*;
 #(
     parameter int ROWS = 8, // Physical array rows.
-    parameter int COLS = 8 // Physical array columns.
+    parameter int COLS = 8, // Physical array columns.
+    parameter bit USE_TILE_BUFFERS = 1 // Stage bank traffic through the memory RTL.
 ) (
     input wire clk_i, rst_ni, // Active-low reset is checked on the rising clock edge.
     // Register bus (D1).
@@ -52,7 +54,7 @@ module raven_npu_top
     output wire out0_w_valid_o, // Write presented.
     input wire out0_w_ready_i, // Bank accepts (and commits) the write.
     output wire [23:0] out0_w_addr_o, // 16-byte-aligned word address.
-    output wire [127:0] out0_w_data_o, // INT8 value replicated into every lane.
+    output wire [127:0] out0_w_data_o, // Only strobed bytes carry valid output values.
     output wire [15:0] out0_w_strb_o // One-hot byte strobe.
 );
     // Register block <-> control.
@@ -75,6 +77,13 @@ module raven_npu_top
     wire [23:0] a_req_addr, b_req_addr;
     wire [127:0] a_rsp_data, b_rsp_data;
 
+    wire [5:0] bank_req_valid, bank_req_ready, bank_rsp_valid, bank_rsp_ready;
+    wire [23:0] bank_req_addr [6];
+    wire [127:0] bank_rsp_data [6];
+    wire [5:0] mem_req_valid, mem_req_ready, mem_rsp_valid, mem_rsp_ready;
+    wire [23:0] mem_req_addr [6];
+    wire [127:0] mem_rsp_data [6];
+
     // Output path.
     wire res_valid, res_ready, res_last;
     wire signed [31:0] res_data;
@@ -83,8 +92,12 @@ module raven_npu_top
     wire [7:0] q_data;
     wire [15:0] q_row, q_col;
     wire cfg_load, stored_last, writer_stall;
+    wire writer_w_valid, writer_w_ready;
+    wire [23:0] writer_w_addr;
+    wire [127:0] writer_w_data;
+    wire [15:0] writer_w_strb;
     logic requant_cfg_pending_q;
-    wire requant_cfg_load = requant_cfg_pending_q && prm_a_req_valid_o;
+    wire requant_cfg_load = requant_cfg_pending_q && bank_req_valid[4];
     wire requant_in_ready;
 
     // The core requests its first bias only after command validation succeeds.
@@ -133,8 +146,8 @@ module raven_npu_top
         .a_rsp_valid_i(a_rsp_valid), .a_rsp_ready_o(a_rsp_ready), .a_rsp_data_i(a_rsp_data),
         .b_req_valid_o(b_req_valid), .b_req_ready_i(b_req_ready), .b_req_addr_o(b_req_addr),
         .b_rsp_valid_i(b_rsp_valid), .b_rsp_ready_o(b_rsp_ready), .b_rsp_data_i(b_rsp_data),
-        .p_req_valid_o(prm_a_req_valid_o), .p_req_ready_i(prm_a_req_ready_i), .p_req_addr_o(prm_a_req_addr_o),
-        .p_rsp_valid_i(prm_a_rsp_valid_i), .p_rsp_ready_o(prm_a_rsp_ready_o), .p_rsp_data_i(prm_a_rsp_data_i),
+        .p_req_valid_o(bank_req_valid[4]), .p_req_ready_i(bank_req_ready[4]), .p_req_addr_o(bank_req_addr[4]),
+        .p_rsp_valid_i(bank_rsp_valid[4]), .p_rsp_ready_o(bank_rsp_ready[4]), .p_rsp_data_i(bank_rsp_data[4]),
         .result_valid_o(res_valid), .result_ready_i(res_ready), .result_data_o(res_data),
         .result_row_o(res_row), .result_col_o(res_col), .result_index_o(), .result_last_o(res_last),
         .busy_o(core_busy), .compute_done_o(core_compute_done), .result_done_o(core_result_done),
@@ -146,25 +159,25 @@ module raven_npu_top
     wire sel_act1 = ref_bank(cmd.src_a) == BANK_ACT1;
     wire sel_wgt1 = ref_bank(cmd.src_b) == BANK_WGT1;
 
-    assign act0_req_valid_o = a_req_valid && !sel_act1;
-    assign act1_req_valid_o = a_req_valid && sel_act1;
-    assign act0_req_addr_o = a_req_addr;
-    assign act1_req_addr_o = a_req_addr;
-    assign a_req_ready = sel_act1 ? act1_req_ready_i : act0_req_ready_i;
-    assign a_rsp_valid = sel_act1 ? act1_rsp_valid_i : act0_rsp_valid_i;
-    assign a_rsp_data = sel_act1 ? act1_rsp_data_i : act0_rsp_data_i;
-    assign act0_rsp_ready_o = a_rsp_ready && !sel_act1;
-    assign act1_rsp_ready_o = a_rsp_ready && sel_act1;
+    assign bank_req_valid[0] = a_req_valid && !sel_act1;
+    assign bank_req_valid[1] = a_req_valid && sel_act1;
+    assign bank_req_addr[0] = a_req_addr;
+    assign bank_req_addr[1] = a_req_addr;
+    assign a_req_ready = sel_act1 ? bank_req_ready[1] : bank_req_ready[0];
+    assign a_rsp_valid = sel_act1 ? bank_rsp_valid[1] : bank_rsp_valid[0];
+    assign a_rsp_data = sel_act1 ? bank_rsp_data[1] : bank_rsp_data[0];
+    assign bank_rsp_ready[0] = a_rsp_ready && !sel_act1;
+    assign bank_rsp_ready[1] = a_rsp_ready && sel_act1;
 
-    assign wgt0_req_valid_o = b_req_valid && !sel_wgt1;
-    assign wgt1_req_valid_o = b_req_valid && sel_wgt1;
-    assign wgt0_req_addr_o = b_req_addr;
-    assign wgt1_req_addr_o = b_req_addr;
-    assign b_req_ready = sel_wgt1 ? wgt1_req_ready_i : wgt0_req_ready_i;
-    assign b_rsp_valid = sel_wgt1 ? wgt1_rsp_valid_i : wgt0_rsp_valid_i;
-    assign b_rsp_data = sel_wgt1 ? wgt1_rsp_data_i : wgt0_rsp_data_i;
-    assign wgt0_rsp_ready_o = b_rsp_ready && !sel_wgt1;
-    assign wgt1_rsp_ready_o = b_rsp_ready && sel_wgt1;
+    assign bank_req_valid[2] = b_req_valid && !sel_wgt1;
+    assign bank_req_valid[3] = b_req_valid && sel_wgt1;
+    assign bank_req_addr[2] = b_req_addr;
+    assign bank_req_addr[3] = b_req_addr;
+    assign b_req_ready = sel_wgt1 ? bank_req_ready[3] : bank_req_ready[2];
+    assign b_rsp_valid = sel_wgt1 ? bank_rsp_valid[3] : bank_rsp_valid[2];
+    assign b_rsp_data = sel_wgt1 ? bank_rsp_data[3] : bank_rsp_data[2];
+    assign bank_rsp_ready[2] = b_rsp_ready && !sel_wgt1;
+    assign bank_rsp_ready[3] = b_rsp_ready && sel_wgt1;
 
     raven_requant #(.COLS(COLS), .ADDR_W(24)) u_requant (
         .clk_i, .rst_ni(local_rst_no),
@@ -179,8 +192,8 @@ module raven_npu_top
         .cfg_relu_i(cmd.op_flags[FLAG_RELU_EN]),
         .in_valid_i(res_valid && !requant_cfg_pending_q), .in_ready_o(requant_in_ready), .in_data_i(res_data),
         .in_row_i(res_row), .in_col_i(res_col), .in_last_i(res_last),
-        .p_req_valid_o(prm_b_req_valid_o), .p_req_ready_i(prm_b_req_ready_i), .p_req_addr_o(prm_b_req_addr_o),
-        .p_rsp_valid_i(prm_b_rsp_valid_i), .p_rsp_ready_o(prm_b_rsp_ready_o), .p_rsp_data_i(prm_b_rsp_data_i),
+        .p_req_valid_o(bank_req_valid[5]), .p_req_ready_i(bank_req_ready[5]), .p_req_addr_o(bank_req_addr[5]),
+        .p_rsp_valid_i(bank_rsp_valid[5]), .p_rsp_ready_o(bank_rsp_ready[5]), .p_rsp_data_i(bank_rsp_data[5]),
         .out_valid_o(q_valid), .out_ready_i(q_ready), .out_data_o(q_data),
         .out_row_o(q_row), .out_col_o(q_col), .out_last_o(q_last)
     );
@@ -191,10 +204,67 @@ module raven_npu_top
         .cfg_dst_offset_i(ref_offset(cmd.dst)), .cfg_out_pitch_i(cmd.p4[15:0]),
         .in_valid_i(q_valid), .in_ready_o(q_ready), .in_data_i(q_data),
         .in_row_i(q_row), .in_col_i(q_col), .in_last_i(q_last),
-        .w_valid_o(out0_w_valid_o), .w_ready_i(out0_w_ready_i), .w_addr_o(out0_w_addr_o),
-        .w_data_o(out0_w_data_o), .w_strb_o(out0_w_strb_o),
+        .w_valid_o(writer_w_valid), .w_ready_i(writer_w_ready), .w_addr_o(writer_w_addr),
+        .w_data_o(writer_w_data), .w_strb_o(writer_w_strb),
         .stored_last_o(stored_last), .stall_o(writer_stall), .writes_o()
     );
+
+    assign {prm_b_req_valid_o, prm_a_req_valid_o, wgt1_req_valid_o,
+            wgt0_req_valid_o, act1_req_valid_o, act0_req_valid_o} = mem_req_valid;
+    assign mem_req_ready = {prm_b_req_ready_i, prm_a_req_ready_i, wgt1_req_ready_i,
+            wgt0_req_ready_i, act1_req_ready_i, act0_req_ready_i};
+    assign mem_rsp_valid = {prm_b_rsp_valid_i, prm_a_rsp_valid_i, wgt1_rsp_valid_i,
+            wgt0_rsp_valid_i, act1_rsp_valid_i, act0_rsp_valid_i};
+    assign {prm_b_rsp_ready_o, prm_a_rsp_ready_o, wgt1_rsp_ready_o,
+            wgt0_rsp_ready_o, act1_rsp_ready_o, act0_rsp_ready_o} = mem_rsp_ready;
+    assign act0_req_addr_o = mem_req_addr[0];
+    assign act1_req_addr_o = mem_req_addr[1];
+    assign wgt0_req_addr_o = mem_req_addr[2];
+    assign wgt1_req_addr_o = mem_req_addr[3];
+    assign prm_a_req_addr_o = mem_req_addr[4];
+    assign prm_b_req_addr_o = mem_req_addr[5];
+    assign mem_rsp_data[0] = act0_rsp_data_i;
+    assign mem_rsp_data[1] = act1_rsp_data_i;
+    assign mem_rsp_data[2] = wgt0_rsp_data_i;
+    assign mem_rsp_data[3] = wgt1_rsp_data_i;
+    assign mem_rsp_data[4] = prm_a_rsp_data_i;
+    assign mem_rsp_data[5] = prm_b_rsp_data_i;
+
+    generate
+        for (genvar b = 0; b < 6; b++) begin : g_read_ports
+            if (USE_TILE_BUFFERS) begin : g_buffered
+                raven_read_buffer_adapter #(.KIND(b < 2 ? 0 : b < 4 ? 1 : 2)) u_adapter (
+                    .clk_i, .rst_ni(local_rst_no),
+                    .req_valid_i(bank_req_valid[b]), .req_ready_o(bank_req_ready[b]), .req_addr_i(bank_req_addr[b]),
+                    .rsp_valid_o(bank_rsp_valid[b]), .rsp_ready_i(bank_rsp_ready[b]), .rsp_data_o(bank_rsp_data[b]),
+                    .mem_req_valid_o(mem_req_valid[b]), .mem_req_ready_i(mem_req_ready[b]), .mem_req_addr_o(mem_req_addr[b]),
+                    .mem_rsp_valid_i(mem_rsp_valid[b]), .mem_rsp_ready_o(mem_rsp_ready[b]), .mem_rsp_data_i(mem_rsp_data[b])
+                );
+            end else begin : g_direct
+                assign mem_req_valid[b] = bank_req_valid[b];
+                assign bank_req_ready[b] = mem_req_ready[b];
+                assign mem_req_addr[b] = bank_req_addr[b];
+                assign bank_rsp_valid[b] = mem_rsp_valid[b];
+                assign mem_rsp_ready[b] = bank_rsp_ready[b];
+                assign bank_rsp_data[b] = mem_rsp_data[b];
+            end
+        end
+        if (USE_TILE_BUFFERS) begin : g_output_buffer
+            raven_output_buffer_adapter u_adapter (
+                .clk_i, .rst_ni(local_rst_no),
+                .w_valid_i(writer_w_valid), .w_ready_o(writer_w_ready), .w_addr_i(writer_w_addr),
+                .w_data_i(writer_w_data), .w_strb_i(writer_w_strb),
+                .mem_w_valid_o(out0_w_valid_o), .mem_w_ready_i(out0_w_ready_i), .mem_w_addr_o(out0_w_addr_o),
+                .mem_w_data_o(out0_w_data_o), .mem_w_strb_o(out0_w_strb_o)
+            );
+        end else begin : g_direct_output
+            assign out0_w_valid_o = writer_w_valid;
+            assign writer_w_ready = out0_w_ready_i;
+            assign out0_w_addr_o = writer_w_addr;
+            assign out0_w_data_o = writer_w_data;
+            assign out0_w_strb_o = writer_w_strb;
+        end
+    endgenerate
 
 `ifndef SYNTHESIS
     // Only the selected bank of each pair ever sees a request.
