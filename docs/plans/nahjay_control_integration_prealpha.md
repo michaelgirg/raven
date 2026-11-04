@@ -1,8 +1,8 @@
 # Pre-alpha plan: control and integration harness (Nahjay)
 
-**Status:** C1–C15 and C17 committed (November 3, 2026). **Remaining: a licensed Questa run of
-both runners, then C16 (evidence).** See "Still open" below.
-**Owner:** Nahjay (control/runtime). **Branch:** `nahjay_control`.
+**Status:** C1–C17 implemented, with licensed Questa validation and follow-up fixes.
+See [Licensed Questa validation](#licensed-questa-validation) and the known limitations below.
+**Owner:** Nahjay (control/runtime). **Integration branch:** `main`.
 
 This plan is written for a coding agent working in a fresh session. Read all of it before
 writing code. The **Decisions** section settles the open design choices. Don't reopen them
@@ -32,29 +32,43 @@ Hashes are after the November 3 history rewrite that removed commit trailers.
 | C13 | T9–T11 | `4452f8f` |
 | C14 | T12–T15 | `2e2a27f` |
 | C15 | `run_questa.py`, `run_batch.do` | `8850032` |
-| C16 | evidence | **not yet**, needs licensed Questa |
+| C16 | evidence | [Passing Questa records](../../evidence/questa/integration/) |
 | C17 | README, rtl/README, tests/README | `2f5f7ef` |
 
-### Still open
+### Licensed Questa validation
 
-1. **Questa run.** The `vlog`/`vsim` on PATH is ModelSim Intel FPGA 2020.1, which parses SVA
-   but does not simulate it. Questa FSE 23.1 is installed under
-   `~/intelFPGA_lite/23.1std/questa_fse/` but has no license configured (no
-   `LM_LICENSE_FILE`/`SALT_LICENSE_SERVER`). With a license, pass
-   `--questa-bin .../questa_fse/linux_x86_64` (not `bin/`, whose `vco` symlinks break the
-   runners) to both `tests/rtl/compute/run_questa.py` (Phase 0 baseline, still unconfirmed)
-   and `tests/rtl/integration/run_questa.py`. Any assertion failure there is new
-   information: fix it per §12's "Fix <what> in <module>" rule.
-2. **C16.** Copy the passing Questa run's `integration.log` (as `verification.log`) and
-   `results.json` into `evidence/questa/integration/`. Do not commit the ModelSim
-   `--no-sva-guard` run as evidence.
+Questa Intel Starter FPGA Edition-64 2021.2 passes T1–T15 with both immediate and
+concurrent assertion guards: 49 PASS records, 698 checks and 20 independent INT8
+comparisons. The runner also elaborates `COLS=1` and checks reset/NOP behavior
+(43 checks). The standalone compute regression passes all 168 fixtures and
+12 reset/restart phases. Curated [results](../../evidence/questa/integration/results.json)
+and the [combined log](../../evidence/questa/integration/verification.log) record
+the tested source hashes, commands and outcomes.
+
+The licensed run and added regressions exposed three problems:
+
+- Nine protocol assertion errors occurred on synchronous soft-reset release.
+  Assertion reset masks now include the reset value sampled on that clock.
+  Deliberate request/data-hold violations still fail with assertions enabled.
+- The requant loader issued PARAM reads before the core rejected invalid
+  commands. It now waits for the core's first validated bias request. PARAM
+  alignment/span regressions and read-count checks enforce clean rejection.
+- `$clog2(1)` produced zero-width channel casts. The wrapper now uses a minimum
+  index width of one, covered by the single-column runner check.
+
+The [original reset failure](../../evidence/questa/integration/experiments/01-soft-reset-assertions.log),
+[premature-read regression](../../evidence/questa/integration/experiments/02-premature-parameter-reads.log)
+and [single-column failure](../../evidence/questa/integration/experiments/03-single-column-elaboration.log)
+are retained alongside the passing evidence. Physical memory/DMA, firmware,
+synthesis and timing remain out of scope as listed in §9.
 
 ### What was verified (ModelSim 2020.1, `--no-sva-guard`)
 
 - T1–T15 all pass: 47 PASS records, 657 checks, and 20 INT8 dumps each re-checked by
   `compare_prealpha.py` with 0 mismatches. A deliberately corrupted expected byte makes the
   run fail with the address of the bad byte.
-- No RTL bug in C2–C8 turned up, so there are no "Fix ..." commits.
+- That limited run did not expose the reset-assertion and malformed-PARAM paths
+  found by the licensed Questa validation above.
 - Throwaway unit smoke tests (not committed): the writer, under random stalls, wrote the
   correct pitched bytes and kept the guards. The requant wrapper plus Quan's module was
   bit-exact on all six fixtures with PRM and output stalls. The six fixtures also passed
@@ -98,8 +112,8 @@ From C5–C15:
 
 - The writer and the requant are one-entry elastic stages. `out_stall_i` is
   `(core result valid && !ready) || writer stall`.
-- The writer latches DST/P4 and the requant latches its config on `op_cfg_load_o` (the core
-  launch handshake).
+- The writer latches DST/P4 on `op_cfg_load_o` (the core launch handshake). The top
+  defers requant configuration until the core's first validated bias request.
 - RELU_EN: the effective clamp minimum is `max(clamp_min, out_zp)`. The
   `channel_scales_relu_clamp` fixture sets RELU_EN, and its clamp_min already equals out_zp.
 - Control does not range-check Q_SHIFT/Q_MULT. `raven_requant` has a simulation assertion
@@ -223,7 +237,7 @@ Required flags for GEMM: `ACC_INIT | ACC_LAST | REQUANT_EN`. Optional: `RELU_EN`
 
 - **`raven_requant`** (Quan's module, or the stand-in `sim_requant`):
   - `in_valid/in_ready/in_data[31:0]/in_row/in_col/in_last`
-  - `cfg_load_i` (pulse at ISSUE), `cfg_per_channel_i`, `cfg_n_i`, `cfg_param_base_i`, `cfg_mult_i`, `cfg_shift_i`, `cfg_out_zp_i`, `cfg_clamp_min_i`, `cfg_clamp_max_i`, `cfg_relu_i`
+  - `cfg_load_i` (pulse after core validation, at the first bias request), `cfg_per_channel_i`, `cfg_n_i`, `cfg_param_base_i`, `cfg_mult_i`, `cfg_shift_i`, `cfg_out_zp_i`, `cfg_clamp_min_i`, `cfg_clamp_max_i`, `cfg_relu_i`
   - PRM read port B: `p_req_*`/`p_rsp_*`, the same shape as the core's
   - `out_valid/out_ready/out_data[7:0]/out_row/out_col/out_last`
   - Arithmetic: `scaled = (x*mul + (1 << (30-shift))) >>> (31-shift)` computed in at least 64 bits, then `+ out_zp`, then clamp.
@@ -286,7 +300,8 @@ then the matching commit from §12. Most phases produce more than one commit.
 
   NOP skips 2–6 and goes straight to RETIRE.
 - ISSUE: drive the core's `cmd_valid_i` from the snapshot until `cmd_valid && cmd_ready`
-  (exactly one handshake), and pulse requant `cfg_load` → RUN.
+  (exactly one handshake), configure the writer and mark requant configuration pending → RUN.
+  Load the requant only when the core begins its first validated bias request.
 - RUN/DRAIN: RUN until `compute_done_o`, then DRAIN.
   - On the core's `error_o`: if `error_code_o` is 0x02, 0x03 or 0x08, pass it through; anything else becomes `0x09 ERR_UNIT`.
   - RETIRE when the D5 conditions are met. The two events can arrive in either order: latch each one.

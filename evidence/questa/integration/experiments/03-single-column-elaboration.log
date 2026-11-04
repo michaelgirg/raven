@@ -1,0 +1,17 @@
+Reading pref.tcl
+
+# 2021.2
+
+# vsim -c -onfinish exit -t 1ps -sva -immedassert -l single-column.log -wlf single-column.wlf work.tb_raven_npu_top "+FIXTURES=fixtures" "+OUT=out-cols1" "+TESTS=T1,T3" -do "run_batch.do" -gCOLS=1
+# Start time: 12:01:53 on Nov 04,2026
+# ** Note: (vsim-3812) Design is being optimized...
+# ** Error: ../../../../../rtl/top/raven_requant.sv(84): Width specified can not be zero and negative.
+# ** Error: ../../../../../rtl/top/raven_requant.sv(85): Width specified can not be zero and negative.
+# ** Error: ../../../../../rtl/top/raven_requant.sv(93): Width specified can not be zero and negative.
+# Optimization failed
+# ** Error: (vopt-2064) Compiler back-end code generation process terminated with code 12.
+# ** Note: (vsim-12126) Error and warning message counts have been restored: Errors=4, Warnings=0.
+# Error loading design
+Error loading design
+# End time: 12:01:53 on Nov 04,2026, Elapsed time: 0:00:00
+# Errors: 4, Warnings: 0

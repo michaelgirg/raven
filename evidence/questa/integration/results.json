@@ -1,0 +1,687 @@
+{
+  "started_utc": "2026-11-04T17:02:26.055095+00:00",
+  "platform": "Windows-10-10.0.19045-SP0",
+  "python": "3.12.10 (tags/v3.12.10:0cc8128, Apr  8 2025, 12:21:36) [MSC v.1943 64 bit (AMD64)]",
+  "tools": {
+    "vsim": "vsim.EXE",
+    "vlog": "vlog.EXE",
+    "vlib": "vlib.EXE",
+    "vmap": "vmap.EXE"
+  },
+  "simulator_selection": "PATH",
+  "sva_checked": true,
+  "tests_requested": [
+    "T1",
+    "T2",
+    "T3",
+    "T4",
+    "T5",
+    "T6",
+    "T7",
+    "T8",
+    "T9",
+    "T10",
+    "T11",
+    "T12",
+    "T13",
+    "T14",
+    "T15"
+  ],
+  "source_sha256": {
+    "rtl/control/raven_ctrl_pkg.sv": "a8f350a31af719453dd61c237ebcabc2c6c0c53952c3da44f0b69f765e7992c9",
+    "rtl/control/raven_ctrl_regs.sv": "49527bba476bee094b04270fb7b519597ede13f83a9dbebce28e0f1cd8a3babd",
+    "rtl/control/raven_ctrl.sv": "359569f6ce26d82c9e519c7004fb7c6fe5a5b092323a1c99ff8b96373fb5d6f8",
+    "rtl/compute/raven_mac_pe.sv": "0b69cc03b120401f22bc2e39a1c126de4ad5ca5d3bc8af325c0e6627de3fc863",
+    "rtl/compute/raven_mac_array.sv": "9012c246244b0bff1e9ed752945f2bee89d4a81ba44cbead7cc3ea9928a3c60f",
+    "rtl/compute/raven_gemm_frontend.sv": "fd285b7bfc29b0b80ec7ae0f84b85e59a5f47209e0f372d26efb89e616c92f9f",
+    "rtl/compute/raven_gemm_core.sv": "a62277a61663804b8a8e60bdb0b81525d7c8a55d7a3e72807dbd5b4a1cde5562",
+    "rtl/operators/raven_requantize_clamp.sv": "4fea4519e152c51fac6fa8f1de181a6157c357f5933e3701683ae93c418fa8e0",
+    "rtl/top/raven_requant.sv": "1adbd6cd1309441ddf237643e9f2ee45c55748e7fd05db0b0c4f8d3f90823132",
+    "rtl/top/raven_result_writer.sv": "e1c6ab683f15668072cdf677af134935cfbd0c01b1c24d937b250247bb8fb99d",
+    "rtl/top/raven_npu_top.sv": "d4111c7a1ec443ecd00855547a7f208c6f4511c77b14f782839fa04bc2c25d41",
+    "tests/rtl/compute/sim_read_memory.sv": "700f09c7901bb24ab12662493c952f492f5776c8014b28b6fce9c53addd4d8a3",
+    "tests/rtl/integration/sim_write_memory.sv": "e1a09058af5063fd69f45bddc6386bc24ce74b5e1eb04b2fb79dcbaf9bfcb473",
+    "tests/rtl/integration/raven_tb_driver_pkg.sv": "2d059c5176fdf80420e65682c24907e78e4324434e2fb930afb07456a0c3d0c3",
+    "tests/rtl/integration/tb_raven_npu_top.sv": "9412e598af92590d8d85d32adf1eb4377a2c6d7e66a527e3dd40a8b7e3d3923b",
+    "tests/rtl/integration/export_fixtures.py": "a785ff7f2f6aca47454e55628bb9013a5ee6cdcdc4e1e07c4cb85229ada4872a",
+    "tests/rtl/integration/run_questa.py": "9381fa36927739d9735363fcbf282092c9a76301a825b5cb322a3835c83e8f23",
+    "tests/rtl/integration/run_batch.do": "c17392bd87c86cc852082b37474db4d8193184932df810cef7ab02982156d059",
+    "tools/goldens/compare_prealpha.py": "48ee82969ccfc65eadb7fd5f5976f1f6f01d4f8d351e5fd2903b3d3e37583431"
+  },
+  "steps": [
+    {
+      "name": "vsim-version",
+      "argv": [
+        "vsim",
+        "-version"
+      ],
+      "returncode": 0,
+      "seconds": 0.063,
+      "timed_out": false,
+      "expected_failure": false,
+      "status": "pass"
+    },
+    {
+      "name": "vlog-version",
+      "argv": [
+        "vlog",
+        "-version"
+      ],
+      "returncode": 0,
+      "seconds": 0.031,
+      "timed_out": false,
+      "expected_failure": false,
+      "status": "pass"
+    },
+    {
+      "name": "vmap-local",
+      "argv": [
+        "vmap",
+        "-c"
+      ],
+      "returncode": 0,
+      "seconds": 0.047,
+      "timed_out": false,
+      "expected_failure": false,
+      "status": "pass"
+    },
+    {
+      "name": "vlib",
+      "argv": [
+        "vlib",
+        "work"
+      ],
+      "returncode": 0,
+      "seconds": 0.047,
+      "timed_out": false,
+      "expected_failure": false,
+      "status": "pass"
+    },
+    {
+      "name": "vmap-work",
+      "argv": [
+        "vmap",
+        "work",
+        "work"
+      ],
+      "returncode": 0,
+      "seconds": 0.031,
+      "timed_out": false,
+      "expected_failure": false,
+      "status": "pass"
+    },
+    {
+      "name": "compile",
+      "argv": [
+        "vlog",
+        "-sv",
+        "-work",
+        "work",
+        "-l",
+        "compile.log",
+        "../../../../../rtl/control/raven_ctrl_pkg.sv",
+        "../../../../../rtl/control/raven_ctrl_regs.sv",
+        "../../../../../rtl/control/raven_ctrl.sv",
+        "../../../../../rtl/compute/raven_mac_pe.sv",
+        "../../../../../rtl/compute/raven_mac_array.sv",
+        "../../../../../rtl/compute/raven_gemm_frontend.sv",
+        "../../../../../rtl/compute/raven_gemm_core.sv",
+        "../../../../../rtl/operators/raven_requantize_clamp.sv",
+        "../../../../../rtl/top/raven_requant.sv",
+        "../../../../../rtl/top/raven_result_writer.sv",
+        "../../../../../rtl/top/raven_npu_top.sv",
+        "../../../../../tests/rtl/compute/sim_read_memory.sv",
+        "../../../../../tests/rtl/integration/sim_write_memory.sv",
+        "../../../../../tests/rtl/integration/raven_tb_driver_pkg.sv",
+        "../../../../../tests/rtl/integration/tb_raven_npu_top.sv",
+        "assertion_probe.sv"
+      ],
+      "returncode": 0,
+      "seconds": 0.109,
+      "timed_out": false,
+      "expected_failure": false,
+      "status": "pass"
+    },
+    {
+      "name": "guard-immediate",
+      "argv": [
+        "vsim",
+        "-c",
+        "-onfinish",
+        "exit",
+        "-t",
+        "1ps",
+        "-sva",
+        "-immedassert",
+        "-l",
+        "guard-immediate.log",
+        "-wlf",
+        "guard-immediate.wlf",
+        "work.tb_assertion_probe",
+        "-do",
+        "run_batch.do"
+      ],
+      "returncode": 0,
+      "seconds": 1.375,
+      "timed_out": false,
+      "expected_failure": true,
+      "status": "pass"
+    },
+    {
+      "name": "guard-sva",
+      "argv": [
+        "vsim",
+        "-c",
+        "-onfinish",
+        "exit",
+        "-t",
+        "1ps",
+        "-sva",
+        "-immedassert",
+        "-l",
+        "guard-sva.log",
+        "-wlf",
+        "guard-sva.wlf",
+        "work.tb_assertion_probe",
+        "+SVA",
+        "-do",
+        "run_batch.do"
+      ],
+      "returncode": 0,
+      "seconds": 1.079,
+      "timed_out": false,
+      "expected_failure": true,
+      "status": "pass"
+    },
+    {
+      "name": "fixtures",
+      "argv": [
+        "python",
+        "../../../../../tests/rtl/integration/export_fixtures.py",
+        "--vectors",
+        "../../../../../tests/vectors/prealpha",
+        "--output",
+        "fixtures"
+      ],
+      "returncode": 0,
+      "seconds": 0.156,
+      "timed_out": false,
+      "expected_failure": false,
+      "status": "pass"
+    },
+    {
+      "name": "integration",
+      "argv": [
+        "vsim",
+        "-c",
+        "-onfinish",
+        "exit",
+        "-t",
+        "1ps",
+        "-sva",
+        "-immedassert",
+        "-l",
+        "integration.log",
+        "-wlf",
+        "integration.wlf",
+        "work.tb_raven_npu_top",
+        "+FIXTURES=fixtures",
+        "+OUT=out",
+        "+TESTS=T1,T2,T3,T4,T5,T6,T7,T8,T9,T10,T11,T12,T13,T14,T15",
+        "-do",
+        "run_batch.do"
+      ],
+      "returncode": 0,
+      "seconds": 7.765,
+      "timed_out": false,
+      "expected_failure": false,
+      "status": "pass"
+    },
+    {
+      "name": "compare-channel_scales_relu_clamp",
+      "argv": [
+        "python",
+        "../../../../../tools/goldens/compare_prealpha.py",
+        "--case",
+        "../../../../../tests/vectors/prealpha/channel_scales_relu_clamp",
+        "--kind",
+        "int8",
+        "--actual",
+        "out/actual_int8_channel_scales_relu_clamp.bin"
+      ],
+      "returncode": 0,
+      "seconds": 0.079,
+      "timed_out": false,
+      "expected_failure": false,
+      "status": "pass"
+    },
+    {
+      "name": "compare-channel_scales_relu_clamp_stalled",
+      "argv": [
+        "python",
+        "../../../../../tools/goldens/compare_prealpha.py",
+        "--case",
+        "../../../../../tests/vectors/prealpha/channel_scales_relu_clamp",
+        "--kind",
+        "int8",
+        "--actual",
+        "out/actual_int8_channel_scales_relu_clamp_stalled.bin"
+      ],
+      "returncode": 0,
+      "seconds": 0.062,
+      "timed_out": false,
+      "expected_failure": false,
+      "status": "pass"
+    },
+    {
+      "name": "compare-normal_8x16x8",
+      "argv": [
+        "python",
+        "../../../../../tools/goldens/compare_prealpha.py",
+        "--case",
+        "../../../../../tests/vectors/prealpha/normal_8x16x8",
+        "--kind",
+        "int8",
+        "--actual",
+        "out/actual_int8_normal_8x16x8.bin"
+      ],
+      "returncode": 0,
+      "seconds": 0.063,
+      "timed_out": false,
+      "expected_failure": false,
+      "status": "pass"
+    },
+    {
+      "name": "compare-normal_8x16x8_stalled",
+      "argv": [
+        "python",
+        "../../../../../tools/goldens/compare_prealpha.py",
+        "--case",
+        "../../../../../tests/vectors/prealpha/normal_8x16x8",
+        "--kind",
+        "int8",
+        "--actual",
+        "out/actual_int8_normal_8x16x8_stalled.bin"
+      ],
+      "returncode": 0,
+      "seconds": 0.062,
+      "timed_out": false,
+      "expected_failure": false,
+      "status": "pass"
+    },
+    {
+      "name": "compare-partial_tile_7x13x5",
+      "argv": [
+        "python",
+        "../../../../../tools/goldens/compare_prealpha.py",
+        "--case",
+        "../../../../../tests/vectors/prealpha/partial_tile_7x13x5",
+        "--kind",
+        "int8",
+        "--actual",
+        "out/actual_int8_partial_tile_7x13x5.bin"
+      ],
+      "returncode": 0,
+      "seconds": 0.063,
+      "timed_out": false,
+      "expected_failure": false,
+      "status": "pass"
+    },
+    {
+      "name": "compare-partial_tile_7x13x5_stalled",
+      "argv": [
+        "python",
+        "../../../../../tools/goldens/compare_prealpha.py",
+        "--case",
+        "../../../../../tests/vectors/prealpha/partial_tile_7x13x5",
+        "--kind",
+        "int8",
+        "--actual",
+        "out/actual_int8_partial_tile_7x13x5_stalled.bin"
+      ],
+      "returncode": 0,
+      "seconds": 0.062,
+      "timed_out": false,
+      "expected_failure": false,
+      "status": "pass"
+    },
+    {
+      "name": "compare-positive_negative_saturation",
+      "argv": [
+        "python",
+        "../../../../../tools/goldens/compare_prealpha.py",
+        "--case",
+        "../../../../../tests/vectors/prealpha/positive_negative_saturation",
+        "--kind",
+        "int8",
+        "--actual",
+        "out/actual_int8_positive_negative_saturation.bin"
+      ],
+      "returncode": 0,
+      "seconds": 0.047,
+      "timed_out": false,
+      "expected_failure": false,
+      "status": "pass"
+    },
+    {
+      "name": "compare-positive_negative_saturation_stalled",
+      "argv": [
+        "python",
+        "../../../../../tools/goldens/compare_prealpha.py",
+        "--case",
+        "../../../../../tests/vectors/prealpha/positive_negative_saturation",
+        "--kind",
+        "int8",
+        "--actual",
+        "out/actual_int8_positive_negative_saturation_stalled.bin"
+      ],
+      "returncode": 0,
+      "seconds": 0.062,
+      "timed_out": false,
+      "expected_failure": false,
+      "status": "pass"
+    },
+    {
+      "name": "compare-rounding_ties",
+      "argv": [
+        "python",
+        "../../../../../tools/goldens/compare_prealpha.py",
+        "--case",
+        "../../../../../tests/vectors/prealpha/rounding_ties",
+        "--kind",
+        "int8",
+        "--actual",
+        "out/actual_int8_rounding_ties.bin"
+      ],
+      "returncode": 0,
+      "seconds": 0.063,
+      "timed_out": false,
+      "expected_failure": false,
+      "status": "pass"
+    },
+    {
+      "name": "compare-rounding_ties_stalled",
+      "argv": [
+        "python",
+        "../../../../../tools/goldens/compare_prealpha.py",
+        "--case",
+        "../../../../../tests/vectors/prealpha/rounding_ties",
+        "--kind",
+        "int8",
+        "--actual",
+        "out/actual_int8_rounding_ties_stalled.bin"
+      ],
+      "returncode": 0,
+      "seconds": 0.062,
+      "timed_out": false,
+      "expected_failure": false,
+      "status": "pass"
+    },
+    {
+      "name": "compare-signed_nonzero_zp_stalled",
+      "argv": [
+        "python",
+        "../../../../../tools/goldens/compare_prealpha.py",
+        "--case",
+        "../../../../../tests/vectors/prealpha/signed_nonzero_zp_stalled",
+        "--kind",
+        "int8",
+        "--actual",
+        "out/actual_int8_signed_nonzero_zp_stalled.bin"
+      ],
+      "returncode": 0,
+      "seconds": 0.063,
+      "timed_out": false,
+      "expected_failure": false,
+      "status": "pass"
+    },
+    {
+      "name": "compare-signed_nonzero_zp_stalled_stalled",
+      "argv": [
+        "python",
+        "../../../../../tools/goldens/compare_prealpha.py",
+        "--case",
+        "../../../../../tests/vectors/prealpha/signed_nonzero_zp_stalled",
+        "--kind",
+        "int8",
+        "--actual",
+        "out/actual_int8_signed_nonzero_zp_stalled_stalled.bin"
+      ],
+      "returncode": 0,
+      "seconds": 0.062,
+      "timed_out": false,
+      "expected_failure": false,
+      "status": "pass"
+    },
+    {
+      "name": "compare-t12_start_while_busy",
+      "argv": [
+        "python",
+        "../../../../../tools/goldens/compare_prealpha.py",
+        "--case",
+        "../../../../../tests/vectors/prealpha/normal_8x16x8",
+        "--kind",
+        "int8",
+        "--actual",
+        "out/actual_int8_t12_start_while_busy.bin"
+      ],
+      "returncode": 0,
+      "seconds": 0.063,
+      "timed_out": false,
+      "expected_failure": false,
+      "status": "pass"
+    },
+    {
+      "name": "compare-t15_staging_rewrite",
+      "argv": [
+        "python",
+        "../../../../../tools/goldens/compare_prealpha.py",
+        "--case",
+        "../../../../../tests/vectors/prealpha/normal_8x16x8",
+        "--kind",
+        "int8",
+        "--actual",
+        "out/actual_int8_t15_staging_rewrite.bin"
+      ],
+      "returncode": 0,
+      "seconds": 0.047,
+      "timed_out": false,
+      "expected_failure": false,
+      "status": "pass"
+    },
+    {
+      "name": "compare-t5_normal_shared_scale",
+      "argv": [
+        "python",
+        "../../../../../tools/goldens/compare_prealpha.py",
+        "--case",
+        "../../../../../tests/vectors/prealpha/normal_8x16x8",
+        "--kind",
+        "int8",
+        "--actual",
+        "out/actual_int8_t5_normal_shared_scale.bin"
+      ],
+      "returncode": 0,
+      "seconds": 0.062,
+      "timed_out": false,
+      "expected_failure": false,
+      "status": "pass"
+    },
+    {
+      "name": "compare-t5_normal_shared_scale_stalled",
+      "argv": [
+        "python",
+        "../../../../../tools/goldens/compare_prealpha.py",
+        "--case",
+        "../../../../../tests/vectors/prealpha/normal_8x16x8",
+        "--kind",
+        "int8",
+        "--actual",
+        "out/actual_int8_t5_normal_shared_scale_stalled.bin"
+      ],
+      "returncode": 0,
+      "seconds": 0.063,
+      "timed_out": false,
+      "expected_failure": false,
+      "status": "pass"
+    },
+    {
+      "name": "compare-t6_partial_pitch16_dst100",
+      "argv": [
+        "python",
+        "../../../../../tools/goldens/compare_prealpha.py",
+        "--case",
+        "../../../../../tests/vectors/prealpha/partial_tile_7x13x5",
+        "--kind",
+        "int8",
+        "--actual",
+        "out/actual_int8_t6_partial_pitch16_dst100.bin"
+      ],
+      "returncode": 0,
+      "seconds": 0.062,
+      "timed_out": false,
+      "expected_failure": false,
+      "status": "pass"
+    },
+    {
+      "name": "compare-t6_partial_pitch16_dst100_stalled",
+      "argv": [
+        "python",
+        "../../../../../tools/goldens/compare_prealpha.py",
+        "--case",
+        "../../../../../tests/vectors/prealpha/partial_tile_7x13x5",
+        "--kind",
+        "int8",
+        "--actual",
+        "out/actual_int8_t6_partial_pitch16_dst100_stalled.bin"
+      ],
+      "returncode": 0,
+      "seconds": 0.063,
+      "timed_out": false,
+      "expected_failure": false,
+      "status": "pass"
+    },
+    {
+      "name": "compare-t7_normal_act1_wgt1",
+      "argv": [
+        "python",
+        "../../../../../tools/goldens/compare_prealpha.py",
+        "--case",
+        "../../../../../tests/vectors/prealpha/normal_8x16x8",
+        "--kind",
+        "int8",
+        "--actual",
+        "out/actual_int8_t7_normal_act1_wgt1.bin"
+      ],
+      "returncode": 0,
+      "seconds": 0.062,
+      "timed_out": false,
+      "expected_failure": false,
+      "status": "pass"
+    },
+    {
+      "name": "compare-t7_normal_act1_wgt1_stalled",
+      "argv": [
+        "python",
+        "../../../../../tools/goldens/compare_prealpha.py",
+        "--case",
+        "../../../../../tests/vectors/prealpha/normal_8x16x8",
+        "--kind",
+        "int8",
+        "--actual",
+        "out/actual_int8_t7_normal_act1_wgt1_stalled.bin"
+      ],
+      "returncode": 0,
+      "seconds": 0.063,
+      "timed_out": false,
+      "expected_failure": false,
+      "status": "pass"
+    },
+    {
+      "name": "single-column",
+      "argv": [
+        "vsim",
+        "-c",
+        "-onfinish",
+        "exit",
+        "-t",
+        "1ps",
+        "-sva",
+        "-immedassert",
+        "-l",
+        "single-column.log",
+        "-wlf",
+        "single-column.wlf",
+        "-gCOLS=1",
+        "work.tb_raven_npu_top",
+        "+FIXTURES=fixtures",
+        "+OUT=out-cols1",
+        "+TESTS=T1,T3",
+        "-do",
+        "run_batch.do"
+      ],
+      "returncode": 0,
+      "seconds": 1.578,
+      "timed_out": false,
+      "expected_failure": false,
+      "status": "pass"
+    }
+  ],
+  "status": "pass",
+  "configuration_checks": {
+    "COLS=1": {
+      "tests": [
+        "T1",
+        "T3"
+      ],
+      "pass_records": 2,
+      "checks": 43
+    }
+  },
+  "totals": {
+    "tests": [
+      "T1",
+      "T2",
+      "T3",
+      "T4",
+      "T5",
+      "T6",
+      "T7",
+      "T8",
+      "T9",
+      "T10",
+      "T11",
+      "T12",
+      "T13",
+      "T14",
+      "T15"
+    ],
+    "pass_records": 49,
+    "checks": 698,
+    "int8_comparisons": [
+      "channel_scales_relu_clamp",
+      "channel_scales_relu_clamp_stalled",
+      "normal_8x16x8",
+      "normal_8x16x8_stalled",
+      "partial_tile_7x13x5",
+      "partial_tile_7x13x5_stalled",
+      "positive_negative_saturation",
+      "positive_negative_saturation_stalled",
+      "rounding_ties",
+      "rounding_ties_stalled",
+      "signed_nonzero_zp_stalled",
+      "signed_nonzero_zp_stalled_stalled",
+      "t12_start_while_busy",
+      "t15_staging_rewrite",
+      "t5_normal_shared_scale",
+      "t5_normal_shared_scale_stalled",
+      "t6_partial_pitch16_dst100",
+      "t6_partial_pitch16_dst100_stalled",
+      "t7_normal_act1_wgt1",
+      "t7_normal_act1_wgt1_stalled"
+    ]
+  },
+  "vsim_version": "Questa  Intel Starter FPGA Edition-64 vsim 2021.2 Simulator 2021.04 Apr 14 2021",
+  "vlog_version": "Questa Intel Starter FPGA Edition-64 vlog 2021.2 Compiler 2021.04 Apr 14 2021",
+  "finished_utc": "2026-11-04T17:02:39.639121+00:00"
+}

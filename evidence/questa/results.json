@@ -1,5 +1,5 @@
 {
-  "started_utc": "2026-11-03T06:25:20.713938+00:00",
+  "started_utc": "2026-11-04T17:03:43.593573+00:00",
   "platform": "Windows-10-10.0.19045-SP0",
   "python": "3.12.10 (tags/v3.12.10:0cc8128, Apr  8 2025, 12:21:36) [MSC v.1943 64 bit (AMD64)]",
   "project_root_from_run": "../../../../..",
@@ -17,7 +17,7 @@
     "rtl/compute/raven_mac_array.sv": "9012c246244b0bff1e9ed752945f2bee89d4a81ba44cbead7cc3ea9928a3c60f",
     "rtl/compute/raven_gemm_frontend.sv": "fd285b7bfc29b0b80ec7ae0f84b85e59a5f47209e0f372d26efb89e616c92f9f",
     "rtl/compute/raven_gemm_core.sv": "a62277a61663804b8a8e60bdb0b81525d7c8a55d7a3e72807dbd5b4a1cde5562",
-    "tests/rtl/compute/sim_read_memory.sv": "5256d171a25e4b97f63b00ae930507b25ce7c9e5a6314ef5fc409db1f7f6614d",
+    "tests/rtl/compute/sim_read_memory.sv": "700f09c7901bb24ab12662493c952f492f5776c8014b28b6fce9c53addd4d8a3",
     "tests/rtl/compute/tb_raven_mac_pe.sv": "12d056f33e94bfa7af77ee758d7bc8203ec5641ba86bbd4f69d8cbc2de6ddea2",
     "tests/rtl/compute/tb_raven_gemm_core.sv": "a0ce3794359552bd49ae9f6b0ae9471c4984fe13d8c3bdd897d618658c894b5c",
     "tests/rtl/compute/generate_vectors.py": "a250c72d047dcbd93e91f304e246fcdd3fe7c7f684adf6304c966726c37f02ab",
@@ -33,7 +33,7 @@
         "-version"
       ],
       "returncode": 0,
-      "seconds": 0.078,
+      "seconds": 0.063,
       "timed_out": false,
       "expected_failure": false,
       "status": "pass"
@@ -45,7 +45,7 @@
         "-version"
       ],
       "returncode": 0,
-      "seconds": 0.031,
+      "seconds": 0.047,
       "timed_out": false,
       "expected_failure": false,
       "status": "pass"
@@ -57,7 +57,7 @@
         "-c"
       ],
       "returncode": 0,
-      "seconds": 0.047,
+      "seconds": 0.031,
       "timed_out": false,
       "expected_failure": false,
       "status": "pass"
@@ -69,7 +69,7 @@
         "work"
       ],
       "returncode": 0,
-      "seconds": 0.063,
+      "seconds": 0.062,
       "timed_out": false,
       "expected_failure": false,
       "status": "pass"
@@ -82,7 +82,7 @@
         "work"
       ],
       "returncode": 0,
-      "seconds": 0.047,
+      "seconds": 0.032,
       "timed_out": false,
       "expected_failure": false,
       "status": "pass"
@@ -106,7 +106,7 @@
         "assertion_probe.sv"
       ],
       "returncode": 0,
-      "seconds": 0.109,
+      "seconds": 0.093,
       "timed_out": false,
       "expected_failure": false,
       "status": "pass"
@@ -131,7 +131,7 @@
         "run_batch.do"
       ],
       "returncode": 0,
-      "seconds": 1.563,
+      "seconds": 1.36,
       "timed_out": false,
       "expected_failure": true,
       "status": "pass"
@@ -157,7 +157,7 @@
         "run_batch.do"
       ],
       "returncode": 0,
-      "seconds": 1.125,
+      "seconds": 1.078,
       "timed_out": false,
       "expected_failure": true,
       "status": "pass"
@@ -182,7 +182,7 @@
         "run_batch.do"
       ],
       "returncode": 0,
-      "seconds": 2.703,
+      "seconds": 2.594,
       "timed_out": false,
       "expected_failure": false,
       "status": "pass"
@@ -200,7 +200,7 @@
         "8x8/vectors"
       ],
       "returncode": 0,
-      "seconds": 0.328,
+      "seconds": 0.296,
       "timed_out": false,
       "expected_failure": false,
       "status": "pass"
@@ -228,7 +228,7 @@
         "run_batch.do"
       ],
       "returncode": 0,
-      "seconds": 10.954,
+      "seconds": 9.468,
       "timed_out": false,
       "expected_failure": false,
       "status": "pass"
@@ -246,7 +246,7 @@
         "4x4/vectors"
       ],
       "returncode": 0,
-      "seconds": 0.265,
+      "seconds": 0.25,
       "timed_out": false,
       "expected_failure": false,
       "status": "pass"
@@ -274,7 +274,7 @@
         "run_batch.do"
       ],
       "returncode": 0,
-      "seconds": 10.235,
+      "seconds": 8.984,
       "timed_out": false,
       "expected_failure": false,
       "status": "pass"
@@ -292,7 +292,7 @@
         "2x4/vectors"
       ],
       "returncode": 0,
-      "seconds": 0.266,
+      "seconds": 0.25,
       "timed_out": false,
       "expected_failure": false,
       "status": "pass"
@@ -320,7 +320,7 @@
         "run_batch.do"
       ],
       "returncode": 0,
-      "seconds": 10.36,
+      "seconds": 8.875,
       "timed_out": false,
       "expected_failure": false,
       "status": "pass"
@@ -338,7 +338,7 @@
         "1x1/vectors"
       ],
       "returncode": 0,
-      "seconds": 0.281,
+      "seconds": 0.234,
       "timed_out": false,
       "expected_failure": false,
       "status": "pass"
@@ -366,7 +366,7 @@
         "run_batch.do"
       ],
       "returncode": 0,
-      "seconds": 10.375,
+      "seconds": 9.141,
       "timed_out": false,
       "expected_failure": false,
       "status": "pass"
@@ -394,7 +394,7 @@
         "run_batch.do"
       ],
       "returncode": 0,
-      "seconds": 1.875,
+      "seconds": 1.468,
       "timed_out": false,
       "expected_failure": true,
       "status": "pass"
@@ -422,7 +422,7 @@
         "run_batch.do"
       ],
       "returncode": 0,
-      "seconds": 1.484,
+      "seconds": 1.157,
       "timed_out": false,
       "expected_failure": true,
       "status": "pass"
@@ -450,7 +450,7 @@
         "run_batch.do"
       ],
       "returncode": 0,
-      "seconds": 1.641,
+      "seconds": 1.094,
       "timed_out": false,
       "expected_failure": true,
       "status": "pass"
@@ -481,7 +481,7 @@
         "set raven_log_waves 1; do run_batch.do"
       ],
       "returncode": 0,
-      "seconds": 1.906,
+      "seconds": 1.563,
       "timed_out": false,
       "expected_failure": false,
       "status": "pass"
@@ -496,5 +496,5 @@
     "manifest_rejection_guards": 3,
     "demo_outputs": 64
   },
-  "finished_utc": "2026-11-03T06:26:16.720108+00:00"
+  "finished_utc": "2026-11-04T17:04:31.903200+00:00"
 }

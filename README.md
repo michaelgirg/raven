@@ -246,6 +246,8 @@ Implemented behavior:
   destination span, and reports the first failure with ERR_INFO set to the offending
   register's offset. A rejected command never reaches the core. The core's own pitch, span
   and overflow errors (0x02, 0x03, 0x08) pass through with ERR_INFO 0.
+- The independent requant PARAM loader waits until the core begins its first validated
+  bias read. Commands rejected during validation issue no operand or parameter reads.
 - A command retires only after the core has finished without error **and** the last INT8
   byte has been accepted by OUT0. DONE_SEQ, CMD_COUNT and IRQ DONE update then.
 - Any error halts the FSM. CLEAR_ERR clears the diagnostics; only SOFT_RESET returns to
@@ -282,14 +284,17 @@ concurrent assertions (for example ModelSim Intel FPGA Edition) and marks the re
 The tests are T1 reset values, T2 register access, T3 NOP, T4 the six valid fixtures back
 to back, T5 shared multiplier/shift, T6 padded output pitch, T7 bank routing, T8 random
 memory and write stalls on every valid case, T9 zero K, T10 ten control-detected errors,
-T11 core-detected errors, T12 START while busy, T13 halted behavior, T14 hardware and soft
-reset during RUN and DRAIN, and T15 staging rewrites during a run. Every valid result is
+T11 core-detected errors including PARAM alignment/span, T12 START while busy,
+T13 halted behavior, T14 hardware and soft reset during RUN and DRAIN, and T15 staging
+rewrites during a run. Every valid result is
 compared byte for byte, and every other OUT0 byte must still hold its 0xA5 guard value.
 
-**Verification status:** all 15 tests pass (47 PASS records, 657 checks, 20 independent
-INT8 comparisons) with ModelSim Intel FPGA 2020.1 using `--no-sva-guard`. That means
-**the concurrent SVA assertions have not been executed yet.** A run on licensed Questa,
-and the evidence under `evidence/questa/integration/`, are still to come.
+**Verification status:** all 15 tests pass with Questa Intel Starter FPGA Edition-64
+2021.2 and both assertion guards enabled: **49 PASS records, 698 checks and 20 independent
+INT8 comparisons**. The full runner also checks `COLS=1` reset/NOP operation (43 checks).
+See the [source-hash/result report](evidence/questa/integration/results.json),
+[combined execution log](evidence/questa/integration/verification.log) and
+[validation fixes](docs/plans/nahjay_control_integration_prealpha.md#licensed-questa-validation).
 
 ### Control limitations
 
