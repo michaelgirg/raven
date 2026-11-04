@@ -15,14 +15,14 @@ The goal is to execute multiple supported model graphs using one FPGA bitstream 
 |---|---|---|
 | Compute architecture, MAC datapath, pipeline, and compute verification | Michael | [NPU compute architecture](docs/NPU_ARCHITECTURE.md) |
 | Requantization, activation, pooling, element-wise Add, and operator verification | Quan | [NPU operators and datapath support](docs/NPU_Operators_Research.md); [requantization implementation](rtl/operators/README.md) |
-| BRAM organization, memory interfaces, DMA, and memory verification | Taylor | [Memory-system research](docs/RAVEN_Memory_System_Research.md); [activation buffer](rtl/memory/README) |
+| BRAM organization, memory interfaces, DMA, and memory verification | Taylor | [Memory-system research](docs/RAVEN_Memory_System_Research.md); [memory buffers](rtl/memory/README.md) |
 | RISC-V integration, MMIO, control, and runtime | Nahjay | [RISC-V integration and runtime](docs/RISCV_Research.md) |
-| Model analysis/export, tensor extraction, and golden-reference generation | Jackie | [Quantized-model research](docs/Quantized_Models.md); [golden fixtures and GEMM verification](tests/vectors/prealpha/GEMM_Verification.md) |
+| Model analysis/export, tensor extraction, and golden-reference generation | Jackie | [Quantized-model research](docs/Quantized_Models.md); [golden fixtures and GEMM verification](evidence/prealpha/compute/README.md) |
 
 The research documents describe broader proposed behavior and identify implemented subsets. The [shared interface contract](docs/interfaces/RAVEN_INTERFACE_CONTRACT.md) defines the operand, DMA, mailbox, constant-format, and recovery baseline. The [project plan](docs/PROJECT_PLAN.md) holds shared acceptance goals and milestones. Full-system implementation, FPGA timing, and model-quality evidence remain to be collected; standalone simulation instructions are linked below.
 
 Use [docs/RAVEN_Memory_System_Research.md](docs/RAVEN_Memory_System_Research.md)
-for the current memory proposal and [the revised draft sections](RAVEN_Design_Draft_Revised_Memory_DMA_Sections.md)
+for the current memory proposal and [the revised draft sections](docs/drafts/RAVEN_Design_Draft_Revised_Memory_DMA_Sections.md)
 for memory/DMA draft wording. Other research copies and existing Word/PDF exports
 are review snapshots; their interface and capacity descriptions may be superseded.
 
@@ -288,7 +288,7 @@ raven/
 ├── configs/            # Future design, model-export, and simulation presets
 ├── data/               # Local raw/processed datasets; contents ignored by Git
 ├── docs/               # Research, decisions, interface contracts, diagrams, and guides
-├── evidence/           # Reviewed compute simulation results and experiment records
+├── evidence/           # Simulation results, verification notes and screenshots
 ├── rtl/                # Standalone compute, activation buffer and INT8 tail; future integration
 ├── hw/                 # Future Vivado Tcl, constraints, and IP configuration
 ├── software/           # Future firmware, runtime, drivers, HAL, and host tests

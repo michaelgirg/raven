@@ -3,7 +3,7 @@
 The compute directory contains the MAC PE, parameterized array, operand frontend
 and single-microtile GEMM controller. They are verified in standalone RTL
 simulation. See the [implementation and run instructions](../README.md#compute-implementation-and-tests).
-The [memory directory](memory/README) contains a standalone activation buffer,
+The [memory directory](memory/README.md) contains a standalone activation buffer,
 and [operators](operators/README.md) contains a standalone one-lane
 requantization/clamp block. Their benches are under `tests/rtl/`. The control
 directory contains the pre-alpha register block and single-command FSM. They compile,

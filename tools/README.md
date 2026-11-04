@@ -1,8 +1,9 @@
 # Host-side tooling
 
-This directory is reserved for host-side scripts and their future dependency manifests. No exporter or register generator is implemented yet.
+This directory contains host-side scripts and reserves locations for future tooling and dependency manifests.
 
 - `benchmarks/`: future host-side benchmark runners, counter/profile parsers, and measurement-analysis scripts. Workload definitions and reviewed summaries live in `benchmarks/configs/` and `benchmarks/results/` at the repository root.
+- `goldens/`: pre-alpha fixture generation, byte comparison and standalone RTL golden checks. Reviewed verification notes are under [evidence/prealpha/](../evidence/prealpha/); input fixtures remain under [tests/vectors/prealpha/](../tests/vectors/prealpha/).
 - `models/`: model inspection/export, weight packing, corrected-bias and quantization records, tensor planning, and golden-reference generation. Jackie leads this area with the numeric/compute owners.
 - `regs/`: canonical SystemRDL register source and generation configuration. Nahjay leads this area with Taylor, Michael, and Quan reviewing shared fields.
 - Root of `tools/`: shared helpers, a tested `VERSIONS.md`, and dependency/version-check files when introduced and validated.

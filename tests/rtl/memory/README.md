@@ -1,0 +1,171 @@
+# RAVEN Memory Buffer Testbenches
+
+## Overview
+
+This directory contains SystemVerilog testbenches for verifying the individual memory components used in the RAVEN FPGA NPU.
+
+The testbenches are designed to verify basic read/write functionality, data integrity, signed-value handling, valid/ready handshaking, and output backpressure.
+
+Each memory component is tested independently using Icarus Verilog.
+
+## Directory Contents
+
+| File | Description |
+|---|---|
+| `tb_activation_buffer.sv` | Tests activation matrix storage and retrieval. |
+| `tb_weight_buffer.sv` | Tests weight matrix storage and retrieval. |
+| `tb_parameter_buffer.sv` | Tests bias and quantization parameter storage and retrieval. |
+| `tb_output_buffer.sv` | Tests output matrix storage and retrieval. |
+
+## Running the Tests
+
+The testbenches use Icarus Verilog.
+
+Compile and run each test independently from the project root.
+
+### Activation Buffer
+
+```bash
+iverilog -g2012 -s tb_activation_buffer \
+    -o activation_test \
+    rtl/memory/activation_buffer.sv \
+    test/rtl/memory/tb_activation_buffer.sv
+
+vvp activation_test
+```
+
+### Weight Buffer
+
+```bash
+iverilog -g2012 -s tb_weight_buffer \
+    -o weight_test \
+    rtl/memory/weight_buffer.sv \
+    test/rtl/memory/tb_weight_buffer.sv
+
+vvp weight_test
+```
+
+### Parameter Buffer
+
+```bash
+iverilog -g2012 -s tb_parameter_buffer \
+    -o parameter_test \
+    rtl/memory/parameter_buffer.sv \
+    test/rtl/memory/tb_parameter_buffer.sv
+
+vvp parameter_test
+```
+
+### Output Buffer
+
+```bash
+iverilog -g2012 -s tb_output_buffer \
+    -o output_test \
+    rtl/memory/output_buffer.sv \
+    test/rtl/memory/tb_output_buffer.sv
+
+vvp output_test
+```
+
+## Test Coverage
+
+### 1. Activation Buffer
+
+The activation buffer testbench verifies:
+
+- Reset behavior.
+- Writing all eight activation banks.
+- Reading all 16 K positions.
+- Correct retrieval of all 128 signed INT8 values.
+- Correct bank-to-output byte ordering.
+- Output backpressure.
+- Response-valid clearing after consumption.
+
+**Simulation result:** All activation buffer tests passed.
+
+### 2. Weight Buffer
+
+The weight buffer testbench verifies:
+
+- Reset behavior.
+- Writing all 16 weight banks.
+- Reading all 16 K positions.
+- Correct retrieval of all 128 signed INT8 values.
+- Correct output-channel byte ordering.
+- Output backpressure.
+- Response-valid clearing after consumption.
+- Overwriting an existing weight bank.
+
+**Simulation result:** Testbench prepared; execution and verification pending.
+
+### 3. Parameter Buffer
+
+The parameter buffer testbench verifies:
+
+- Reset behavior.
+- Writing all eight corrected bias values.
+- Writing all eight Q31 multiplier values.
+- Writing all eight quantization shift values.
+- Writing shared zero-point and activation clamp values.
+- Reading the correct per-channel bias values.
+- Shared multiplier mode.
+- Per-channel multiplier mode.
+- Shared shift mode.
+- Per-channel shift mode.
+- Signed 8-bit and signed 32-bit parameter handling.
+- Output backpressure.
+- Response-valid clearing after consumption.
+
+**Simulation result:** All parameter buffer tests passed.
+
+### 4. Output Buffer
+
+The output buffer testbench verifies:
+
+- Reset behavior.
+- Writing all eight output rows.
+- Reading all eight output rows.
+- Correct retrieval of all 64 signed INT8 values.
+- Correct row-to-output byte ordering.
+- Overwriting an existing output row.
+- Output backpressure.
+- Response-valid clearing after consumption.
+
+**Simulation result:** All output buffer tests passed.
+
+## Testbench Design
+
+Each testbench uses a clocked simulation environment and drives the corresponding memory module through its exposed interface.
+
+The testbenches use:
+- Directed write operations.
+- Directed read operations.
+- Expected-value arrays for data comparisons.
+- Signed comparisons for INT8 and INT32 values.
+- Valid/ready handshake checks.
+- Backpressure tests to ensure response data remains stable until consumed.
+- `$fatal` to terminate simulation when a test fails.
+
+A successful simulation ends with an `ALL ... BUFFER TESTS PASSED` message.
+
+## Verification Limitations
+
+These testbenches verify the individual buffer RTL implementations in simulation.
+
+They do not yet verify:
+
+- Integration with the compute core.
+- Integration with the output operators.
+- Full-system memory ownership and bounds checking.
+- Complete GEMM execution.
+- Golden-reference comparison of the final GEMM output.
+- FPGA synthesis or BRAM inference.
+- Physical FPGA hardware operation.
+
+These items remain part of the broader RAVEN pre-alpha integration and verification effort.
+
+## Development Notes
+
+When modifying a buffer's interface or internal behavior, update its corresponding testbench to reflect the change.
+Run the relevant testbench after each modification to ensure that existing functionality remains intact.
+The individual memory tests are intended to provide a foundation for later system-level integration and verification.

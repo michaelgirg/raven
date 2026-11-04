@@ -1,7 +1,7 @@
 # RAVEN Design Draft - Revised Memory-System Sections
 
-> Earlier draft copy. Use [the revised memory/DMA sections](../RAVEN_Design_Draft_Revised_Memory_DMA_Sections.md)
-> and [current memory proposal](../docs/RAVEN_Memory_System_Research.md) for the
+> Earlier draft copy. Use [the revised memory/DMA sections](../../../drafts/RAVEN_Design_Draft_Revised_Memory_DMA_Sections.md)
+> and [current memory proposal](../../../RAVEN_Memory_System_Research.md) for the
 > shared capacity budget and integration requirements. Existing Word/PDF copies
 > are review snapshots rather than current implementation specifications.
 

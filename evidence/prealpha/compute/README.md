@@ -49,13 +49,13 @@ This runs the existing compute regression, including the MAC processing element,
 
 ## Evidence and remaining work
 
-Screenshots: `docs/logs/prealpha/gemm_verification/`
+Screenshots: `evidence/prealpha/compute/`
 
 Standalone INT32 GEMM verification passed for the tests above. A separate
 [requantization/clamp implementation and bench](../../../rtl/operators/README.md)
 now provide standalone INT8-tail coverage. These GEMM fixtures still check only
 the compute INT32 outputs; they do not pass through that tail or the
-[activation buffer](../../../rtl/memory/README). Integration with memory,
+[activation buffer](../../../rtl/memory/README.md). Integration with memory,
 per-channel parameters, command control and output storage still needs a
 connected testbench and end-to-end checking.
 
