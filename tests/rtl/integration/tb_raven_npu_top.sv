@@ -13,7 +13,8 @@
 // Independent monitors count core command handshakes and OUT writes, record the cycle of
 // the last OUT write and of every DONE_SEQ change, and fail if completion comes first.
 module tb_raven_npu_top #(
-    parameter int COLS = 8
+    parameter int COLS = 8,
+    parameter bit USE_TILE_BUFFERS = 1
 );
     import raven_ctrl_pkg::*;
     import raven_tb_driver_pkg::*;
@@ -39,7 +40,7 @@ module tb_raven_npu_top #(
     wire [15:0] ow_strb;
     wire [31:0] out_writes, out_last_cycle;
 
-    raven_npu_top #(.COLS(COLS)) dut (
+    raven_npu_top #(.COLS(COLS), .USE_TILE_BUFFERS(USE_TILE_BUFFERS)) dut (
         .clk_i(clk), .rst_ni(rst_n),
         .reg_valid_i(bus_if.valid), .reg_ready_o(bus_if.ready), .reg_write_i(bus_if.write),
         .reg_addr_i(bus_if.addr), .reg_wdata_i(bus_if.wdata), .reg_rdata_o(bus_if.rdata),

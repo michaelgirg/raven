@@ -192,6 +192,17 @@ def build_cases(vectors):
     partial = refs['partial_tile_7x13x5']
     partial_out = next(c for c in cases if c.name == 'partial_tile_7x13x5').expected
 
+    # Zero-extension preserves the independent normal-case golden, while K=33
+    # crosses three 16-byte chunks and repeatedly reuses the small staging slots.
+    # Place every allocation at its bank's end to exercise the full address path.
+    extended = dict(normal)
+    extended.update(K=33, A_pitch_bytes=48, A_base=ACT_BYTES - 8*48,
+                    B_base=WGT_BYTES - round_up(33*8, 16), PARAM_base=PRM_BYTES - 8*16,
+                    OUTPUT_base=OUT0_BYTES - 8*8,
+                    A=[row + [0]*17 for row in normal['A']],
+                    B=normal['B'] + [[0]*8 for _ in range(17)])
+    cases.append(fixture_case(extended, normal_out, name='t4_bank_edges_k33', stall=False))
+
     # T3: NOP launches nothing and writes nothing.
     cases.insert(0, Case('t3_nop', 'T3', nop_regs(), normal_case.images, expect_launch=False))
 
