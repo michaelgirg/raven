@@ -82,6 +82,31 @@ module tb_raven_npu_top;
         .w_valid_i(ow_valid), .w_ready_o(ow_ready), .w_addr_i(ow_addr), .w_data_i(ow_data),
         .w_strb_i(ow_strb), .writes_o(out_writes), .last_write_cycle_o(out_last_cycle));
 
+
+    bit dbg_held = 0;
+    logic [23:0] dbg_addr;
+
+    always @(posedge clk) begin
+        if (dbg_held &&
+            (!rq_valid[5] || rq_addr[5] !== dbg_addr)) begin
+            $display(
+                "DEBUG PRM_B: t=%0t rst=%b soft_reset=%b core_error=%b valid=%b ready=%b addr=%h previous=%h loading=%b",
+                $time,
+                lrst_n,
+                dut.soft_reset,
+                dut.core_error,
+                rq_valid[5],
+                rq_ready[5],
+                rq_addr[5],
+                dbg_addr,
+                dut.u_requant.loading_q
+            );
+        end
+
+        dbg_held <= lrst_n && rq_valid[5] && !rq_ready[5];
+        dbg_addr <= rq_addr[5];
+    end
+
     // ---------------------------------------------------------------- monitors
     // These run on the global clock count and survive every reset.
     longint unsigned cycle; // Clocks since time zero.
@@ -185,12 +210,23 @@ module tb_raven_npu_top;
         end
         for (int a = 0; a < OUT0_BYTES; a++) begin
             int off = a - mt.dst_offset;
-            int r = off >= 0 && mt.p4 > 0 ? off / mt.p4 : -1;
-            int c = off >= 0 && mt.p4 > 0 ? off % mt.p4 : -1;
-            logic [7:0] want_b = r >= 0 && r < mt.m && c < mt.n ? exp[r * mt.n + c] : 8'hA5;
+            int r = -1;
+            int c = -1;
+            logic [7:0] want_b;
+
+            // Prevent division by zero
+            if (off >= 0 && mt.p4 > 0) begin
+                r = off / mt.p4;
+                c = off % mt.p4;
+            end
+
+            want_b = (r >= 0 && r < mt.m && c >= 0 && c < mt.n)
+                ? exp[r * mt.n + c] : 8'hA5;
+
             if (m_out0.read_byte(a) !== want_b) begin
-                if (mism < 8) $display("  %s OUT0[%04h] = %02h, expected %02h", tag, a,
-                                       m_out0.read_byte(a), want_b);
+                if (mism < 8)
+                    $display("  %s OUT0[%04h] = %02h, expected %02h",
+                            tag, a, m_out0.read_byte(a), want_b);
                 mism++;
             end
         end
