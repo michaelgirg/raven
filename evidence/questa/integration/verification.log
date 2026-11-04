@@ -1,49 +1,42 @@
-RAVEN control/integration: combined record of actual Questa executions
-Source/version/outcome report: results.json
-The immediate/concurrent guard sections deliberately provoke fatal errors.
-Normal design steps and the single-column configuration check passed.
-
+RAVEN pre-alpha buffered memory integration verification
+Normal buffered/direct runs must pass. Assertion guards and four isolated
+native-buffer corruptions intentionally fail and must show the expected signature.
 
 ========================================================================
-SECTION: vsim-version
-========================================================================
+vsim-version
+vsim -version
 Questa  Intel Starter FPGA Edition-64 vsim 2021.2 Simulator 2021.04 Apr 14 2021
 
 
-
 ========================================================================
-SECTION: vlog-version
-========================================================================
+vlog-version
+vlog -version
 Questa Intel Starter FPGA Edition-64 vlog 2021.2 Compiler 2021.04 Apr 14 2021
 
-
 ========================================================================
-SECTION: vmap-local
-========================================================================
+vmap-local
+vmap -c
 Questa Intel Starter FPGA Edition-64 vmap 2021.2 Lib Mapping Utility 2021.04 Apr 14 2021
 vmap -c
 Copying C:/intelFPGA/21.1/questa_fse/win64/../modelsim.ini to modelsim.ini
 
+========================================================================
+vlib
+vlib work
 
 ========================================================================
-SECTION: vlib
-========================================================================
-
-
-========================================================================
-SECTION: vmap-work
-========================================================================
+vmap-work
+vmap work work
 Questa Intel Starter FPGA Edition-64 vmap 2021.2 Lib Mapping Utility 2021.04 Apr 14 2021
 vmap work work
 Modifying modelsim.ini
 
-
 ========================================================================
-SECTION: compile
-========================================================================
+compile
+vlog -sv -timescale 1ns/1ps -work work -l compile.log ../../../../../rtl/control/raven_ctrl_pkg.sv ../../../../../rtl/control/raven_ctrl_regs.sv ../../../../../rtl/control/raven_ctrl.sv ../../../../../rtl/compute/raven_mac_pe.sv ../../../../../rtl/compute/raven_mac_array.sv ../../../../../rtl/compute/raven_gemm_frontend.sv ../../../../../rtl/compute/raven_gemm_core.sv ../../../../../rtl/operators/raven_requantize_clamp.sv ../../../../../rtl/memory/activation_buffer.sv ../../../../../rtl/memory/weight_buffer.sv ../../../../../rtl/memory/parameter_buffer.sv ../../../../../rtl/memory/output_buffer.sv ../../../../../rtl/memory/raven_read_buffer_adapter.sv ../../../../../rtl/memory/raven_output_buffer_adapter.sv ../../../../../rtl/top/raven_requant.sv ../../../../../rtl/top/raven_result_writer.sv ../../../../../rtl/top/raven_npu_top.sv ../../../../../tests/rtl/compute/sim_read_memory.sv ../../../../../tests/rtl/integration/sim_write_memory.sv ../../../../../tests/rtl/integration/raven_tb_driver_pkg.sv ../../../../../tests/rtl/integration/tb_raven_npu_top.sv ../../../../../tests/rtl/integration/tb_raven_memory_adapters.sv assertion_probe.sv
 Questa Intel Starter FPGA Edition-64 vlog 2021.2 Compiler 2021.04 Apr 14 2021
-Start time: 12:02:26 on Nov 04,2026
-vlog -sv -work work -l compile.log ../../../../../rtl/control/raven_ctrl_pkg.sv ../../../../../rtl/control/raven_ctrl_regs.sv ../../../../../rtl/control/raven_ctrl.sv ../../../../../rtl/compute/raven_mac_pe.sv ../../../../../rtl/compute/raven_mac_array.sv ../../../../../rtl/compute/raven_gemm_frontend.sv ../../../../../rtl/compute/raven_gemm_core.sv ../../../../../rtl/operators/raven_requantize_clamp.sv ../../../../../rtl/top/raven_requant.sv ../../../../../rtl/top/raven_result_writer.sv ../../../../../rtl/top/raven_npu_top.sv ../../../../../tests/rtl/compute/sim_read_memory.sv ../../../../../tests/rtl/integration/sim_write_memory.sv ../../../../../tests/rtl/integration/raven_tb_driver_pkg.sv ../../../../../tests/rtl/integration/tb_raven_npu_top.sv assertion_probe.sv
+Start time: 14:31:43 on Nov 04,2026
+vlog -sv -timescale 1ns/1ps -work work -l compile.log ../../../../../rtl/control/raven_ctrl_pkg.sv ../../../../../rtl/control/raven_ctrl_regs.sv ../../../../../rtl/control/raven_ctrl.sv ../../../../../rtl/compute/raven_mac_pe.sv ../../../../../rtl/compute/raven_mac_array.sv ../../../../../rtl/compute/raven_gemm_frontend.sv ../../../../../rtl/compute/raven_gemm_core.sv ../../../../../rtl/operators/raven_requantize_clamp.sv ../../../../../rtl/memory/activation_buffer.sv ../../../../../rtl/memory/weight_buffer.sv ../../../../../rtl/memory/parameter_buffer.sv ../../../../../rtl/memory/output_buffer.sv ../../../../../rtl/memory/raven_read_buffer_adapter.sv ../../../../../rtl/memory/raven_output_buffer_adapter.sv ../../../../../rtl/top/raven_requant.sv ../../../../../rtl/top/raven_result_writer.sv ../../../../../rtl/top/raven_npu_top.sv ../../../../../tests/rtl/compute/sim_read_memory.sv ../../../../../tests/rtl/integration/sim_write_memory.sv ../../../../../tests/rtl/integration/raven_tb_driver_pkg.sv ../../../../../tests/rtl/integration/tb_raven_npu_top.sv ../../../../../tests/rtl/integration/tb_raven_memory_adapters.sv assertion_probe.sv
 -- Compiling package raven_ctrl_pkg
 -- Compiling module raven_ctrl_regs
 -- Importing package raven_ctrl_pkg
@@ -53,6 +46,12 @@ vlog -sv -work work -l compile.log ../../../../../rtl/control/raven_ctrl_pkg.sv 
 -- Compiling module raven_gemm_frontend
 -- Compiling module raven_gemm_core
 -- Compiling module raven_requantize_clamp
+-- Compiling module activationBuffer
+-- Compiling module weightBuffer
+-- Compiling module parameterBuffer
+-- Compiling module outputBuffer
+-- Compiling module raven_read_buffer_adapter
+-- Compiling module raven_output_buffer_adapter
 -- Compiling module raven_requant
 -- Compiling module raven_result_writer
 -- Compiling module raven_npu_top
@@ -62,20 +61,27 @@ vlog -sv -work work -l compile.log ../../../../../rtl/control/raven_ctrl_pkg.sv 
 -- Compiling package raven_tb_driver_pkg
 -- Compiling module tb_raven_npu_top
 -- Importing package raven_tb_driver_pkg
+-- Compiling module tb_raven_read_buffer_adapter
+-- Compiling module tb_raven_output_buffer_adapter
 -- Compiling module tb_assertion_probe
 
 Top level modules:
 	tb_raven_npu_top
+	tb_raven_read_buffer_adapter
+	tb_raven_output_buffer_adapter
 	tb_assertion_probe
-End time: 12:02:26 on Nov 04,2026, Elapsed time: 0:00:00
+End time: 14:31:43 on Nov 04,2026, Elapsed time: 0:00:00
 Errors: 0, Warnings: 0
 
+========================================================================
+guard-immediate (expected rejection)
+vsim -c -onfinish exit -t 1ps -voptargs=+acc -sva -immedassert -l guard-immediate.log -wlf guard-immediate.wlf work.tb_assertion_probe -do run_batch.do
+Reading pref.tcl
 
-========================================================================
-SECTION: guard-immediate
-========================================================================
-# vsim -c -onfinish exit -t 1ps -sva -immedassert -l guard-immediate.log -wlf guard-immediate.wlf work.tb_assertion_probe -do "run_batch.do"
-# Start time: 12:02:27 on Nov 04,2026
+# 2021.2
+
+# vsim -c -onfinish exit -t 1ps -voptargs="+acc" -sva -immedassert -l guard-immediate.log -wlf guard-immediate.wlf work.tb_assertion_probe -do "run_batch.do"
+# Start time: 14:31:44 on Nov 04,2026
 # ** Note: (vsim-3812) Design is being optimized...
 # //  Questa Intel Starter FPGA Edition-64
 # //  Version 2021.2 win64 Apr 14 2021
@@ -98,15 +104,18 @@ SECTION: guard-immediate
 #    Time: 0 ps  Scope: tb_assertion_probe File: assertion_probe.sv Line: 10
 # ** Note: $finish    : assertion_probe.sv(10)
 #    Time: 0 ps  Iteration: 0  Instance: /tb_assertion_probe
-# End time: 12:02:27 on Nov 04,2026, Elapsed time: 0:00:00
+# End time: 14:31:45 on Nov 04,2026, Elapsed time: 0:00:01
 # Errors: 1, Warnings: 0
 
+========================================================================
+guard-sva (expected rejection)
+vsim -c -onfinish exit -t 1ps -voptargs=+acc -sva -immedassert -l guard-sva.log -wlf guard-sva.wlf work.tb_assertion_probe +SVA -do run_batch.do
+Reading pref.tcl
 
-========================================================================
-SECTION: guard-sva
-========================================================================
-# vsim -c -onfinish exit -t 1ps -sva -immedassert -l guard-sva.log -wlf guard-sva.wlf work.tb_assertion_probe "+SVA" -do "run_batch.do"
-# Start time: 12:02:28 on Nov 04,2026
+# 2021.2
+
+# vsim -c -onfinish exit -t 1ps -voptargs="+acc" -sva -immedassert -l guard-sva.log -wlf guard-sva.wlf work.tb_assertion_probe "+SVA" -do "run_batch.do"
+# Start time: 14:31:45 on Nov 04,2026
 # ** Note: (vsim-8009) Loading existing optimized design _opt
 # //  Questa Intel Starter FPGA Edition-64
 # //  Version 2021.2 win64 Apr 14 2021
@@ -129,22 +138,175 @@ SECTION: guard-sva
 #    Time: 5 ns Started: 5 ns  Scope: tb_assertion_probe File: assertion_probe.sv Line: 6
 # ** Note: $finish    : assertion_probe.sv(6)
 #    Time: 5 ns  Iteration: 0  Instance: /tb_assertion_probe
-# End time: 12:02:28 on Nov 04,2026, Elapsed time: 0:00:00
+# End time: 14:31:46 on Nov 04,2026, Elapsed time: 0:00:01
 # Errors: 1, Warnings: 0
 
+========================================================================
+read-adapter-0
+vsim -c -onfinish exit -t 1ps -voptargs=+acc -sva -immedassert -l read-adapter-0.log -wlf read-adapter-0.wlf -gKIND=0 work.tb_raven_read_buffer_adapter -do run_batch.do
+Reading pref.tcl
 
-========================================================================
-SECTION: fixtures
-========================================================================
-Wrote 26 integration fixtures to fixtures
+# 2021.2
 
-
-========================================================================
-SECTION: integration
-========================================================================
-# vsim -c -onfinish exit -t 1ps -sva -immedassert -l integration.log -wlf integration.wlf work.tb_raven_npu_top "+FIXTURES=fixtures" "+OUT=out" "+TESTS=T1,T2,T3,T4,T5,T6,T7,T8,T9,T10,T11,T12,T13,T14,T15" -do "run_batch.do"
-# Start time: 12:02:29 on Nov 04,2026
+# vsim -c -onfinish exit -t 1ps -voptargs="+acc" -sva -immedassert -l read-adapter-0.log -wlf read-adapter-0.wlf work.tb_raven_read_buffer_adapter -do "run_batch.do" -gKIND=0
+# Start time: 14:31:47 on Nov 04,2026
 # ** Note: (vsim-3812) Design is being optimized...
+# ** Note: (vopt-143) Recognized 1 FSM in module "raven_read_buffer_adapter(fast)".
+# //  Questa Intel Starter FPGA Edition-64
+# //  Version 2021.2 win64 Apr 14 2021
+# //
+# //  Copyright 1991-2021 Mentor Graphics Corporation
+# //  All Rights Reserved.
+# //
+# //  QuestaSim and its associated documentation contain trade
+# //  secrets and commercial or financial information that are the property of
+# //  Mentor Graphics Corporation and are privileged, confidential,
+# //  and exempt from disclosure under the Freedom of Information Act,
+# //  5 U.S.C. Section 552. Furthermore, this information
+# //  is prohibited from disclosure under the Trade Secrets Act,
+# //  18 U.S.C. Section 1905.
+# //
+# Loading sv_std.std
+# Loading work.tb_raven_read_buffer_adapter(fast)
+# Loading work.raven_read_buffer_adapter(fast)
+# Loading work.activationBuffer(fast)
+# do run_batch.do
+# READ ADAPTER PASS kind=0 checks=321
+# ** Note: $finish    : ../../../../../tests/rtl/integration/tb_raven_memory_adapters.sv(96)
+#    Time: 11310 ns  Iteration: 1  Instance: /tb_raven_read_buffer_adapter
+# End time: 14:31:47 on Nov 04,2026, Elapsed time: 0:00:00
+# Errors: 0, Warnings: 0
+
+========================================================================
+read-adapter-1
+vsim -c -onfinish exit -t 1ps -voptargs=+acc -sva -immedassert -l read-adapter-1.log -wlf read-adapter-1.wlf -gKIND=1 work.tb_raven_read_buffer_adapter -do run_batch.do
+Reading pref.tcl
+
+# 2021.2
+
+# vsim -c -onfinish exit -t 1ps -voptargs="+acc" -sva -immedassert -l read-adapter-1.log -wlf read-adapter-1.wlf work.tb_raven_read_buffer_adapter -do "run_batch.do" -gKIND=1
+# Start time: 14:31:48 on Nov 04,2026
+# ** Note: (vsim-3812) Design is being optimized...
+# ** Note: (vopt-143) Recognized 1 FSM in module "raven_read_buffer_adapter(fast)".
+# //  Questa Intel Starter FPGA Edition-64
+# //  Version 2021.2 win64 Apr 14 2021
+# //
+# //  Copyright 1991-2021 Mentor Graphics Corporation
+# //  All Rights Reserved.
+# //
+# //  QuestaSim and its associated documentation contain trade
+# //  secrets and commercial or financial information that are the property of
+# //  Mentor Graphics Corporation and are privileged, confidential,
+# //  and exempt from disclosure under the Freedom of Information Act,
+# //  5 U.S.C. Section 552. Furthermore, this information
+# //  is prohibited from disclosure under the Trade Secrets Act,
+# //  18 U.S.C. Section 1905.
+# //
+# Loading sv_std.std
+# Loading work.tb_raven_read_buffer_adapter(fast)
+# Loading work.raven_read_buffer_adapter(fast)
+# Loading work.weightBuffer(fast)
+# do run_batch.do
+# READ ADAPTER PASS kind=1 checks=321
+# ** Note: $finish    : ../../../../../tests/rtl/integration/tb_raven_memory_adapters.sv(96)
+#    Time: 5640 ns  Iteration: 1  Instance: /tb_raven_read_buffer_adapter
+# End time: 14:31:49 on Nov 04,2026, Elapsed time: 0:00:01
+# Errors: 0, Warnings: 0
+
+========================================================================
+read-adapter-2
+vsim -c -onfinish exit -t 1ps -voptargs=+acc -sva -immedassert -l read-adapter-2.log -wlf read-adapter-2.wlf -gKIND=2 work.tb_raven_read_buffer_adapter -do run_batch.do
+Reading pref.tcl
+
+# 2021.2
+
+# vsim -c -onfinish exit -t 1ps -voptargs="+acc" -sva -immedassert -l read-adapter-2.log -wlf read-adapter-2.wlf work.tb_raven_read_buffer_adapter -do "run_batch.do" -gKIND=2
+# Start time: 14:31:49 on Nov 04,2026
+# ** Note: (vsim-3812) Design is being optimized...
+# ** Note: (vopt-143) Recognized 1 FSM in module "raven_read_buffer_adapter(fast)".
+# //  Questa Intel Starter FPGA Edition-64
+# //  Version 2021.2 win64 Apr 14 2021
+# //
+# //  Copyright 1991-2021 Mentor Graphics Corporation
+# //  All Rights Reserved.
+# //
+# //  QuestaSim and its associated documentation contain trade
+# //  secrets and commercial or financial information that are the property of
+# //  Mentor Graphics Corporation and are privileged, confidential,
+# //  and exempt from disclosure under the Freedom of Information Act,
+# //  5 U.S.C. Section 552. Furthermore, this information
+# //  is prohibited from disclosure under the Trade Secrets Act,
+# //  18 U.S.C. Section 1905.
+# //
+# Loading sv_std.std
+# Loading work.tb_raven_read_buffer_adapter(fast)
+# Loading work.raven_read_buffer_adapter(fast)
+# Loading work.parameterBuffer(fast)
+# do run_batch.do
+# READ ADAPTER PASS kind=2 checks=321
+# ** Note: $finish    : ../../../../../tests/rtl/integration/tb_raven_memory_adapters.sv(96)
+#    Time: 5430 ns  Iteration: 1  Instance: /tb_raven_read_buffer_adapter
+# End time: 14:31:50 on Nov 04,2026, Elapsed time: 0:00:01
+# Errors: 0, Warnings: 0
+
+========================================================================
+output-adapter
+vsim -c -onfinish exit -t 1ps -voptargs=+acc -sva -immedassert -l output-adapter.log -wlf output-adapter.wlf work.tb_raven_output_buffer_adapter -do run_batch.do
+Reading pref.tcl
+
+# 2021.2
+
+# vsim -c -onfinish exit -t 1ps -voptargs="+acc" -sva -immedassert -l output-adapter.log -wlf output-adapter.wlf work.tb_raven_output_buffer_adapter -do "run_batch.do"
+# Start time: 14:31:51 on Nov 04,2026
+# ** Note: (vsim-3812) Design is being optimized...
+# ** Note: (vopt-143) Recognized 1 FSM in module "raven_output_buffer_adapter(fast)".
+# //  Questa Intel Starter FPGA Edition-64
+# //  Version 2021.2 win64 Apr 14 2021
+# //
+# //  Copyright 1991-2021 Mentor Graphics Corporation
+# //  All Rights Reserved.
+# //
+# //  QuestaSim and its associated documentation contain trade
+# //  secrets and commercial or financial information that are the property of
+# //  Mentor Graphics Corporation and are privileged, confidential,
+# //  and exempt from disclosure under the Freedom of Information Act,
+# //  5 U.S.C. Section 552. Furthermore, this information
+# //  is prohibited from disclosure under the Trade Secrets Act,
+# //  18 U.S.C. Section 1905.
+# //
+# Loading sv_std.std
+# Loading work.tb_raven_output_buffer_adapter(fast)
+# Loading work.raven_output_buffer_adapter(fast)
+# Loading work.outputBuffer(fast)
+# do run_batch.do
+# OUTPUT ADAPTER PASS checks=573
+# ** Note: $finish    : ../../../../../tests/rtl/integration/tb_raven_memory_adapters.sv(186)
+#    Time: 3100 ns  Iteration: 1  Instance: /tb_raven_output_buffer_adapter
+# End time: 14:31:51 on Nov 04,2026, Elapsed time: 0:00:00
+# Errors: 0, Warnings: 0
+
+========================================================================
+fixtures
+python ../../../../../tests/rtl/integration/export_fixtures.py --vectors ../../../../../tests/vectors/prealpha --output fixtures
+Wrote 27 integration fixtures to fixtures
+
+========================================================================
+integration
+vsim -c -onfinish exit -t 1ps -voptargs=+acc -sva -immedassert -l integration.log -wlf integration.wlf work.tb_raven_npu_top +FIXTURES=fixtures +OUT=out +TESTS=T1,T2,T3,T4,T5,T6,T7,T8,T9,T10,T11,T12,T13,T14,T15 -do run_batch.do
+Reading pref.tcl
+
+# 2021.2
+
+# vsim -c -onfinish exit -t 1ps -voptargs="+acc" -sva -immedassert -l integration.log -wlf integration.wlf work.tb_raven_npu_top "+FIXTURES=fixtures" "+OUT=out" "+TESTS=T1,T2,T3,T4,T5,T6,T7,T8,T9,T10,T11,T12,T13,T14,T15" -do "run_batch.do"
+# Start time: 14:31:52 on Nov 04,2026
+# ** Note: (vsim-3812) Design is being optimized...
+# ** Note: (vopt-143) Recognized 1 FSM in module "raven_ctrl(fast)".
+# ** Note: (vopt-143) Recognized 1 FSM in module "raven_gemm_core(fast)".
+# ** Note: (vopt-143) Recognized 1 FSM in module "raven_read_buffer_adapter(fast__2)".
+# ** Note: (vopt-143) Recognized 1 FSM in module "raven_read_buffer_adapter(fast__1)".
+# ** Note: (vopt-143) Recognized 1 FSM in module "raven_read_buffer_adapter(fast)".
+# ** Note: (vopt-143) Recognized 2 FSMs in module "raven_gemm_frontend(fast)".
+# ** Note: (vopt-143) Recognized 1 FSM in module "raven_output_buffer_adapter(fast)".
 # //  Questa Intel Starter FPGA Edition-64
 # //  Version 2021.2 win64 Apr 14 2021
 # //
@@ -164,6 +326,32 @@ SECTION: integration
 # Loading work.raven_ctrl_pkg(fast)
 # Loading work.raven_tb_driver_pkg(fast)
 # Loading work.tb_raven_npu_top(fast)
+# Loading work.raven_reg_bus_if(fast__2)
+# Loading work.raven_npu_top(fast)
+# Loading work.raven_ctrl_regs(fast)
+# Loading work.raven_ctrl(fast)
+# Loading work.raven_gemm_core(fast)
+# Loading work.raven_gemm_frontend(fast)
+# Loading work.raven_mac_array(fast)
+# Loading work.raven_mac_pe(fast)
+# Loading work.raven_requant(fast)
+# Loading work.raven_requantize_clamp(fast)
+# Loading work.raven_result_writer(fast)
+# Loading work.raven_read_buffer_adapter(fast)
+# Loading work.activationBuffer(fast)
+# Loading work.raven_read_buffer_adapter(fast__1)
+# Loading work.weightBuffer(fast)
+# Loading work.raven_read_buffer_adapter(fast__2)
+# Loading work.parameterBuffer(fast)
+# Loading work.raven_output_buffer_adapter(fast)
+# Loading work.outputBuffer(fast)
+# Loading work.sim_read_memory(fast)
+# Loading work.sim_read_memory(fast__1)
+# Loading work.sim_read_memory(fast__2)
+# Loading work.sim_read_memory(fast__3)
+# Loading work.sim_read_memory(fast__4)
+# Loading work.sim_read_memory(fast__5)
+# Loading work.sim_write_memory(fast)
 # do run_batch.do
 # PASS t1_reset_values
 # TEST T1 PASS
@@ -177,6 +365,7 @@ SECTION: integration
 # PASS positive_negative_saturation
 # PASS rounding_ties
 # PASS channel_scales_relu_clamp
+# PASS t4_bank_edges_k33
 # TEST T4 PASS
 # PASS t5_normal_shared_scale
 # TEST T5 PASS
@@ -190,6 +379,7 @@ SECTION: integration
 # PASS positive_negative_saturation_stalled
 # PASS rounding_ties_stalled
 # PASS channel_scales_relu_clamp_stalled
+# PASS t4_bank_edges_k33_stalled
 # PASS t5_normal_shared_scale_stalled
 # PASS t6_partial_pitch16_dst100_stalled
 # PASS t7_normal_act1_wgt1_stalled
@@ -229,140 +419,136 @@ SECTION: integration
 # TEST T14 PASS
 # PASS t15_staging_rewrite
 # TEST T15 PASS
-# SUMMARY: 49 passed, 0 failed, 698 checks
+# SUMMARY: 51 passed, 0 failed, 721 checks
 # ALL TESTS PASSED
-# ** Note: $finish    : ../../../../../tests/rtl/integration/tb_raven_npu_top.sv(718)
-#    Time: 84270 ps  Iteration: 1  Instance: /tb_raven_npu_top
-# End time: 12:02:36 on Nov 04,2026, Elapsed time: 0:00:07
+# ** Note: $finish    : ../../../../../tests/rtl/integration/tb_raven_npu_top.sv(719)
+#    Time: 268190 ns  Iteration: 1  Instance: /tb_raven_npu_top
+# End time: 14:32:02 on Nov 04,2026, Elapsed time: 0:00:10
 # Errors: 0, Warnings: 0
 
-
 ========================================================================
-SECTION: compare-channel_scales_relu_clamp
-========================================================================
+compare-channel_scales_relu_clamp
+python ../../../../../tools/goldens/compare_prealpha.py --case ../../../../../tests/vectors/prealpha/channel_scales_relu_clamp --kind int8 --actual out/actual_int8_channel_scales_relu_clamp.bin
 PASS channel_scales_relu_clamp: 8x8 int8, 0 mismatches
 
-
 ========================================================================
-SECTION: compare-channel_scales_relu_clamp_stalled
-========================================================================
+compare-channel_scales_relu_clamp_stalled
+python ../../../../../tools/goldens/compare_prealpha.py --case ../../../../../tests/vectors/prealpha/channel_scales_relu_clamp --kind int8 --actual out/actual_int8_channel_scales_relu_clamp_stalled.bin
 PASS channel_scales_relu_clamp: 8x8 int8, 0 mismatches
 
-
 ========================================================================
-SECTION: compare-normal_8x16x8
-========================================================================
+compare-normal_8x16x8
+python ../../../../../tools/goldens/compare_prealpha.py --case ../../../../../tests/vectors/prealpha/normal_8x16x8 --kind int8 --actual out/actual_int8_normal_8x16x8.bin
 PASS normal_8x16x8: 8x8 int8, 0 mismatches
 
-
 ========================================================================
-SECTION: compare-normal_8x16x8_stalled
-========================================================================
+compare-normal_8x16x8_stalled
+python ../../../../../tools/goldens/compare_prealpha.py --case ../../../../../tests/vectors/prealpha/normal_8x16x8 --kind int8 --actual out/actual_int8_normal_8x16x8_stalled.bin
 PASS normal_8x16x8: 8x8 int8, 0 mismatches
 
-
 ========================================================================
-SECTION: compare-partial_tile_7x13x5
-========================================================================
+compare-partial_tile_7x13x5
+python ../../../../../tools/goldens/compare_prealpha.py --case ../../../../../tests/vectors/prealpha/partial_tile_7x13x5 --kind int8 --actual out/actual_int8_partial_tile_7x13x5.bin
 PASS partial_tile_7x13x5: 7x5 int8, 0 mismatches
 
-
 ========================================================================
-SECTION: compare-partial_tile_7x13x5_stalled
-========================================================================
+compare-partial_tile_7x13x5_stalled
+python ../../../../../tools/goldens/compare_prealpha.py --case ../../../../../tests/vectors/prealpha/partial_tile_7x13x5 --kind int8 --actual out/actual_int8_partial_tile_7x13x5_stalled.bin
 PASS partial_tile_7x13x5: 7x5 int8, 0 mismatches
 
-
 ========================================================================
-SECTION: compare-positive_negative_saturation
-========================================================================
+compare-positive_negative_saturation
+python ../../../../../tools/goldens/compare_prealpha.py --case ../../../../../tests/vectors/prealpha/positive_negative_saturation --kind int8 --actual out/actual_int8_positive_negative_saturation.bin
 PASS positive_negative_saturation: 8x8 int8, 0 mismatches
 
-
 ========================================================================
-SECTION: compare-positive_negative_saturation_stalled
-========================================================================
+compare-positive_negative_saturation_stalled
+python ../../../../../tools/goldens/compare_prealpha.py --case ../../../../../tests/vectors/prealpha/positive_negative_saturation --kind int8 --actual out/actual_int8_positive_negative_saturation_stalled.bin
 PASS positive_negative_saturation: 8x8 int8, 0 mismatches
 
-
 ========================================================================
-SECTION: compare-rounding_ties
-========================================================================
+compare-rounding_ties
+python ../../../../../tools/goldens/compare_prealpha.py --case ../../../../../tests/vectors/prealpha/rounding_ties --kind int8 --actual out/actual_int8_rounding_ties.bin
 PASS rounding_ties: 2x4 int8, 0 mismatches
 
-
 ========================================================================
-SECTION: compare-rounding_ties_stalled
-========================================================================
+compare-rounding_ties_stalled
+python ../../../../../tools/goldens/compare_prealpha.py --case ../../../../../tests/vectors/prealpha/rounding_ties --kind int8 --actual out/actual_int8_rounding_ties_stalled.bin
 PASS rounding_ties: 2x4 int8, 0 mismatches
 
-
 ========================================================================
-SECTION: compare-signed_nonzero_zp_stalled
-========================================================================
+compare-signed_nonzero_zp_stalled
+python ../../../../../tools/goldens/compare_prealpha.py --case ../../../../../tests/vectors/prealpha/signed_nonzero_zp_stalled --kind int8 --actual out/actual_int8_signed_nonzero_zp_stalled.bin
 PASS signed_nonzero_zp_stalled: 8x8 int8, 0 mismatches
 
-
 ========================================================================
-SECTION: compare-signed_nonzero_zp_stalled_stalled
-========================================================================
+compare-signed_nonzero_zp_stalled_stalled
+python ../../../../../tools/goldens/compare_prealpha.py --case ../../../../../tests/vectors/prealpha/signed_nonzero_zp_stalled --kind int8 --actual out/actual_int8_signed_nonzero_zp_stalled_stalled.bin
 PASS signed_nonzero_zp_stalled: 8x8 int8, 0 mismatches
 
-
 ========================================================================
-SECTION: compare-t12_start_while_busy
-========================================================================
+compare-t12_start_while_busy
+python ../../../../../tools/goldens/compare_prealpha.py --case ../../../../../tests/vectors/prealpha/normal_8x16x8 --kind int8 --actual out/actual_int8_t12_start_while_busy.bin
 PASS normal_8x16x8: 8x8 int8, 0 mismatches
 
-
 ========================================================================
-SECTION: compare-t15_staging_rewrite
-========================================================================
+compare-t15_staging_rewrite
+python ../../../../../tools/goldens/compare_prealpha.py --case ../../../../../tests/vectors/prealpha/normal_8x16x8 --kind int8 --actual out/actual_int8_t15_staging_rewrite.bin
 PASS normal_8x16x8: 8x8 int8, 0 mismatches
 
-
 ========================================================================
-SECTION: compare-t5_normal_shared_scale
-========================================================================
+compare-t4_bank_edges_k33
+python ../../../../../tools/goldens/compare_prealpha.py --case ../../../../../tests/vectors/prealpha/normal_8x16x8 --kind int8 --actual out/actual_int8_t4_bank_edges_k33.bin
 PASS normal_8x16x8: 8x8 int8, 0 mismatches
 
-
 ========================================================================
-SECTION: compare-t5_normal_shared_scale_stalled
-========================================================================
+compare-t4_bank_edges_k33_stalled
+python ../../../../../tools/goldens/compare_prealpha.py --case ../../../../../tests/vectors/prealpha/normal_8x16x8 --kind int8 --actual out/actual_int8_t4_bank_edges_k33_stalled.bin
 PASS normal_8x16x8: 8x8 int8, 0 mismatches
 
+========================================================================
+compare-t5_normal_shared_scale
+python ../../../../../tools/goldens/compare_prealpha.py --case ../../../../../tests/vectors/prealpha/normal_8x16x8 --kind int8 --actual out/actual_int8_t5_normal_shared_scale.bin
+PASS normal_8x16x8: 8x8 int8, 0 mismatches
 
 ========================================================================
-SECTION: compare-t6_partial_pitch16_dst100
+compare-t5_normal_shared_scale_stalled
+python ../../../../../tools/goldens/compare_prealpha.py --case ../../../../../tests/vectors/prealpha/normal_8x16x8 --kind int8 --actual out/actual_int8_t5_normal_shared_scale_stalled.bin
+PASS normal_8x16x8: 8x8 int8, 0 mismatches
+
 ========================================================================
+compare-t6_partial_pitch16_dst100
+python ../../../../../tools/goldens/compare_prealpha.py --case ../../../../../tests/vectors/prealpha/partial_tile_7x13x5 --kind int8 --actual out/actual_int8_t6_partial_pitch16_dst100.bin
 PASS partial_tile_7x13x5: 7x5 int8, 0 mismatches
 
-
 ========================================================================
-SECTION: compare-t6_partial_pitch16_dst100_stalled
-========================================================================
+compare-t6_partial_pitch16_dst100_stalled
+python ../../../../../tools/goldens/compare_prealpha.py --case ../../../../../tests/vectors/prealpha/partial_tile_7x13x5 --kind int8 --actual out/actual_int8_t6_partial_pitch16_dst100_stalled.bin
 PASS partial_tile_7x13x5: 7x5 int8, 0 mismatches
 
-
 ========================================================================
-SECTION: compare-t7_normal_act1_wgt1
-========================================================================
+compare-t7_normal_act1_wgt1
+python ../../../../../tools/goldens/compare_prealpha.py --case ../../../../../tests/vectors/prealpha/normal_8x16x8 --kind int8 --actual out/actual_int8_t7_normal_act1_wgt1.bin
 PASS normal_8x16x8: 8x8 int8, 0 mismatches
 
-
 ========================================================================
-SECTION: compare-t7_normal_act1_wgt1_stalled
-========================================================================
+compare-t7_normal_act1_wgt1_stalled
+python ../../../../../tools/goldens/compare_prealpha.py --case ../../../../../tests/vectors/prealpha/normal_8x16x8 --kind int8 --actual out/actual_int8_t7_normal_act1_wgt1_stalled.bin
 PASS normal_8x16x8: 8x8 int8, 0 mismatches
 
+========================================================================
+direct-banks
+vsim -c -onfinish exit -t 1ps -voptargs=+acc -sva -immedassert -l direct-banks.log -wlf direct-banks.wlf -gUSE_TILE_BUFFERS=0 work.tb_raven_npu_top +FIXTURES=fixtures +OUT=out-direct +TESTS=T1,T2,T3,T4,T5,T6,T7,T8,T9,T10,T11,T12,T13,T14,T15 -do run_batch.do
+Reading pref.tcl
 
-========================================================================
-SECTION: single-column
-========================================================================
-# vsim -c -onfinish exit -t 1ps -sva -immedassert -l single-column.log -wlf single-column.wlf work.tb_raven_npu_top "+FIXTURES=fixtures" "+OUT=out-cols1" "+TESTS=T1,T3" -do "run_batch.do" -gCOLS=1
-# Start time: 12:02:38 on Nov 04,2026
+# 2021.2
+
+# vsim -c -onfinish exit -t 1ps -voptargs="+acc" -sva -immedassert -l direct-banks.log -wlf direct-banks.wlf work.tb_raven_npu_top "+FIXTURES=fixtures" "+OUT=out-direct" "+TESTS=T1,T2,T3,T4,T5,T6,T7,T8,T9,T10,T11,T12,T13,T14,T15" -do "run_batch.do" -gUSE_TILE_BUFFERS=0
+# Start time: 14:32:04 on Nov 04,2026
 # ** Note: (vsim-3812) Design is being optimized...
+# ** Note: (vopt-143) Recognized 1 FSM in module "raven_ctrl(fast)".
+# ** Note: (vopt-143) Recognized 1 FSM in module "raven_gemm_core(fast)".
+# ** Note: (vopt-143) Recognized 2 FSMs in module "raven_gemm_frontend(fast)".
 # //  Questa Intel Starter FPGA Edition-64
 # //  Version 2021.2 win64 Apr 14 2021
 # //
@@ -382,6 +568,270 @@ SECTION: single-column
 # Loading work.raven_ctrl_pkg(fast)
 # Loading work.raven_tb_driver_pkg(fast)
 # Loading work.tb_raven_npu_top(fast)
+# Loading work.raven_reg_bus_if(fast__2)
+# Loading work.raven_npu_top(fast)
+# Loading work.raven_ctrl_regs(fast)
+# Loading work.raven_ctrl(fast)
+# Loading work.raven_gemm_core(fast)
+# Loading work.raven_gemm_frontend(fast)
+# Loading work.raven_mac_array(fast)
+# Loading work.raven_mac_pe(fast)
+# Loading work.raven_requant(fast)
+# Loading work.raven_requantize_clamp(fast)
+# Loading work.raven_result_writer(fast)
+# Loading work.sim_read_memory(fast)
+# Loading work.sim_read_memory(fast__1)
+# Loading work.sim_read_memory(fast__2)
+# Loading work.sim_read_memory(fast__3)
+# Loading work.sim_read_memory(fast__4)
+# Loading work.sim_read_memory(fast__5)
+# Loading work.sim_write_memory(fast)
+# do run_batch.do
+# PASS t1_reset_values
+# TEST T1 PASS
+# PASS t2_register_access
+# TEST T2 PASS
+# PASS t3_nop
+# TEST T3 PASS
+# PASS normal_8x16x8
+# PASS signed_nonzero_zp_stalled
+# PASS partial_tile_7x13x5
+# PASS positive_negative_saturation
+# PASS rounding_ties
+# PASS channel_scales_relu_clamp
+# PASS t4_bank_edges_k33
+# TEST T4 PASS
+# PASS t5_normal_shared_scale
+# TEST T5 PASS
+# PASS t6_partial_pitch16_dst100
+# TEST T6 PASS
+# PASS t7_normal_act1_wgt1
+# TEST T7 PASS
+# PASS normal_8x16x8_stalled
+# PASS signed_nonzero_zp_stalled_stalled
+# PASS partial_tile_7x13x5_stalled
+# PASS positive_negative_saturation_stalled
+# PASS rounding_ties_stalled
+# PASS channel_scales_relu_clamp_stalled
+# PASS t4_bank_edges_k33_stalled
+# PASS t5_normal_shared_scale_stalled
+# PASS t6_partial_pitch16_dst100_stalled
+# PASS t7_normal_act1_wgt1_stalled
+# TEST T8 PASS
+# PASS invalid_zero_k
+# TEST T9 PASS
+# PASS t10_illegal_opcode
+# PASS t10_reserved_src_a
+# PASS t10_reserved_p5
+# PASS t10_missing_acc_last
+# PASS t10_src_a_prm_bank
+# PASS t10_dst_out1_bank
+# PASS t10_m9
+# PASS t10_p4_below_n
+# PASS t10_dst_misaligned
+# PASS t10_dst_span_overflow
+# TEST T10 PASS
+# PASS t11_a_pitch_short
+# PASS t11_a_base_misaligned
+# PASS t11_param_base_misaligned
+# PASS t11_param_span_overflow
+# PASS t11_acc_overflow
+# TEST T11 PASS
+# PASS t12_start_while_busy
+# TEST T12 PASS
+# PASS t13_halted
+# PASS normal_8x16x8
+# TEST T13 PASS
+# PASS t14_soft_reset_in_run
+# PASS normal_8x16x8
+# PASS t14_hw_reset_in_run
+# PASS normal_8x16x8
+# PASS t14_soft_reset_in_drain
+# PASS normal_8x16x8
+# PASS t14_hw_reset_in_drain
+# PASS normal_8x16x8
+# TEST T14 PASS
+# PASS t15_staging_rewrite
+# TEST T15 PASS
+# SUMMARY: 51 passed, 0 failed, 721 checks
+# ALL TESTS PASSED
+# ** Note: $finish    : ../../../../../tests/rtl/integration/tb_raven_npu_top.sv(719)
+#    Time: 90770 ns  Iteration: 1  Instance: /tb_raven_npu_top
+# End time: 14:32:06 on Nov 04,2026, Elapsed time: 0:00:02
+# Errors: 0, Warnings: 0
+
+========================================================================
+compare-direct-channel_scales_relu_clamp
+python ../../../../../tools/goldens/compare_prealpha.py --case ../../../../../tests/vectors/prealpha/channel_scales_relu_clamp --kind int8 --actual out-direct/actual_int8_channel_scales_relu_clamp.bin
+PASS channel_scales_relu_clamp: 8x8 int8, 0 mismatches
+
+========================================================================
+compare-direct-channel_scales_relu_clamp_stalled
+python ../../../../../tools/goldens/compare_prealpha.py --case ../../../../../tests/vectors/prealpha/channel_scales_relu_clamp --kind int8 --actual out-direct/actual_int8_channel_scales_relu_clamp_stalled.bin
+PASS channel_scales_relu_clamp: 8x8 int8, 0 mismatches
+
+========================================================================
+compare-direct-normal_8x16x8
+python ../../../../../tools/goldens/compare_prealpha.py --case ../../../../../tests/vectors/prealpha/normal_8x16x8 --kind int8 --actual out-direct/actual_int8_normal_8x16x8.bin
+PASS normal_8x16x8: 8x8 int8, 0 mismatches
+
+========================================================================
+compare-direct-normal_8x16x8_stalled
+python ../../../../../tools/goldens/compare_prealpha.py --case ../../../../../tests/vectors/prealpha/normal_8x16x8 --kind int8 --actual out-direct/actual_int8_normal_8x16x8_stalled.bin
+PASS normal_8x16x8: 8x8 int8, 0 mismatches
+
+========================================================================
+compare-direct-partial_tile_7x13x5
+python ../../../../../tools/goldens/compare_prealpha.py --case ../../../../../tests/vectors/prealpha/partial_tile_7x13x5 --kind int8 --actual out-direct/actual_int8_partial_tile_7x13x5.bin
+PASS partial_tile_7x13x5: 7x5 int8, 0 mismatches
+
+========================================================================
+compare-direct-partial_tile_7x13x5_stalled
+python ../../../../../tools/goldens/compare_prealpha.py --case ../../../../../tests/vectors/prealpha/partial_tile_7x13x5 --kind int8 --actual out-direct/actual_int8_partial_tile_7x13x5_stalled.bin
+PASS partial_tile_7x13x5: 7x5 int8, 0 mismatches
+
+========================================================================
+compare-direct-positive_negative_saturation
+python ../../../../../tools/goldens/compare_prealpha.py --case ../../../../../tests/vectors/prealpha/positive_negative_saturation --kind int8 --actual out-direct/actual_int8_positive_negative_saturation.bin
+PASS positive_negative_saturation: 8x8 int8, 0 mismatches
+
+========================================================================
+compare-direct-positive_negative_saturation_stalled
+python ../../../../../tools/goldens/compare_prealpha.py --case ../../../../../tests/vectors/prealpha/positive_negative_saturation --kind int8 --actual out-direct/actual_int8_positive_negative_saturation_stalled.bin
+PASS positive_negative_saturation: 8x8 int8, 0 mismatches
+
+========================================================================
+compare-direct-rounding_ties
+python ../../../../../tools/goldens/compare_prealpha.py --case ../../../../../tests/vectors/prealpha/rounding_ties --kind int8 --actual out-direct/actual_int8_rounding_ties.bin
+PASS rounding_ties: 2x4 int8, 0 mismatches
+
+========================================================================
+compare-direct-rounding_ties_stalled
+python ../../../../../tools/goldens/compare_prealpha.py --case ../../../../../tests/vectors/prealpha/rounding_ties --kind int8 --actual out-direct/actual_int8_rounding_ties_stalled.bin
+PASS rounding_ties: 2x4 int8, 0 mismatches
+
+========================================================================
+compare-direct-signed_nonzero_zp_stalled
+python ../../../../../tools/goldens/compare_prealpha.py --case ../../../../../tests/vectors/prealpha/signed_nonzero_zp_stalled --kind int8 --actual out-direct/actual_int8_signed_nonzero_zp_stalled.bin
+PASS signed_nonzero_zp_stalled: 8x8 int8, 0 mismatches
+
+========================================================================
+compare-direct-signed_nonzero_zp_stalled_stalled
+python ../../../../../tools/goldens/compare_prealpha.py --case ../../../../../tests/vectors/prealpha/signed_nonzero_zp_stalled --kind int8 --actual out-direct/actual_int8_signed_nonzero_zp_stalled_stalled.bin
+PASS signed_nonzero_zp_stalled: 8x8 int8, 0 mismatches
+
+========================================================================
+compare-direct-t12_start_while_busy
+python ../../../../../tools/goldens/compare_prealpha.py --case ../../../../../tests/vectors/prealpha/normal_8x16x8 --kind int8 --actual out-direct/actual_int8_t12_start_while_busy.bin
+PASS normal_8x16x8: 8x8 int8, 0 mismatches
+
+========================================================================
+compare-direct-t15_staging_rewrite
+python ../../../../../tools/goldens/compare_prealpha.py --case ../../../../../tests/vectors/prealpha/normal_8x16x8 --kind int8 --actual out-direct/actual_int8_t15_staging_rewrite.bin
+PASS normal_8x16x8: 8x8 int8, 0 mismatches
+
+========================================================================
+compare-direct-t4_bank_edges_k33
+python ../../../../../tools/goldens/compare_prealpha.py --case ../../../../../tests/vectors/prealpha/normal_8x16x8 --kind int8 --actual out-direct/actual_int8_t4_bank_edges_k33.bin
+PASS normal_8x16x8: 8x8 int8, 0 mismatches
+
+========================================================================
+compare-direct-t4_bank_edges_k33_stalled
+python ../../../../../tools/goldens/compare_prealpha.py --case ../../../../../tests/vectors/prealpha/normal_8x16x8 --kind int8 --actual out-direct/actual_int8_t4_bank_edges_k33_stalled.bin
+PASS normal_8x16x8: 8x8 int8, 0 mismatches
+
+========================================================================
+compare-direct-t5_normal_shared_scale
+python ../../../../../tools/goldens/compare_prealpha.py --case ../../../../../tests/vectors/prealpha/normal_8x16x8 --kind int8 --actual out-direct/actual_int8_t5_normal_shared_scale.bin
+PASS normal_8x16x8: 8x8 int8, 0 mismatches
+
+========================================================================
+compare-direct-t5_normal_shared_scale_stalled
+python ../../../../../tools/goldens/compare_prealpha.py --case ../../../../../tests/vectors/prealpha/normal_8x16x8 --kind int8 --actual out-direct/actual_int8_t5_normal_shared_scale_stalled.bin
+PASS normal_8x16x8: 8x8 int8, 0 mismatches
+
+========================================================================
+compare-direct-t6_partial_pitch16_dst100
+python ../../../../../tools/goldens/compare_prealpha.py --case ../../../../../tests/vectors/prealpha/partial_tile_7x13x5 --kind int8 --actual out-direct/actual_int8_t6_partial_pitch16_dst100.bin
+PASS partial_tile_7x13x5: 7x5 int8, 0 mismatches
+
+========================================================================
+compare-direct-t6_partial_pitch16_dst100_stalled
+python ../../../../../tools/goldens/compare_prealpha.py --case ../../../../../tests/vectors/prealpha/partial_tile_7x13x5 --kind int8 --actual out-direct/actual_int8_t6_partial_pitch16_dst100_stalled.bin
+PASS partial_tile_7x13x5: 7x5 int8, 0 mismatches
+
+========================================================================
+compare-direct-t7_normal_act1_wgt1
+python ../../../../../tools/goldens/compare_prealpha.py --case ../../../../../tests/vectors/prealpha/normal_8x16x8 --kind int8 --actual out-direct/actual_int8_t7_normal_act1_wgt1.bin
+PASS normal_8x16x8: 8x8 int8, 0 mismatches
+
+========================================================================
+compare-direct-t7_normal_act1_wgt1_stalled
+python ../../../../../tools/goldens/compare_prealpha.py --case ../../../../../tests/vectors/prealpha/normal_8x16x8 --kind int8 --actual out-direct/actual_int8_t7_normal_act1_wgt1_stalled.bin
+PASS normal_8x16x8: 8x8 int8, 0 mismatches
+
+========================================================================
+single-column
+vsim -c -onfinish exit -t 1ps -voptargs=+acc -sva -immedassert -l single-column.log -wlf single-column.wlf -gCOLS=1 work.tb_raven_npu_top +FIXTURES=fixtures +OUT=out-cols1 +TESTS=T1,T3 -do run_batch.do
+Reading pref.tcl
+
+# 2021.2
+
+# vsim -c -onfinish exit -t 1ps -voptargs="+acc" -sva -immedassert -l single-column.log -wlf single-column.wlf work.tb_raven_npu_top "+FIXTURES=fixtures" "+OUT=out-cols1" "+TESTS=T1,T3" -do "run_batch.do" -gCOLS=1
+# Start time: 14:32:09 on Nov 04,2026
+# ** Note: (vsim-3812) Design is being optimized...
+# ** Note: (vopt-143) Recognized 1 FSM in module "raven_ctrl(fast)".
+# ** Note: (vopt-143) Recognized 1 FSM in module "raven_gemm_core(fast)".
+# ** Note: (vopt-143) Recognized 1 FSM in module "raven_read_buffer_adapter(fast__2)".
+# ** Note: (vopt-143) Recognized 1 FSM in module "raven_read_buffer_adapter(fast__1)".
+# ** Note: (vopt-143) Recognized 1 FSM in module "raven_read_buffer_adapter(fast)".
+# ** Note: (vopt-143) Recognized 2 FSMs in module "raven_gemm_frontend(fast)".
+# ** Note: (vopt-143) Recognized 1 FSM in module "raven_output_buffer_adapter(fast)".
+# //  Questa Intel Starter FPGA Edition-64
+# //  Version 2021.2 win64 Apr 14 2021
+# //
+# //  Copyright 1991-2021 Mentor Graphics Corporation
+# //  All Rights Reserved.
+# //
+# //  QuestaSim and its associated documentation contain trade
+# //  secrets and commercial or financial information that are the property of
+# //  Mentor Graphics Corporation and are privileged, confidential,
+# //  and exempt from disclosure under the Freedom of Information Act,
+# //  5 U.S.C. Section 552. Furthermore, this information
+# //  is prohibited from disclosure under the Trade Secrets Act,
+# //  18 U.S.C. Section 1905.
+# //
+# Loading sv_std.std
+# Loading work.raven_reg_bus_if(fast)
+# Loading work.raven_ctrl_pkg(fast)
+# Loading work.raven_tb_driver_pkg(fast)
+# Loading work.tb_raven_npu_top(fast)
+# Loading work.raven_reg_bus_if(fast__2)
+# Loading work.raven_npu_top(fast)
+# Loading work.raven_ctrl_regs(fast)
+# Loading work.raven_ctrl(fast)
+# Loading work.raven_gemm_core(fast)
+# Loading work.raven_gemm_frontend(fast)
+# Loading work.raven_mac_array(fast)
+# Loading work.raven_mac_pe(fast)
+# Loading work.raven_requant(fast)
+# Loading work.raven_requantize_clamp(fast)
+# Loading work.raven_result_writer(fast)
+# Loading work.raven_read_buffer_adapter(fast)
+# Loading work.activationBuffer(fast)
+# Loading work.raven_read_buffer_adapter(fast__1)
+# Loading work.weightBuffer(fast)
+# Loading work.raven_read_buffer_adapter(fast__2)
+# Loading work.parameterBuffer(fast)
+# Loading work.raven_output_buffer_adapter(fast)
+# Loading work.outputBuffer(fast)
+# Loading work.sim_read_memory(fast)
+# Loading work.sim_read_memory(fast__1)
+# Loading work.sim_read_memory(fast__2)
+# Loading work.sim_read_memory(fast__3)
+# Loading work.sim_read_memory(fast__4)
+# Loading work.sim_read_memory(fast__5)
+# Loading work.sim_write_memory(fast)
 # do run_batch.do
 # PASS t1_reset_values
 # TEST T1 PASS
@@ -389,7 +839,523 @@ SECTION: single-column
 # TEST T3 PASS
 # SUMMARY: 2 passed, 0 failed, 43 checks
 # ALL TESTS PASSED
-# ** Note: $finish    : ../../../../../tests/rtl/integration/tb_raven_npu_top.sv(718)
-#    Time: 1290 ps  Iteration: 1  Instance: /tb_raven_npu_top
-# End time: 12:02:39 on Nov 04,2026, Elapsed time: 0:00:01
+# ** Note: $finish    : ../../../../../tests/rtl/integration/tb_raven_npu_top.sv(719)
+#    Time: 1290 ns  Iteration: 1  Instance: /tb_raven_npu_top
+# End time: 14:32:09 on Nov 04,2026, Elapsed time: 0:00:00
 # Errors: 0, Warnings: 0
+
+========================================================================
+fault_activation-vlib
+vlib fault_activation
+
+========================================================================
+fault_activation-vmap
+vmap fault_activation fault_activation
+Questa Intel Starter FPGA Edition-64 vmap 2021.2 Lib Mapping Utility 2021.04 Apr 14 2021
+vmap fault_activation fault_activation
+Modifying modelsim.ini
+
+========================================================================
+fault_activation-compile
+vlog -sv -timescale 1ns/1ps -work fault_activation -l fault_activation-compile.log ../../../../../rtl/control/raven_ctrl_pkg.sv ../../../../../rtl/control/raven_ctrl_regs.sv ../../../../../rtl/control/raven_ctrl.sv ../../../../../rtl/compute/raven_mac_pe.sv ../../../../../rtl/compute/raven_mac_array.sv ../../../../../rtl/compute/raven_gemm_frontend.sv ../../../../../rtl/compute/raven_gemm_core.sv ../../../../../rtl/operators/raven_requantize_clamp.sv faults/activation.sv ../../../../../rtl/memory/weight_buffer.sv ../../../../../rtl/memory/parameter_buffer.sv ../../../../../rtl/memory/output_buffer.sv ../../../../../rtl/memory/raven_read_buffer_adapter.sv ../../../../../rtl/memory/raven_output_buffer_adapter.sv ../../../../../rtl/top/raven_requant.sv ../../../../../rtl/top/raven_result_writer.sv ../../../../../rtl/top/raven_npu_top.sv ../../../../../tests/rtl/compute/sim_read_memory.sv ../../../../../tests/rtl/integration/sim_write_memory.sv ../../../../../tests/rtl/integration/raven_tb_driver_pkg.sv ../../../../../tests/rtl/integration/tb_raven_npu_top.sv ../../../../../tests/rtl/integration/tb_raven_memory_adapters.sv
+Questa Intel Starter FPGA Edition-64 vlog 2021.2 Compiler 2021.04 Apr 14 2021
+Start time: 14:32:10 on Nov 04,2026
+vlog -sv -timescale 1ns/1ps -work fault_activation -l fault_activation-compile.log ../../../../../rtl/control/raven_ctrl_pkg.sv ../../../../../rtl/control/raven_ctrl_regs.sv ../../../../../rtl/control/raven_ctrl.sv ../../../../../rtl/compute/raven_mac_pe.sv ../../../../../rtl/compute/raven_mac_array.sv ../../../../../rtl/compute/raven_gemm_frontend.sv ../../../../../rtl/compute/raven_gemm_core.sv ../../../../../rtl/operators/raven_requantize_clamp.sv faults/activation.sv ../../../../../rtl/memory/weight_buffer.sv ../../../../../rtl/memory/parameter_buffer.sv ../../../../../rtl/memory/output_buffer.sv ../../../../../rtl/memory/raven_read_buffer_adapter.sv ../../../../../rtl/memory/raven_output_buffer_adapter.sv ../../../../../rtl/top/raven_requant.sv ../../../../../rtl/top/raven_result_writer.sv ../../../../../rtl/top/raven_npu_top.sv ../../../../../tests/rtl/compute/sim_read_memory.sv ../../../../../tests/rtl/integration/sim_write_memory.sv ../../../../../tests/rtl/integration/raven_tb_driver_pkg.sv ../../../../../tests/rtl/integration/tb_raven_npu_top.sv ../../../../../tests/rtl/integration/tb_raven_memory_adapters.sv
+-- Compiling package raven_ctrl_pkg
+-- Compiling module raven_ctrl_regs
+-- Importing package raven_ctrl_pkg
+-- Compiling module raven_ctrl
+-- Compiling module raven_mac_pe
+-- Compiling module raven_mac_array
+-- Compiling module raven_gemm_frontend
+-- Compiling module raven_gemm_core
+-- Compiling module raven_requantize_clamp
+-- Compiling module activationBuffer
+-- Compiling module weightBuffer
+-- Compiling module parameterBuffer
+-- Compiling module outputBuffer
+-- Compiling module raven_read_buffer_adapter
+-- Compiling module raven_output_buffer_adapter
+-- Compiling module raven_requant
+-- Compiling module raven_result_writer
+-- Compiling module raven_npu_top
+-- Compiling module sim_read_memory
+-- Compiling module sim_write_memory
+-- Compiling interface raven_reg_bus_if
+-- Compiling package raven_tb_driver_pkg
+-- Compiling module tb_raven_npu_top
+-- Importing package raven_tb_driver_pkg
+-- Compiling module tb_raven_read_buffer_adapter
+-- Compiling module tb_raven_output_buffer_adapter
+
+Top level modules:
+	tb_raven_npu_top
+	tb_raven_read_buffer_adapter
+	tb_raven_output_buffer_adapter
+End time: 14:32:10 on Nov 04,2026, Elapsed time: 0:00:00
+Errors: 0, Warnings: 0
+
+========================================================================
+fault_activation (expected rejection)
+vsim -c -onfinish exit -t 1ps -voptargs=+acc -sva -immedassert -l fault_activation.log -wlf fault_activation.wlf fault_activation.tb_raven_npu_top +FIXTURES=fixtures +OUT=out-fault_activation +TESTS=T4 -do run_batch.do
+Reading pref.tcl
+
+# 2021.2
+
+# vsim -c -onfinish exit -t 1ps -voptargs="+acc" -sva -immedassert -l fault_activation.log -wlf fault_activation.wlf fault_activation.tb_raven_npu_top "+FIXTURES=fixtures" "+OUT=out-fault_activation" "+TESTS=T4" -do "run_batch.do"
+# Start time: 14:32:10 on Nov 04,2026
+# ** Note: (vsim-3812) Design is being optimized...
+# ** Note: (vopt-143) Recognized 1 FSM in module "raven_ctrl(fast)".
+# ** Note: (vopt-143) Recognized 1 FSM in module "raven_gemm_core(fast)".
+# ** Note: (vopt-143) Recognized 1 FSM in module "raven_read_buffer_adapter(fast__2)".
+# ** Note: (vopt-143) Recognized 1 FSM in module "raven_read_buffer_adapter(fast__1)".
+# ** Note: (vopt-143) Recognized 1 FSM in module "raven_read_buffer_adapter(fast)".
+# ** Note: (vopt-143) Recognized 2 FSMs in module "raven_gemm_frontend(fast)".
+# ** Note: (vopt-143) Recognized 1 FSM in module "raven_output_buffer_adapter(fast)".
+# //  Questa Intel Starter FPGA Edition-64
+# //  Version 2021.2 win64 Apr 14 2021
+# //
+# //  Copyright 1991-2021 Mentor Graphics Corporation
+# //  All Rights Reserved.
+# //
+# //  QuestaSim and its associated documentation contain trade
+# //  secrets and commercial or financial information that are the property of
+# //  Mentor Graphics Corporation and are privileged, confidential,
+# //  and exempt from disclosure under the Freedom of Information Act,
+# //  5 U.S.C. Section 552. Furthermore, this information
+# //  is prohibited from disclosure under the Trade Secrets Act,
+# //  18 U.S.C. Section 1905.
+# //
+# Loading sv_std.std
+# Loading work.raven_reg_bus_if(fast)
+# Loading work.raven_ctrl_pkg(fast)
+# Loading work.raven_tb_driver_pkg(fast)
+# Loading work.tb_raven_npu_top(fast)
+# Loading work.raven_reg_bus_if(fast__2)
+# Loading work.raven_npu_top(fast)
+# Loading work.raven_ctrl_regs(fast)
+# Loading work.raven_ctrl(fast)
+# Loading work.raven_gemm_core(fast)
+# Loading work.raven_gemm_frontend(fast)
+# Loading work.raven_mac_array(fast)
+# Loading work.raven_mac_pe(fast)
+# Loading work.raven_requant(fast)
+# Loading work.raven_requantize_clamp(fast)
+# Loading work.raven_result_writer(fast)
+# Loading work.raven_read_buffer_adapter(fast)
+# Loading work.activationBuffer(fast)
+# Loading work.raven_read_buffer_adapter(fast__1)
+# Loading work.weightBuffer(fast)
+# Loading work.raven_read_buffer_adapter(fast__2)
+# Loading work.parameterBuffer(fast)
+# Loading work.raven_output_buffer_adapter(fast)
+# Loading work.outputBuffer(fast)
+# Loading work.sim_read_memory(fast)
+# Loading work.sim_read_memory(fast__1)
+# Loading work.sim_read_memory(fast__2)
+# Loading work.sim_read_memory(fast__3)
+# Loading work.sim_read_memory(fast__4)
+# Loading work.sim_read_memory(fast__5)
+# Loading work.sim_write_memory(fast)
+# do run_batch.do
+#   normal_8x16x8 OUT0[0000] = 03, expected f8
+#   normal_8x16x8 OUT0[0001] = 04, expected f1
+#   normal_8x16x8 OUT0[0002] = f8, expected 00
+#   normal_8x16x8 OUT0[0003] = 03, expected 0f
+#   normal_8x16x8 OUT0[0004] = f8, expected f2
+#   normal_8x16x8 OUT0[0005] = fa, expected f9
+#   normal_8x16x8 OUT0[0006] = 04, expected 07
+#   normal_8x16x8 OUT0[0007] = fb, expected e8
+# ** Fatal: CHECK FAILED: normal_8x16x8: 59 OUT0 bytes wrong
+#    Time: 8610 ns  Scope: tb_raven_npu_top.check_out_bank File: ../../../../../tests/rtl/integration/tb_raven_npu_top.sv Line: 237
+# ** Note: $finish    : ../../../../../tests/rtl/integration/tb_raven_npu_top.sv(237)
+#    Time: 8610 ns  Iteration: 1  Instance: /tb_raven_npu_top
+# End time: 14:32:11 on Nov 04,2026, Elapsed time: 0:00:01
+# Errors: 1, Warnings: 0
+
+========================================================================
+fault_weight-vlib
+vlib fault_weight
+
+========================================================================
+fault_weight-vmap
+vmap fault_weight fault_weight
+Questa Intel Starter FPGA Edition-64 vmap 2021.2 Lib Mapping Utility 2021.04 Apr 14 2021
+vmap fault_weight fault_weight
+Modifying modelsim.ini
+
+========================================================================
+fault_weight-compile
+vlog -sv -timescale 1ns/1ps -work fault_weight -l fault_weight-compile.log ../../../../../rtl/control/raven_ctrl_pkg.sv ../../../../../rtl/control/raven_ctrl_regs.sv ../../../../../rtl/control/raven_ctrl.sv ../../../../../rtl/compute/raven_mac_pe.sv ../../../../../rtl/compute/raven_mac_array.sv ../../../../../rtl/compute/raven_gemm_frontend.sv ../../../../../rtl/compute/raven_gemm_core.sv ../../../../../rtl/operators/raven_requantize_clamp.sv ../../../../../rtl/memory/activation_buffer.sv faults/weight.sv ../../../../../rtl/memory/parameter_buffer.sv ../../../../../rtl/memory/output_buffer.sv ../../../../../rtl/memory/raven_read_buffer_adapter.sv ../../../../../rtl/memory/raven_output_buffer_adapter.sv ../../../../../rtl/top/raven_requant.sv ../../../../../rtl/top/raven_result_writer.sv ../../../../../rtl/top/raven_npu_top.sv ../../../../../tests/rtl/compute/sim_read_memory.sv ../../../../../tests/rtl/integration/sim_write_memory.sv ../../../../../tests/rtl/integration/raven_tb_driver_pkg.sv ../../../../../tests/rtl/integration/tb_raven_npu_top.sv ../../../../../tests/rtl/integration/tb_raven_memory_adapters.sv
+Questa Intel Starter FPGA Edition-64 vlog 2021.2 Compiler 2021.04 Apr 14 2021
+Start time: 14:32:11 on Nov 04,2026
+vlog -sv -timescale 1ns/1ps -work fault_weight -l fault_weight-compile.log ../../../../../rtl/control/raven_ctrl_pkg.sv ../../../../../rtl/control/raven_ctrl_regs.sv ../../../../../rtl/control/raven_ctrl.sv ../../../../../rtl/compute/raven_mac_pe.sv ../../../../../rtl/compute/raven_mac_array.sv ../../../../../rtl/compute/raven_gemm_frontend.sv ../../../../../rtl/compute/raven_gemm_core.sv ../../../../../rtl/operators/raven_requantize_clamp.sv ../../../../../rtl/memory/activation_buffer.sv faults/weight.sv ../../../../../rtl/memory/parameter_buffer.sv ../../../../../rtl/memory/output_buffer.sv ../../../../../rtl/memory/raven_read_buffer_adapter.sv ../../../../../rtl/memory/raven_output_buffer_adapter.sv ../../../../../rtl/top/raven_requant.sv ../../../../../rtl/top/raven_result_writer.sv ../../../../../rtl/top/raven_npu_top.sv ../../../../../tests/rtl/compute/sim_read_memory.sv ../../../../../tests/rtl/integration/sim_write_memory.sv ../../../../../tests/rtl/integration/raven_tb_driver_pkg.sv ../../../../../tests/rtl/integration/tb_raven_npu_top.sv ../../../../../tests/rtl/integration/tb_raven_memory_adapters.sv
+-- Compiling package raven_ctrl_pkg
+-- Compiling module raven_ctrl_regs
+-- Importing package raven_ctrl_pkg
+-- Compiling module raven_ctrl
+-- Compiling module raven_mac_pe
+-- Compiling module raven_mac_array
+-- Compiling module raven_gemm_frontend
+-- Compiling module raven_gemm_core
+-- Compiling module raven_requantize_clamp
+-- Compiling module activationBuffer
+-- Compiling module weightBuffer
+-- Compiling module parameterBuffer
+-- Compiling module outputBuffer
+-- Compiling module raven_read_buffer_adapter
+-- Compiling module raven_output_buffer_adapter
+-- Compiling module raven_requant
+-- Compiling module raven_result_writer
+-- Compiling module raven_npu_top
+-- Compiling module sim_read_memory
+-- Compiling module sim_write_memory
+-- Compiling interface raven_reg_bus_if
+-- Compiling package raven_tb_driver_pkg
+-- Compiling module tb_raven_npu_top
+-- Importing package raven_tb_driver_pkg
+-- Compiling module tb_raven_read_buffer_adapter
+-- Compiling module tb_raven_output_buffer_adapter
+
+Top level modules:
+	tb_raven_npu_top
+	tb_raven_read_buffer_adapter
+	tb_raven_output_buffer_adapter
+End time: 14:32:12 on Nov 04,2026, Elapsed time: 0:00:01
+Errors: 0, Warnings: 0
+
+========================================================================
+fault_weight (expected rejection)
+vsim -c -onfinish exit -t 1ps -voptargs=+acc -sva -immedassert -l fault_weight.log -wlf fault_weight.wlf fault_weight.tb_raven_npu_top +FIXTURES=fixtures +OUT=out-fault_weight +TESTS=T4 -do run_batch.do
+Reading pref.tcl
+
+# 2021.2
+
+# vsim -c -onfinish exit -t 1ps -voptargs="+acc" -sva -immedassert -l fault_weight.log -wlf fault_weight.wlf fault_weight.tb_raven_npu_top "+FIXTURES=fixtures" "+OUT=out-fault_weight" "+TESTS=T4" -do "run_batch.do"
+# Start time: 14:32:12 on Nov 04,2026
+# ** Note: (vsim-3812) Design is being optimized...
+# ** Note: (vopt-143) Recognized 1 FSM in module "raven_ctrl(fast)".
+# ** Note: (vopt-143) Recognized 1 FSM in module "raven_gemm_core(fast)".
+# ** Note: (vopt-143) Recognized 1 FSM in module "raven_read_buffer_adapter(fast__2)".
+# ** Note: (vopt-143) Recognized 1 FSM in module "raven_read_buffer_adapter(fast__1)".
+# ** Note: (vopt-143) Recognized 1 FSM in module "raven_read_buffer_adapter(fast)".
+# ** Note: (vopt-143) Recognized 2 FSMs in module "raven_gemm_frontend(fast)".
+# ** Note: (vopt-143) Recognized 1 FSM in module "raven_output_buffer_adapter(fast)".
+# //  Questa Intel Starter FPGA Edition-64
+# //  Version 2021.2 win64 Apr 14 2021
+# //
+# //  Copyright 1991-2021 Mentor Graphics Corporation
+# //  All Rights Reserved.
+# //
+# //  QuestaSim and its associated documentation contain trade
+# //  secrets and commercial or financial information that are the property of
+# //  Mentor Graphics Corporation and are privileged, confidential,
+# //  and exempt from disclosure under the Freedom of Information Act,
+# //  5 U.S.C. Section 552. Furthermore, this information
+# //  is prohibited from disclosure under the Trade Secrets Act,
+# //  18 U.S.C. Section 1905.
+# //
+# Loading sv_std.std
+# Loading work.raven_reg_bus_if(fast)
+# Loading work.raven_ctrl_pkg(fast)
+# Loading work.raven_tb_driver_pkg(fast)
+# Loading work.tb_raven_npu_top(fast)
+# Loading work.raven_reg_bus_if(fast__2)
+# Loading work.raven_npu_top(fast)
+# Loading work.raven_ctrl_regs(fast)
+# Loading work.raven_ctrl(fast)
+# Loading work.raven_gemm_core(fast)
+# Loading work.raven_gemm_frontend(fast)
+# Loading work.raven_mac_array(fast)
+# Loading work.raven_mac_pe(fast)
+# Loading work.raven_requant(fast)
+# Loading work.raven_requantize_clamp(fast)
+# Loading work.raven_result_writer(fast)
+# Loading work.raven_read_buffer_adapter(fast)
+# Loading work.activationBuffer(fast)
+# Loading work.raven_read_buffer_adapter(fast__1)
+# Loading work.weightBuffer(fast)
+# Loading work.raven_read_buffer_adapter(fast__2)
+# Loading work.parameterBuffer(fast)
+# Loading work.raven_output_buffer_adapter(fast)
+# Loading work.outputBuffer(fast)
+# Loading work.sim_read_memory(fast)
+# Loading work.sim_read_memory(fast__1)
+# Loading work.sim_read_memory(fast__2)
+# Loading work.sim_read_memory(fast__3)
+# Loading work.sim_read_memory(fast__4)
+# Loading work.sim_read_memory(fast__5)
+# Loading work.sim_write_memory(fast)
+# do run_batch.do
+#   normal_8x16x8 OUT0[0000] = 03, expected f8
+#   normal_8x16x8 OUT0[0001] = 04, expected f1
+#   normal_8x16x8 OUT0[0002] = f8, expected 00
+#   normal_8x16x8 OUT0[0003] = 03, expected 0f
+#   normal_8x16x8 OUT0[0004] = f8, expected f2
+#   normal_8x16x8 OUT0[0005] = fa, expected f9
+#   normal_8x16x8 OUT0[0006] = 04, expected 07
+#   normal_8x16x8 OUT0[0007] = fb, expected e8
+# ** Fatal: CHECK FAILED: normal_8x16x8: 59 OUT0 bytes wrong
+#    Time: 8610 ns  Scope: tb_raven_npu_top.check_out_bank File: ../../../../../tests/rtl/integration/tb_raven_npu_top.sv Line: 237
+# ** Note: $finish    : ../../../../../tests/rtl/integration/tb_raven_npu_top.sv(237)
+#    Time: 8610 ns  Iteration: 1  Instance: /tb_raven_npu_top
+# End time: 14:32:13 on Nov 04,2026, Elapsed time: 0:00:01
+# Errors: 1, Warnings: 0
+
+========================================================================
+fault_parameter-vlib
+vlib fault_parameter
+
+========================================================================
+fault_parameter-vmap
+vmap fault_parameter fault_parameter
+Questa Intel Starter FPGA Edition-64 vmap 2021.2 Lib Mapping Utility 2021.04 Apr 14 2021
+vmap fault_parameter fault_parameter
+Modifying modelsim.ini
+
+========================================================================
+fault_parameter-compile
+vlog -sv -timescale 1ns/1ps -work fault_parameter -l fault_parameter-compile.log ../../../../../rtl/control/raven_ctrl_pkg.sv ../../../../../rtl/control/raven_ctrl_regs.sv ../../../../../rtl/control/raven_ctrl.sv ../../../../../rtl/compute/raven_mac_pe.sv ../../../../../rtl/compute/raven_mac_array.sv ../../../../../rtl/compute/raven_gemm_frontend.sv ../../../../../rtl/compute/raven_gemm_core.sv ../../../../../rtl/operators/raven_requantize_clamp.sv ../../../../../rtl/memory/activation_buffer.sv ../../../../../rtl/memory/weight_buffer.sv faults/parameter.sv ../../../../../rtl/memory/output_buffer.sv ../../../../../rtl/memory/raven_read_buffer_adapter.sv ../../../../../rtl/memory/raven_output_buffer_adapter.sv ../../../../../rtl/top/raven_requant.sv ../../../../../rtl/top/raven_result_writer.sv ../../../../../rtl/top/raven_npu_top.sv ../../../../../tests/rtl/compute/sim_read_memory.sv ../../../../../tests/rtl/integration/sim_write_memory.sv ../../../../../tests/rtl/integration/raven_tb_driver_pkg.sv ../../../../../tests/rtl/integration/tb_raven_npu_top.sv ../../../../../tests/rtl/integration/tb_raven_memory_adapters.sv
+Questa Intel Starter FPGA Edition-64 vlog 2021.2 Compiler 2021.04 Apr 14 2021
+Start time: 14:32:13 on Nov 04,2026
+vlog -sv -timescale 1ns/1ps -work fault_parameter -l fault_parameter-compile.log ../../../../../rtl/control/raven_ctrl_pkg.sv ../../../../../rtl/control/raven_ctrl_regs.sv ../../../../../rtl/control/raven_ctrl.sv ../../../../../rtl/compute/raven_mac_pe.sv ../../../../../rtl/compute/raven_mac_array.sv ../../../../../rtl/compute/raven_gemm_frontend.sv ../../../../../rtl/compute/raven_gemm_core.sv ../../../../../rtl/operators/raven_requantize_clamp.sv ../../../../../rtl/memory/activation_buffer.sv ../../../../../rtl/memory/weight_buffer.sv faults/parameter.sv ../../../../../rtl/memory/output_buffer.sv ../../../../../rtl/memory/raven_read_buffer_adapter.sv ../../../../../rtl/memory/raven_output_buffer_adapter.sv ../../../../../rtl/top/raven_requant.sv ../../../../../rtl/top/raven_result_writer.sv ../../../../../rtl/top/raven_npu_top.sv ../../../../../tests/rtl/compute/sim_read_memory.sv ../../../../../tests/rtl/integration/sim_write_memory.sv ../../../../../tests/rtl/integration/raven_tb_driver_pkg.sv ../../../../../tests/rtl/integration/tb_raven_npu_top.sv ../../../../../tests/rtl/integration/tb_raven_memory_adapters.sv
+-- Compiling package raven_ctrl_pkg
+-- Compiling module raven_ctrl_regs
+-- Importing package raven_ctrl_pkg
+-- Compiling module raven_ctrl
+-- Compiling module raven_mac_pe
+-- Compiling module raven_mac_array
+-- Compiling module raven_gemm_frontend
+-- Compiling module raven_gemm_core
+-- Compiling module raven_requantize_clamp
+-- Compiling module activationBuffer
+-- Compiling module weightBuffer
+-- Compiling module parameterBuffer
+-- Compiling module outputBuffer
+-- Compiling module raven_read_buffer_adapter
+-- Compiling module raven_output_buffer_adapter
+-- Compiling module raven_requant
+-- Compiling module raven_result_writer
+-- Compiling module raven_npu_top
+-- Compiling module sim_read_memory
+-- Compiling module sim_write_memory
+-- Compiling interface raven_reg_bus_if
+-- Compiling package raven_tb_driver_pkg
+-- Compiling module tb_raven_npu_top
+-- Importing package raven_tb_driver_pkg
+-- Compiling module tb_raven_read_buffer_adapter
+-- Compiling module tb_raven_output_buffer_adapter
+
+Top level modules:
+	tb_raven_npu_top
+	tb_raven_read_buffer_adapter
+	tb_raven_output_buffer_adapter
+End time: 14:32:13 on Nov 04,2026, Elapsed time: 0:00:00
+Errors: 0, Warnings: 0
+
+========================================================================
+fault_parameter (expected rejection)
+vsim -c -onfinish exit -t 1ps -voptargs=+acc -sva -immedassert -l fault_parameter.log -wlf fault_parameter.wlf fault_parameter.tb_raven_npu_top +FIXTURES=fixtures +OUT=out-fault_parameter +TESTS=T4 -do run_batch.do
+Reading pref.tcl
+
+# 2021.2
+
+# vsim -c -onfinish exit -t 1ps -voptargs="+acc" -sva -immedassert -l fault_parameter.log -wlf fault_parameter.wlf fault_parameter.tb_raven_npu_top "+FIXTURES=fixtures" "+OUT=out-fault_parameter" "+TESTS=T4" -do "run_batch.do"
+# Start time: 14:32:14 on Nov 04,2026
+# ** Note: (vsim-3812) Design is being optimized...
+# ** Note: (vopt-143) Recognized 1 FSM in module "raven_ctrl(fast)".
+# ** Note: (vopt-143) Recognized 1 FSM in module "raven_gemm_core(fast)".
+# ** Note: (vopt-143) Recognized 1 FSM in module "raven_read_buffer_adapter(fast__2)".
+# ** Note: (vopt-143) Recognized 1 FSM in module "raven_read_buffer_adapter(fast__1)".
+# ** Note: (vopt-143) Recognized 1 FSM in module "raven_read_buffer_adapter(fast)".
+# ** Note: (vopt-143) Recognized 2 FSMs in module "raven_gemm_frontend(fast)".
+# ** Note: (vopt-143) Recognized 1 FSM in module "raven_output_buffer_adapter(fast)".
+# //  Questa Intel Starter FPGA Edition-64
+# //  Version 2021.2 win64 Apr 14 2021
+# //
+# //  Copyright 1991-2021 Mentor Graphics Corporation
+# //  All Rights Reserved.
+# //
+# //  QuestaSim and its associated documentation contain trade
+# //  secrets and commercial or financial information that are the property of
+# //  Mentor Graphics Corporation and are privileged, confidential,
+# //  and exempt from disclosure under the Freedom of Information Act,
+# //  5 U.S.C. Section 552. Furthermore, this information
+# //  is prohibited from disclosure under the Trade Secrets Act,
+# //  18 U.S.C. Section 1905.
+# //
+# Loading sv_std.std
+# Loading work.raven_reg_bus_if(fast)
+# Loading work.raven_ctrl_pkg(fast)
+# Loading work.raven_tb_driver_pkg(fast)
+# Loading work.tb_raven_npu_top(fast)
+# Loading work.raven_reg_bus_if(fast__2)
+# Loading work.raven_npu_top(fast)
+# Loading work.raven_ctrl_regs(fast)
+# Loading work.raven_ctrl(fast)
+# Loading work.raven_gemm_core(fast)
+# Loading work.raven_gemm_frontend(fast)
+# Loading work.raven_mac_array(fast)
+# Loading work.raven_mac_pe(fast)
+# Loading work.raven_requant(fast)
+# Loading work.raven_requantize_clamp(fast)
+# Loading work.raven_result_writer(fast)
+# Loading work.raven_read_buffer_adapter(fast)
+# Loading work.activationBuffer(fast)
+# Loading work.raven_read_buffer_adapter(fast__1)
+# Loading work.weightBuffer(fast)
+# Loading work.raven_read_buffer_adapter(fast__2)
+# Loading work.parameterBuffer(fast)
+# Loading work.raven_output_buffer_adapter(fast)
+# Loading work.outputBuffer(fast)
+# Loading work.sim_read_memory(fast)
+# Loading work.sim_read_memory(fast__1)
+# Loading work.sim_read_memory(fast__2)
+# Loading work.sim_read_memory(fast__3)
+# Loading work.sim_read_memory(fast__4)
+# Loading work.sim_read_memory(fast__5)
+# Loading work.sim_write_memory(fast)
+# do run_batch.do
+#   normal_8x16x8 OUT0[0000] = fc, expected f8
+#   normal_8x16x8 OUT0[0001] = fc, expected f1
+#   normal_8x16x8 OUT0[0002] = fc, expected 00
+#   normal_8x16x8 OUT0[0003] = fc, expected 0f
+#   normal_8x16x8 OUT0[0004] = fc, expected f2
+#   normal_8x16x8 OUT0[0005] = fc, expected f9
+#   normal_8x16x8 OUT0[0006] = fc, expected 07
+#   normal_8x16x8 OUT0[0007] = fc, expected e8
+# ** Fatal: CHECK FAILED: normal_8x16x8: 63 OUT0 bytes wrong
+#    Time: 8610 ns  Scope: tb_raven_npu_top.check_out_bank File: ../../../../../tests/rtl/integration/tb_raven_npu_top.sv Line: 237
+# ** Note: $finish    : ../../../../../tests/rtl/integration/tb_raven_npu_top.sv(237)
+#    Time: 8610 ns  Iteration: 1  Instance: /tb_raven_npu_top
+# End time: 14:32:15 on Nov 04,2026, Elapsed time: 0:00:01
+# Errors: 1, Warnings: 0
+
+========================================================================
+fault_output-vlib
+vlib fault_output
+
+========================================================================
+fault_output-vmap
+vmap fault_output fault_output
+Questa Intel Starter FPGA Edition-64 vmap 2021.2 Lib Mapping Utility 2021.04 Apr 14 2021
+vmap fault_output fault_output
+Modifying modelsim.ini
+
+========================================================================
+fault_output-compile
+vlog -sv -timescale 1ns/1ps -work fault_output -l fault_output-compile.log ../../../../../rtl/control/raven_ctrl_pkg.sv ../../../../../rtl/control/raven_ctrl_regs.sv ../../../../../rtl/control/raven_ctrl.sv ../../../../../rtl/compute/raven_mac_pe.sv ../../../../../rtl/compute/raven_mac_array.sv ../../../../../rtl/compute/raven_gemm_frontend.sv ../../../../../rtl/compute/raven_gemm_core.sv ../../../../../rtl/operators/raven_requantize_clamp.sv ../../../../../rtl/memory/activation_buffer.sv ../../../../../rtl/memory/weight_buffer.sv ../../../../../rtl/memory/parameter_buffer.sv faults/output.sv ../../../../../rtl/memory/raven_read_buffer_adapter.sv ../../../../../rtl/memory/raven_output_buffer_adapter.sv ../../../../../rtl/top/raven_requant.sv ../../../../../rtl/top/raven_result_writer.sv ../../../../../rtl/top/raven_npu_top.sv ../../../../../tests/rtl/compute/sim_read_memory.sv ../../../../../tests/rtl/integration/sim_write_memory.sv ../../../../../tests/rtl/integration/raven_tb_driver_pkg.sv ../../../../../tests/rtl/integration/tb_raven_npu_top.sv ../../../../../tests/rtl/integration/tb_raven_memory_adapters.sv
+Questa Intel Starter FPGA Edition-64 vlog 2021.2 Compiler 2021.04 Apr 14 2021
+Start time: 14:32:15 on Nov 04,2026
+vlog -sv -timescale 1ns/1ps -work fault_output -l fault_output-compile.log ../../../../../rtl/control/raven_ctrl_pkg.sv ../../../../../rtl/control/raven_ctrl_regs.sv ../../../../../rtl/control/raven_ctrl.sv ../../../../../rtl/compute/raven_mac_pe.sv ../../../../../rtl/compute/raven_mac_array.sv ../../../../../rtl/compute/raven_gemm_frontend.sv ../../../../../rtl/compute/raven_gemm_core.sv ../../../../../rtl/operators/raven_requantize_clamp.sv ../../../../../rtl/memory/activation_buffer.sv ../../../../../rtl/memory/weight_buffer.sv ../../../../../rtl/memory/parameter_buffer.sv faults/output.sv ../../../../../rtl/memory/raven_read_buffer_adapter.sv ../../../../../rtl/memory/raven_output_buffer_adapter.sv ../../../../../rtl/top/raven_requant.sv ../../../../../rtl/top/raven_result_writer.sv ../../../../../rtl/top/raven_npu_top.sv ../../../../../tests/rtl/compute/sim_read_memory.sv ../../../../../tests/rtl/integration/sim_write_memory.sv ../../../../../tests/rtl/integration/raven_tb_driver_pkg.sv ../../../../../tests/rtl/integration/tb_raven_npu_top.sv ../../../../../tests/rtl/integration/tb_raven_memory_adapters.sv
+-- Compiling package raven_ctrl_pkg
+-- Compiling module raven_ctrl_regs
+-- Importing package raven_ctrl_pkg
+-- Compiling module raven_ctrl
+-- Compiling module raven_mac_pe
+-- Compiling module raven_mac_array
+-- Compiling module raven_gemm_frontend
+-- Compiling module raven_gemm_core
+-- Compiling module raven_requantize_clamp
+-- Compiling module activationBuffer
+-- Compiling module weightBuffer
+-- Compiling module parameterBuffer
+-- Compiling module outputBuffer
+-- Compiling module raven_read_buffer_adapter
+-- Compiling module raven_output_buffer_adapter
+-- Compiling module raven_requant
+-- Compiling module raven_result_writer
+-- Compiling module raven_npu_top
+-- Compiling module sim_read_memory
+-- Compiling module sim_write_memory
+-- Compiling interface raven_reg_bus_if
+-- Compiling package raven_tb_driver_pkg
+-- Compiling module tb_raven_npu_top
+-- Importing package raven_tb_driver_pkg
+-- Compiling module tb_raven_read_buffer_adapter
+-- Compiling module tb_raven_output_buffer_adapter
+
+Top level modules:
+	tb_raven_npu_top
+	tb_raven_read_buffer_adapter
+	tb_raven_output_buffer_adapter
+End time: 14:32:15 on Nov 04,2026, Elapsed time: 0:00:00
+Errors: 0, Warnings: 0
+
+========================================================================
+fault_output (expected rejection)
+vsim -c -onfinish exit -t 1ps -voptargs=+acc -sva -immedassert -l fault_output.log -wlf fault_output.wlf fault_output.tb_raven_npu_top +FIXTURES=fixtures +OUT=out-fault_output +TESTS=T4 -do run_batch.do
+Reading pref.tcl
+
+# 2021.2
+
+# vsim -c -onfinish exit -t 1ps -voptargs="+acc" -sva -immedassert -l fault_output.log -wlf fault_output.wlf fault_output.tb_raven_npu_top "+FIXTURES=fixtures" "+OUT=out-fault_output" "+TESTS=T4" -do "run_batch.do"
+# Start time: 14:32:16 on Nov 04,2026
+# ** Note: (vsim-3812) Design is being optimized...
+# ** Note: (vopt-143) Recognized 1 FSM in module "raven_ctrl(fast)".
+# ** Note: (vopt-143) Recognized 1 FSM in module "raven_gemm_core(fast)".
+# ** Note: (vopt-143) Recognized 1 FSM in module "raven_read_buffer_adapter(fast__2)".
+# ** Note: (vopt-143) Recognized 1 FSM in module "raven_read_buffer_adapter(fast__1)".
+# ** Note: (vopt-143) Recognized 1 FSM in module "raven_read_buffer_adapter(fast)".
+# ** Note: (vopt-143) Recognized 2 FSMs in module "raven_gemm_frontend(fast)".
+# ** Note: (vopt-143) Recognized 1 FSM in module "raven_output_buffer_adapter(fast)".
+# //  Questa Intel Starter FPGA Edition-64
+# //  Version 2021.2 win64 Apr 14 2021
+# //
+# //  Copyright 1991-2021 Mentor Graphics Corporation
+# //  All Rights Reserved.
+# //
+# //  QuestaSim and its associated documentation contain trade
+# //  secrets and commercial or financial information that are the property of
+# //  Mentor Graphics Corporation and are privileged, confidential,
+# //  and exempt from disclosure under the Freedom of Information Act,
+# //  5 U.S.C. Section 552. Furthermore, this information
+# //  is prohibited from disclosure under the Trade Secrets Act,
+# //  18 U.S.C. Section 1905.
+# //
+# Loading sv_std.std
+# Loading work.raven_reg_bus_if(fast)
+# Loading work.raven_ctrl_pkg(fast)
+# Loading work.raven_tb_driver_pkg(fast)
+# Loading work.tb_raven_npu_top(fast)
+# Loading work.raven_reg_bus_if(fast__2)
+# Loading work.raven_npu_top(fast)
+# Loading work.raven_ctrl_regs(fast)
+# Loading work.raven_ctrl(fast)
+# Loading work.raven_gemm_core(fast)
+# Loading work.raven_gemm_frontend(fast)
+# Loading work.raven_mac_array(fast)
+# Loading work.raven_mac_pe(fast)
+# Loading work.raven_requant(fast)
+# Loading work.raven_requantize_clamp(fast)
+# Loading work.raven_result_writer(fast)
+# Loading work.raven_read_buffer_adapter(fast)
+# Loading work.activationBuffer(fast)
+# Loading work.raven_read_buffer_adapter(fast__1)
+# Loading work.weightBuffer(fast)
+# Loading work.raven_read_buffer_adapter(fast__2)
+# Loading work.parameterBuffer(fast)
+# Loading work.raven_output_buffer_adapter(fast)
+# Loading work.outputBuffer(fast)
+# Loading work.sim_read_memory(fast)
+# Loading work.sim_read_memory(fast__1)
+# Loading work.sim_read_memory(fast__2)
+# Loading work.sim_read_memory(fast__3)
+# Loading work.sim_read_memory(fast__4)
+# Loading work.sim_read_memory(fast__5)
+# Loading work.sim_write_memory(fast)
+# do run_batch.do
+#   normal_8x16x8 OUT0[0000] = 00, expected f8
+#   normal_8x16x8 OUT0[0001] = 00, expected f1
+#   normal_8x16x8 OUT0[0003] = 00, expected 0f
+#   normal_8x16x8 OUT0[0004] = 00, expected f2
+#   normal_8x16x8 OUT0[0005] = 00, expected f9
+#   normal_8x16x8 OUT0[0006] = 00, expected 07
+#   normal_8x16x8 OUT0[0007] = 00, expected e8
+#   normal_8x16x8 OUT0[0008] = 00, expected 06
+# ** Fatal: CHECK FAILED: normal_8x16x8: 60 OUT0 bytes wrong
+#    Time: 8610 ns  Scope: tb_raven_npu_top.check_out_bank File: ../../../../../tests/rtl/integration/tb_raven_npu_top.sv Line: 237
+# ** Note: $finish    : ../../../../../tests/rtl/integration/tb_raven_npu_top.sv(237)
+#    Time: 8610 ns  Iteration: 1  Instance: /tb_raven_npu_top
+# End time: 14:32:17 on Nov 04,2026, Elapsed time: 0:00:01
+# Errors: 1, Warnings: 0

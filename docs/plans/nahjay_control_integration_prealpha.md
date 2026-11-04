@@ -38,8 +38,9 @@ Hashes are after the November 3 history rewrite that removed commit trailers.
 ### Licensed Questa validation
 
 Questa Intel Starter FPGA Edition-64 2021.2 passes T1–T15 with both immediate and
-concurrent assertion guards: 49 PASS records, 698 checks and 20 independent INT8
-comparisons. The runner also elaborates `COLS=1` and checks reset/NOP behavior
+concurrent assertion guards: 51 PASS records, 721 checks and 22 independent INT8
+comparisons in each of the buffered and direct configurations. The runner also
+passes 1,536 adapter checks, elaborates `COLS=1` and checks reset/NOP behavior
 (43 checks). The standalone compute regression passes all 168 fixtures and
 12 reset/restart phases. Curated [results](../../evidence/questa/integration/results.json)
 and the [combined log](../../evidence/questa/integration/verification.log) record
@@ -62,6 +63,32 @@ and [single-column failure](../../evidence/questa/integration/experiments/03-sin
 are retained alongside the passing evidence. Physical memory/DMA, firmware,
 synthesis and timing remain out of scope as listed in §9.
 
+### Memory-buffer connection validation
+
+The buffered path stages all ACT/WGT/PRM words through the actual native buffers
+and stages every strobed OUT byte through `outputBuffer`. The direct path produces
+the same INT8 bytes on every dumped case. The added K=33 fixture zero-extends the
+normal golden's operands and places ACT, WGT, PRM and OUT allocations at their bank
+ends; it runs with and without backing stalls. This checks address preservation,
+multiple K chunks and staging-slot reuse beyond the native buffer capacity.
+
+Dedicated adapter benches check all sixteen byte lanes, sparse/full strobes,
+backing request stalls, held upstream responses and reset during pending traffic.
+The output adapter withholds upstream acceptance until the actual backing commit.
+Isolated corruptions of native activation, weight, parameter and output reads each
+make the normal integrated GEMM fail the independent OUT0 scoreboard. Those four
+intentional failures, and the two assertion guards, are expected in the combined log.
+
+The first connected elaboration failed because the native memory files specify a
+timescale while the existing integration top did not. The runner now supplies a
+default `1ns/1ps` compile timescale without changing the memory or compute modules.
+The [original elaboration failure](../../evidence/questa/integration/experiments/04-buffer-timescale.log)
+is retained. A build path containing spaces also exposed an old Questa optimizer
+crash (`Unexpected signal: 11`); preserving signal visibility with `-voptargs=+acc`
+allows that hierarchy to run. The [original optimizer failure](../../evidence/questa/integration/experiments/05-buffer-optimizer.log)
+is retained. The final compile has no warnings or errors. Staging adds latency;
+efficient tile reuse and physical backing storage remain future work.
+
 ### What was verified (ModelSim 2020.1, `--no-sva-guard`)
 
 - T1–T15 all pass: 47 PASS records, 657 checks, and 20 INT8 dumps each re-checked by
@@ -81,9 +108,12 @@ synthesis and timing remain out of scope as listed in §9.
   the §5.3 port list, loads the N PARAM records through PRM port B when PER_CHANNEL=1 (D7),
   holds `in_ready` low until they are loaded, and feeds Quan's module unmodified, with each
   column's parameters. `sim_requant.sv` was not written.
-- **Taylor's buffers (D6) are still not connected.** Their ports and reset (async
-  active-high, 64–128-byte row ports) don't match the 128-bit bank ports. The top keeps the
-  banks as ports, served by `sim_read_memory`/`sim_write_memory`.
+- **Taylor's buffers (D6) are connected through staging adapters.** The top defaults
+  to `USE_TILE_BUFFERS=1`: each ACT/WGT/PRM read and OUT write passes through the native
+  buffer RTL. Full-capacity backing banks remain external ports, currently served by
+  `sim_read_memory`/`sim_write_memory`. The original direct path remains available with
+  `USE_TILE_BUFFERS=0` and is covered by the full runner. See the
+  [adapter contracts](../../rtl/memory/README.md#pre-alpha-pipeline-adapters).
 - **`run_questa.py --no-sva-guard`** was added so the suite can run on ModelSim. It records
   `"sva_checked": false`.
 - **Testbench output** adds `dumps.txt` (`<tag> <fixture>` for each `actual_int8_<tag>.bin`),
@@ -269,9 +299,12 @@ tests/rtl/integration/run_questa.py            # runner (copy the compute runner
 tests/rtl/integration/run_batch.do
 ```
 
-`raven_npu_top` keeps memories **outside**: it exposes ACT0/ACT1/WGT0/WGT1 read ports, two PRM
-read ports, an OUT0 write port and `local_rst_no`. The sim top attaches `sim_read_memory` /
-`sim_write_memory` to these ports. Taylor's real banks attach to the same ports later.
+`raven_npu_top` keeps full-capacity **backing storage outside**: it exposes
+ACT0/ACT1/WGT0/WGT1 read ports, two PRM read ports, an OUT0 write port and
+`local_rst_no`. Native tile buffers and adapters are now inside the top. The sim top
+attaches `sim_read_memory` / `sim_write_memory` to the backing ports. Physical backing
+banks must implement the same reset/handshake contract; accepted OUT writes must mean
+committed storage. The small native buffers do not replace the advertised bank capacities.
 
 ## 7. Phases
 

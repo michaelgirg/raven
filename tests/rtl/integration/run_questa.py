@@ -31,11 +31,15 @@ SOURCES = [ROOT / p for p in (
     'rtl/compute/raven_mac_pe.sv', 'rtl/compute/raven_mac_array.sv',
     'rtl/compute/raven_gemm_frontend.sv', 'rtl/compute/raven_gemm_core.sv',
     'rtl/operators/raven_requantize_clamp.sv',
+    'rtl/memory/activation_buffer.sv', 'rtl/memory/weight_buffer.sv',
+    'rtl/memory/parameter_buffer.sv', 'rtl/memory/output_buffer.sv',
+    'rtl/memory/raven_read_buffer_adapter.sv', 'rtl/memory/raven_output_buffer_adapter.sv',
     'rtl/top/raven_requant.sv', 'rtl/top/raven_result_writer.sv', 'rtl/top/raven_npu_top.sv',
     'tests/rtl/compute/sim_read_memory.sv',
     'tests/rtl/integration/sim_write_memory.sv',
     'tests/rtl/integration/raven_tb_driver_pkg.sv',
-    'tests/rtl/integration/tb_raven_npu_top.sv')]
+    'tests/rtl/integration/tb_raven_npu_top.sv',
+    'tests/rtl/integration/tb_raven_memory_adapters.sv')]
 SCRIPTS = [TEST / 'export_fixtures.py', TEST / 'run_questa.py', TEST / 'run_batch.do',
            ROOT / 'tools/goldens/compare_prealpha.py']
 VECTORS = ROOT / 'tests/vectors/prealpha'
@@ -155,19 +159,21 @@ def main():
         if expected_failure:
             active = re.search(r'^#\s*\*\* Fatal:.*' + re.escape(marker), combined, re.M)
             if not active or 'ASSERTIONS_DISABLED' in re.sub(r'^.*\$display.*$', '', combined, flags=re.M):
-                raise RuntimeError(f'{label}: expected assertion rejection was not observed')
+                raise RuntimeError(f'{label}: expected failure signature was not observed')
         elif proc.returncode or ERROR.search(scanned) or (marker and marker not in combined):
             raise RuntimeError(f'{label}: tool/RTL/PASS check failed; see {label}.console.log')
         step['status'] = 'pass'
         print(f'PASS {label} ({step["seconds"]} s)', flush=True)
         return text
 
-    def simulate(label, top, plus=(), *, marker=None, rejection=False, generics=()):
-        cmd = [tools['vsim'], '-c', '-onfinish', 'exit', '-t', '1ps']
+    def simulate(label, top, plus=(), *, marker=None, rejection=False, generics=(), library='work'):
+        # Preserve visibility for debugging and avoid an old Questa optimizer
+        # crash seen with the connected hierarchy in a build path with spaces.
+        cmd = [tools['vsim'], '-c', '-onfinish', 'exit', '-t', '1ps', '-voptargs=+acc']
         if not args.no_sva_guard:
             cmd += ['-sva', '-immedassert']
         cmd += ['-l', f'{label}.log', '-wlf', f'{label}.wlf', *generics,
-                'work.' + top, *plus, '-do', 'run_batch.do']
+                library + '.' + top, *plus, '-do', 'run_batch.do']
         return command(label, cmd, marker=marker, expected_failure=rejection)
 
     try:
@@ -176,11 +182,20 @@ def main():
         command('vmap-local', [tools['vmap'], '-c'])
         command('vlib', [tools['vlib'], 'work'])
         command('vmap-work', [tools['vmap'], 'work', 'work'])
-        command('compile', [tools['vlog'], '-sv', '-work', 'work', '-l', 'compile.log',
+        command('compile', [tools['vlog'], '-sv', '-timescale', '1ns/1ps', '-work', 'work', '-l', 'compile.log',
                             *[run_path(p) for p in SOURCES], 'assertion_probe.sv'])
         simulate('guard-immediate', 'tb_assertion_probe', marker='ASSERT_PROBE_IMMEDIATE_ACTIVE', rejection=True)
         if not args.no_sva_guard:
             simulate('guard-sva', 'tb_assertion_probe', ['+SVA'], marker='ASSERT_PROBE_SVA_ACTIVE', rejection=True)
+
+        adapter_checks = {}
+        for kind in range(3):
+            adapter_text = simulate('read-adapter-' + str(kind), 'tb_raven_read_buffer_adapter',
+                                    generics=['-gKIND=' + str(kind)], marker='READ ADAPTER PASS')
+            adapter_checks['read-kind-' + str(kind)] = int(re.search(r'checks=(\d+)', adapter_text).group(1))
+        adapter_text = simulate('output-adapter', 'tb_raven_output_buffer_adapter', marker='OUTPUT ADAPTER PASS')
+        adapter_checks['output'] = int(re.search(r'checks=(\d+)', adapter_text).group(1))
+        report['adapter_checks'] = adapter_checks
 
         command('fixtures', [sys.executable, run_path(TEST / 'export_fixtures.py'),
                              '--vectors', run_path(VECTORS), '--output', 'fixtures'])
@@ -222,6 +237,31 @@ def main():
 
         configuration_checks = {}
         if set(wanted) == set(TESTS):
+            # Keep the former direct-bank configuration runnable and compare its
+            # numerical results with the same independent fixtures.
+            (run / 'out-direct').mkdir()
+            direct_text = simulate('direct-banks', 'tb_raven_npu_top',
+                                   ['+FIXTURES=fixtures', '+OUT=out-direct', '+TESTS=' + ','.join(TESTS)],
+                                   generics=['-gUSE_TILE_BUFFERS=0'], marker='ALL TESTS PASSED')
+            direct_summary = re.search(r'SUMMARY: (\d+) passed, (\d+) failed, (\d+) checks', direct_text)
+            if (not direct_summary or int(direct_summary.group(2)) != 0
+                    or any(not re.search(r'^#\s*TEST ' + test + r' PASS\s*$', direct_text, re.M) for test in TESTS)):
+                raise RuntimeError('Direct-bank regression did not complete')
+            direct_dumps = dict(line.split() for line in (run / 'out-direct/dumps.txt').read_text().splitlines())
+            direct_files = sorted(p.stem[len('actual_int8_'):] for p in (run / 'out-direct').glob('actual_int8_*.bin'))
+            if direct_dumps != dumps or direct_files != sorted(dumps):
+                raise RuntimeError('Direct and buffered configurations did not dump the same cases')
+            for tag, fixture in sorted(direct_dumps.items()):
+                golden = (run / 'fixtures' / fixture / 'golden.txt').read_text().strip()
+                command('compare-direct-' + tag, [sys.executable, run_path(ROOT / 'tools/goldens/compare_prealpha.py'),
+                        '--case', run_path(VECTORS / golden), '--kind', 'int8',
+                        '--actual', f'out-direct/actual_int8_{tag}.bin'], marker='0 mismatches')
+                if ((run / f'out/actual_int8_{tag}.bin').read_bytes()
+                        != (run / f'out-direct/actual_int8_{tag}.bin').read_bytes()):
+                    raise RuntimeError(f'Buffered/direct output mismatch: {tag}')
+            configuration_checks['USE_TILE_BUFFERS=0'] = {
+                'tests': TESTS, 'pass_records': int(direct_summary.group(1)),
+                'checks': int(direct_summary.group(3)), 'int8_comparisons': sorted(direct_dumps)}
             (run / 'out-cols1').mkdir()
             config_text = simulate('single-column', 'tb_raven_npu_top',
                                    ['+FIXTURES=fixtures', '+OUT=out-cols1', '+TESTS=T1,T3'],
@@ -234,6 +274,36 @@ def main():
             configuration_checks['COLS=1'] = {
                 'tests': ['T1', 'T3'], 'pass_records': int(config_summary.group(1)),
                 'checks': int(config_summary.group(3))}
+
+            # Prove that the numerical pipeline consumes all four native buffers.
+            # Compile isolated copies with a broken read value, then require the
+            # independent OUT0 scoreboard to reject the normal GEMM fixture.
+            faults = {
+                'activation': ('mem[i][rd_k]', "8'sd0"),
+                'weight': ('mem[rd_k][j]', "8'sd0"),
+                'parameter': ('rd_multiplier <= multiplier[rd_channel];', "rd_multiplier <= 32'sd0;"),
+                'output': ('mem[(rd_row * 8) + i]', "8'sd0"),
+            }
+            (run / 'faults').mkdir()
+            report['buffer_fault_checks'] = {}
+            for name, (old, new) in faults.items():
+                original = ROOT / f'rtl/memory/{name}_buffer.sv'
+                source = original.read_text(encoding='utf-8')
+                if source.count(old) != 1:
+                    raise RuntimeError(f'Fault injection point changed: {name}')
+                mutated = run / 'faults' / (name + '.sv')
+                mutated.write_text(source.replace(old, new), encoding='utf-8')
+                library = 'fault_' + name
+                command(library + '-vlib', [tools['vlib'], library])
+                command(library + '-vmap', [tools['vmap'], library, library])
+                command(library + '-compile', [tools['vlog'], '-sv', '-timescale', '1ns/1ps',
+                        '-work', library, '-l', library + '-compile.log',
+                        *[run_path(mutated if p == original else p) for p in SOURCES]])
+                (run / ('out-' + library)).mkdir()
+                simulate(library, 'tb_raven_npu_top',
+                         ['+FIXTURES=fixtures', '+OUT=out-' + library, '+TESTS=T4'], library=library,
+                         rejection=True, marker='CHECK FAILED: normal_8x16x8:')
+                report['buffer_fault_checks'][name] = 'wrong native read value rejected by INT8 scoreboard'
 
         report['status'] = 'pass'
         report['configuration_checks'] = configuration_checks
