@@ -8,7 +8,7 @@
 // Plusargs:
 //   +FIXTURES=<dir>  export_fixtures.py output (required)
 //   +OUT=<dir>       where traces and actual_int8 dumps go (default: FIXTURES)
-//   +TESTS=<list>    tests to run, e.g. "T1,T4,T10" (default: all implemented, T1-T11)
+//   +TESTS=<list>    tests to run, e.g. "T1,T4,T12" (default: all, T1-T15)
 //
 // Independent monitors count core command handshakes and OUT writes, record the cycle of
 // the last OUT write and of every DONE_SEQ change, and fail if completion comes first.
@@ -90,10 +90,12 @@ module tb_raven_npu_top;
     longint unsigned last_out_cycle; // Cycle of the most recent accepted OUT0 write.
     longint unsigned done_cycle; // Cycle DONE_SEQ last changed to a retired command.
     logic [15:0] done_seq_seen;
+    fsm_state_e fsm_at_soft_reset; // Control state on the clock SOFT_RESET was applied.
     always @(posedge clk) begin
         cycle <= cycle + 1;
         if (cycle > WATCHDOG_CYCLES) $fatal(1, "Watchdog: simulation exceeded %0d cycles", WATCHDOG_CYCLES);
         if (dut.core_cmd_valid && dut.core_cmd_ready) launches <= launches + 1;
+        if (dut.soft_reset) fsm_at_soft_reset <= dut.u_ctrl.state_q;
         if (ow_valid && ow_ready) begin out_wr <= out_wr + 1; last_out_cycle <= cycle; end
         if (rst_n && dut.status.done_seq != done_seq_seen) begin
             done_seq_seen <= dut.status.done_seq;
@@ -318,6 +320,15 @@ module tb_raven_npu_top;
         foreach (names[i]) run_case(names[i], force_stall);
     endtask
 
+    // Wait (bounded) until the control FSM reaches state s.
+    task automatic wait_fsm(input fsm_state_e s, input string what);
+        int n = 0;
+        while (dut.u_ctrl.state_q != s) begin
+            @(negedge clk);
+            if (++n > WAIT_CYCLES) $fatal(1, "%s: FSM never reached %s", what, s.name);
+        end
+    endtask
+
     // ---------------------------------------------------------------- tests
     // T1: every reset value the plan lists.
     task automatic t1_reset_values();
@@ -460,6 +471,171 @@ module tb_raven_npu_top;
         run_test_cases("T11");
     endtask
 
+    // T12: START while busy. The extra START is refused by the driver (Q_FULL), then forced
+    // onto the bus: ERR_Q_OVERFLOW latches at once with the seq it would have received,
+    // the in-flight command still retires with correct bytes, then the FSM halts.
+    task automatic t12_start_while_busy();
+        meta_t mt;
+        logic [15:0] seq, seq2;
+        logic [31:0] v, err;
+        raven_status_t st;
+        int unsigned launch0, wr0;
+        int n = 0;
+        prepare_case("normal_8x16x8", 1, "t12_start_while_busy", mt);
+        launch0 = launches; wr0 = out_wr;
+        raven_start(seq, st);
+        expect_eq("T12 raven_start", st, RAVEN_OK);
+        wait_fsm(FSM_RUN, "T12");
+        raven_start(seq2, st);
+        expect_eq("T12 driver refuses START while Q_FULL", st, RAVEN_E_BUSY);
+        npu_write32(REG_CTRL, 32'd1 << CTRL_START);
+        npu_read32(REG_STATUS, v);
+        expect_eq("T12 STATUS.ERROR latched while busy", v[STATUS_ERROR], 1);
+        expect_eq("T12 still busy", v[STATUS_BUSY], 1);
+        expect_reg("T12 ERR_CODE", REG_ERR_CODE, {seq + 16'd1, 8'd0, ERR_Q_OVERFLOW});
+        expect_reg("T12 ERR_INFO", REG_ERR_INFO, 32'(REG_CTRL));
+        do begin
+            npu_read32(REG_DONE_SEQ, v);
+            if (++n > WAIT_CYCLES) $fatal(1, "T12: in-flight command never retired");
+        end while (v[15:0] != seq);
+        repeat (2) @(negedge clk);
+        npu_read32(REG_STATUS, v);
+        expect_eq("T12 HALTED after retirement", v[STATUS_HALTED], 1);
+        expect_reg("T12 NEXT_SEQ: extra START consumed nothing", REG_NEXT_SEQ, 32'(seq) + 1);
+        expect_reg("T12 ERR_CODE still visible", REG_ERR_CODE, {seq + 16'd1, 8'd0, ERR_Q_OVERFLOW});
+        expect_eq("T12 one launch", launches - launch0, 1);
+        expect_eq("T12 OUT0 writes", out_wr - wr0, mt.m * mt.n);
+        checks++;
+        if (!(done_cycle > last_out_cycle)) $fatal(1, "CHECK FAILED: T12 retired before the last write");
+        check_out_bank("normal_8x16x8", mt, "t12_start_while_busy");
+        dump_actual("normal_8x16x8", "t12_start_while_busy", mt);
+        raven_soft_reset();
+        raven_close_trace();
+        stalls = 0;
+        $display("PASS t12_start_while_busy"); passed++;
+    endtask
+
+    // T13: HALTED ignores START, CLEAR_ERR clears diagnostics but stays HALTED, and
+    // SOFT_RESET restores every reset value; then a valid fixture passes from seq 0.
+    task automatic t13_halted();
+        meta_t mt;
+        logic [15:0] seq;
+        logic [31:0] v, err, err_code;
+        raven_status_t st;
+        int unsigned launch0;
+        prepare_case("t10_m9", 0, "t13_halted", mt);
+        raven_start(seq, st);
+        raven_wait(seq, WAIT_CYCLES, err, st);
+        expect_eq("T13 error reported", st, RAVEN_E_HW);
+        repeat (2) @(negedge clk);
+        npu_read32(REG_STATUS, v);
+        expect_eq("T13 HALTED", v[STATUS_HALTED], 1);
+        npu_read32(REG_ERR_CODE, err_code);
+        // START in HALTED: no launch, no sequence, nothing changes.
+        launch0 = launches;
+        npu_read32(REG_NEXT_SEQ, v);
+        npu_write32(REG_CTRL, 32'd1 << CTRL_START);
+        repeat (20) @(negedge clk);
+        expect_reg("T13 NEXT_SEQ unchanged by START", REG_NEXT_SEQ, v);
+        expect_reg("T13 ERR_CODE unchanged by START", REG_ERR_CODE, err_code);
+        expect_eq("T13 no launch from HALTED", launches - launch0, 0);
+        npu_read32(REG_STATUS, v);
+        expect_eq("T13 still HALTED after START", v[STATUS_HALTED], 1);
+        // CLEAR_ERR: diagnostics only.
+        raven_clear_err();
+        npu_read32(REG_STATUS, v);
+        expect_eq("T13 STATUS.ERROR cleared", v[STATUS_ERROR], 0);
+        expect_eq("T13 still HALTED after CLEAR_ERR", v[STATUS_HALTED], 1);
+        expect_reg("T13 ERR_CODE cleared", REG_ERR_CODE, 0);
+        expect_reg("T13 ERR_INFO cleared", REG_ERR_INFO, 0);
+        // SOFT_RESET: back to the reset values (IRQ_ENABLE is configuration and survives).
+        raven_soft_reset();
+        expect_reg("T13 STATUS idle", REG_STATUS, 32'h0000_1010);
+        expect_reg("T13 NEXT_SEQ", REG_NEXT_SEQ, 0);
+        expect_reg("T13 DONE_SEQ", REG_DONE_SEQ, 32'h0000_FFFF);
+        expect_reg("T13 CMD_COUNT", REG_CMD_COUNT, 0);
+        expect_reg("T13 IRQ_STATUS", REG_IRQ_STATUS, 0);
+        expect_reg("T13 IRQ_ENABLE kept", REG_IRQ_ENABLE, IRQ_MASK);
+        expect_reg("T13 staging P0 cleared", REG_P0, 0);
+        expect_reg("T13 staging Q_CLAMP reset", REG_Q_CLAMP, Q_CLAMP_RESET);
+        raven_close_trace();
+        $display("PASS t13_halted"); passed++;
+        run_case("normal_8x16x8");
+        expect_reg("T13 first command after SOFT_RESET was seq 0", REG_DONE_SEQ, 0);
+    endtask
+
+    // T14: hardware reset and SOFT_RESET, each during RUN and during DRAIN. Afterwards the
+    // NPU is idle with reset values and a fresh fixture passes with correct bytes.
+    task automatic t14_reset_mid_operation();
+        fsm_state_e states [2] = '{FSM_RUN, FSM_DRAIN};
+        raven_status_t st;
+        foreach (states[i])
+            for (int hard = 0; hard < 2; hard++) begin
+                meta_t mt;
+                logic [15:0] seq;
+                string tag = "t14_";
+                // Built piecewise: some simulators pad ternary string results to equal length.
+                if (hard) tag = {tag, "hw"}; else tag = {tag, "soft"};
+                if (states[i] == FSM_RUN) tag = {tag, "_reset_in_run"}; else tag = {tag, "_reset_in_drain"};
+                prepare_case("normal_8x16x8", 1, tag, mt);
+                raven_start(seq, st);
+                expect_eq({tag, ": raven_start"}, st, RAVEN_OK);
+                wait_fsm(states[i], tag);
+                if (hard) begin
+                    // Asserted on this falling edge, so the FSM is still in the target state.
+                    rst_n = 0;
+                    repeat (3) @(negedge clk);
+                    rst_n = 1;
+                    repeat (2) @(negedge clk);
+                    raven_init(st); // A hardware reset clears IRQ_ENABLE; firmware re-inits.
+                    expect_eq({tag, ": raven_init"}, st, RAVEN_OK);
+                end else begin
+                    raven_soft_reset();
+                    repeat (2) @(negedge clk); // The SOFT_RESET pulse lands one clock after the write.
+                    checks++;
+                    if (fsm_at_soft_reset != states[i])
+                        $fatal(1, "CHECK FAILED: %s: SOFT_RESET landed in %s", tag, fsm_at_soft_reset.name);
+                end
+                expect_reg({tag, ": STATUS idle"}, REG_STATUS, 32'h0000_1010);
+                expect_reg({tag, ": NEXT_SEQ"}, REG_NEXT_SEQ, 0);
+                expect_reg({tag, ": DONE_SEQ"}, REG_DONE_SEQ, 32'h0000_FFFF);
+                expect_reg({tag, ": ERR_CODE"}, REG_ERR_CODE, 0);
+                raven_close_trace();
+                stalls = 0;
+                $display("PASS %s", tag); passed++;
+                run_case("normal_8x16x8");
+            end
+    endtask
+
+    // T15: rewrite every staging register while the command runs; the snapshot is unaffected
+    // and the new staging values read back.
+    task automatic t15_staging_rewrite();
+        meta_t mt;
+        logic [15:0] seq;
+        logic [31:0] v, err;
+        raven_status_t st;
+        int unsigned launch0, wr0;
+        prepare_case("normal_8x16x8", 1, "t15_staging_rewrite", mt);
+        launch0 = launches; wr0 = out_wr;
+        raven_start(seq, st);
+        expect_eq("T15 raven_start", st, RAVEN_OK);
+        wait_fsm(FSM_RUN, "T15");
+        for (logic [11:0] r = REG_OPCODE; r <= REG_Q_CLAMP; r += 4) begin
+            npu_read32(r, v);
+            npu_write32(r, ~v);
+        end
+        npu_read32(REG_STATUS, v);
+        checks++;
+        if (!v[STATUS_BUSY]) $fatal(1, "CHECK FAILED: T15 command finished before the rewrite did");
+        raven_wait(seq, WAIT_CYCLES, err, st);
+        expect_eq("T15 raven_wait", st, RAVEN_OK);
+        check_retired("normal_8x16x8", "t15_staging_rewrite", mt, seq, launches - launch0, out_wr - wr0);
+        expect_reg("T15 OPCODE holds the rewrite", REG_OPCODE, ~32'(OP_GEMM));
+        raven_close_trace();
+        stalls = 0;
+        $display("PASS t15_staging_rewrite"); passed++;
+    endtask
+
     // ---------------------------------------------------------------- main
     initial begin
         raven_status_t st;
@@ -484,6 +660,10 @@ module tb_raven_npu_top;
         if (want("T9")) begin t9_zero_k(); $display("TEST T9 PASS"); end
         if (want("T10")) begin t10_control_errors(); $display("TEST T10 PASS"); end
         if (want("T11")) begin t11_core_errors(); $display("TEST T11 PASS"); end
+        if (want("T12")) begin t12_start_while_busy(); $display("TEST T12 PASS"); end
+        if (want("T13")) begin t13_halted(); $display("TEST T13 PASS"); end
+        if (want("T14")) begin t14_reset_mid_operation(); $display("TEST T14 PASS"); end
+        if (want("T15")) begin t15_staging_rewrite(); $display("TEST T15 PASS"); end
 
         $display("SUMMARY: %0d passed, %0d failed, %0d checks", passed, failed, checks);
         if (failed == 0) $display("ALL TESTS PASSED");
