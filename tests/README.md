@@ -1,5 +1,52 @@
 # Hardware and system verification
 
+## Verified pre-alpha results
+
+All executed RTL suites passed on merged revision
+`3577d48d063182e0e2e9560623f58cf0804621ae`. The
+[result record](../evidence/questa/final-prealpha/results.json) contains suite
+reports, source hashes, outcomes and the resolved host launch issue; the
+[execution log](../evidence/questa/final-prealpha/verification.log) retains the runs.
+
+| Suite | Passing coverage |
+|---|---|
+| PE/compute | 65,536 signed INT8 products; 168 fixtures across 8×8, 4×4, 2×4 and 1×1; 12 reset/restart phases; all 64 demo outputs. |
+| Operator | Rounding, saturation/clamp, tags, consecutive inputs, output stalls and reset. |
+| Native buffers | Activation, weight, parameter and output standalone benches; eight deliberate reset/validity/mode faults rejected. |
+| Buffer/operator goldens | Four buffer types on six fixtures, plus requantization with and without stalls on all six: 36 successful runs. |
+| Supplemental compute goldens | Normal, signed/nonzero-zero-point and partial-tile INT32 fixtures passed using the Python exporter and Questa directly. |
+| Control/integration | T1–T15 in buffered and direct configurations: 51 PASS records, 721 checks and 22 independently compared INT8 dumps per configuration. All output bytes agreed. |
+| Adapter/configuration | 1,536 adapter checks; COLS=1 reset/NOP operation passed 43 checks. |
+| Rejection/reproducibility | Active assertion guards, incomplete manifests, invalid commands, wrong comparison data and four native-buffer read corruptions rejected; regenerated fixtures matched. |
+| Cycle reproduction | Eight cases per configuration matched the recorded counters, including bank-end K=33 and synthetic 1×640×8. |
+
+Intentional-failure sections contain expected assertion or scoreboard rejections.
+They verify that broken behavior is detected in simulation. They do not establish
+hardware ECC, CRC or intrusion protection. No failing RTL case remains in the
+executed suites; this is not exhaustive proof of every input or sequence.
+
+The six golden cases are `normal_8x16x8`, `signed_nonzero_zp_stalled`,
+`partial_tile_7x13x5`, `positive_negative_saturation`, `rounding_ties` and
+`channel_scales_relu_clamp`. To reproduce the standalone matrix, run each command
+below once per case, replacing the example case name:
+
+```sh
+python tools/goldens/run_activation_golden.py --case normal_8x16x8
+python tools/goldens/run_weight_golden.py --case normal_8x16x8
+python tools/goldens/run_parameter_golden.py --case normal_8x16x8
+python tools/goldens/run_output_golden.py --case normal_8x16x8
+python tools/goldens/run_requant_golden.py --case normal_8x16x8
+python tools/goldens/run_requant_golden.py --case normal_8x16x8 --stall
+```
+
+Fresh [out-of-context synthesis](../hw/README.md#verified-block-synthesis) reproduced
+the FPGA review's resource and preliminary timing estimates. Physical backing
+banks, processor/DMA, complete routed timing, board operation and full-model
+accuracy/latency remain unverified. The synthetic FC-shaped test is not execution
+of the actual AD01 model.
+
+## Run the main suites
+
 The compute suite is runnable from the repository root:
 
 ```sh

@@ -9,6 +9,33 @@ The goal is to execute multiple supported model graphs using one FPGA bitstream 
 **Current status: a pre-alpha RTL pipeline connecting control, GEMM, activation/weight/parameter buffers, requantization and buffered INT8 result storage.** One register-bus command runs one resident INT8 GEMM tile through to stored INT8 bytes, checked against the golden fixtures. Adapters connect all four memory-buffer modules to the existing datapath. The command driver (standing in for the RISC-V) and full-capacity backing memories are simulation models. Physical bank implementation, DMA, the RISC-V, full-system integration and FPGA measurements remain future work; the broader architecture below is a proposal. See [Control pre-alpha and integration](#control-pre-alpha-and-integration).
 
 
+## Pre-alpha verification results
+
+The full validation run passed on merged revision
+`3577d48d063182e0e2e9560623f58cf0804621ae`, which includes the buffer integration
+and FPGA readiness review. No RTL changes were needed during validation.
+
+| Check | Verified result |
+|---|---|
+| MAC PE and compute | 65,536 signed products, 168 fixtures across four array sizes, and 12 reset/restart scenarios passed. |
+| Connected pipeline | T1–T15 passed in buffered and direct configurations: 721 checks and 22 independent INT8 comparisons each, with identical output bytes. |
+| Memory and operators | All four standalone buffer benches, 36 buffer/operator golden runs and three supplemental INT32 GEMM fixtures passed. |
+| Adapter and error handling | 1,536 adapter checks, 43 single-column reset/NOP checks, assertion guards and deliberate fault/rejection checks passed. |
+| Reproducibility | Regenerated fixtures matched the committed data; all recorded buffered/direct cycle counts were reproduced. |
+| FPGA block synthesis | Vivado 2025.2 synthesized the buffered NPU for `xczu3eg-sbva484-1-e`: 15,346 LUTs, 14,839 flip-flops, 16 DSPs and estimated internal setup slack of +1.169 ns at a 10 ns constraint. |
+
+See [test coverage and commands](tests/README.md#verified-pre-alpha-results), the
+[complete validation record](evidence/questa/final-prealpha/results.json) and
+[execution log](evidence/questa/final-prealpha/verification.log).
+
+This demonstrates a tested pre-alpha RTL integration. Full-capacity backing banks
+are still simulation models. Block synthesis has known memory-inference/reset
+warnings and excludes backing-bank BRAM, processor/DMA and board integration.
+Physical bank implementation, a loading/readback path, complete routed timing,
+on-board tests and full-model execution remain future work. The staging path also
+adds substantial latency: the normal tile takes 786 busy cycles versus 146 on the
+direct path. See the [FPGA readiness review](docs/reviews/RAVEN_BOARD_READINESS_REVIEW.md).
+
 ## Documentation and ownership
 
 | Area | Owner | Research document |
@@ -19,7 +46,7 @@ The goal is to execute multiple supported model graphs using one FPGA bitstream 
 | RISC-V integration, MMIO, control, and runtime | Nahjay | [RISC-V integration and runtime](docs/RISCV_Research.md) |
 | Model analysis/export, tensor extraction, and golden-reference generation | Jackie | [Quantized-model research](docs/Quantized_Models.md); [golden fixtures and GEMM verification](evidence/prealpha/compute/README.md) |
 
-The research documents describe broader proposed behavior and identify implemented subsets. The [shared interface contract](docs/interfaces/RAVEN_INTERFACE_CONTRACT.md) defines the operand, DMA, mailbox, constant-format, and recovery baseline. The [project plan](docs/PROJECT_PLAN.md) holds shared acceptance goals and milestones. Full-system implementation, FPGA timing, and model-quality evidence remain to be collected; standalone simulation instructions are linked below.
+The research documents describe broader proposed behavior and identify implemented subsets. The [shared interface contract](docs/interfaces/RAVEN_INTERFACE_CONTRACT.md) defines the operand, DMA, mailbox, constant-format, and recovery baseline. The [project plan](docs/PROJECT_PLAN.md) holds shared acceptance goals and milestones. Full-system implementation, routed FPGA timing, and model-quality evidence remain to be collected; standalone simulation instructions are linked below.
 
 Use [docs/RAVEN_Memory_System_Research.md](docs/RAVEN_Memory_System_Research.md)
 for the current memory proposal and [the revised draft sections](docs/drafts/RAVEN_Design_Draft_Revised_Memory_DMA_Sections.md)
@@ -316,7 +343,7 @@ See the [source-hash/result report](evidence/questa/integration/results.json),
 
 - Everything listed as out of scope in the [plan](docs/plans/nahjay_control_integration_prealpha.md#9-out-of-scope-document-as-known-limitations):
   the command queue, the bank-state interlock, ABORT/ZERO_LOCAL, AXI4-Lite, multi-tile and
-  K-chunk commands, DMA, the RISC-V and firmware, synthesis and timing.
+  K-chunk commands, DMA, the RISC-V and firmware, complete-system synthesis and routed timing.
 - Full-capacity backing banks are testbench stand-ins. The connected native buffers
   stage each transaction and add latency; they do not implement the full scratchpad,
   DMA, ownership or an optimized tile-prefetch/reuse path.

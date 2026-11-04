@@ -41,6 +41,7 @@ Thumbs.db
 !/evidence/vivado/board-readiness/pipeline_direct.log
 
 # Reviewed compute evidence; generated simulator logs remain under /build/.
+!/evidence/questa/final-prealpha/verification.log
 !/evidence/questa/verification.log
 !/evidence/questa/experiments/01-original-compile.log
 !/evidence/questa/experiments/02-fixture-path-padding.log
