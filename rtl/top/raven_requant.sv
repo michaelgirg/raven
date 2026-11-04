@@ -45,7 +45,7 @@ module raven_requant #(
     output wire [15:0] out_row_o, out_col_o, // Position inside the tile.
     output wire out_last_o // Final element of the command.
 );
-    localparam int CH_W = $clog2(COLS);
+    localparam int CH_W = COLS > 1 ? $clog2(COLS) : 1;
 
     // Latched command configuration.
     logic per_channel_q, relu_q;

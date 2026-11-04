@@ -162,11 +162,12 @@ def main():
         print(f'PASS {label} ({step["seconds"]} s)', flush=True)
         return text
 
-    def simulate(label, top, plus=(), *, marker=None, rejection=False):
+    def simulate(label, top, plus=(), *, marker=None, rejection=False, generics=()):
         cmd = [tools['vsim'], '-c', '-onfinish', 'exit', '-t', '1ps']
         if not args.no_sva_guard:
             cmd += ['-sva', '-immedassert']
-        cmd += ['-l', f'{label}.log', '-wlf', f'{label}.wlf', 'work.' + top, *plus, '-do', 'run_batch.do']
+        cmd += ['-l', f'{label}.log', '-wlf', f'{label}.wlf', *generics,
+                'work.' + top, *plus, '-do', 'run_batch.do']
         return command(label, cmd, marker=marker, expected_failure=rejection)
 
     try:
@@ -219,7 +220,23 @@ def main():
         if not compared and any(t in wanted for t in ('T4', 'T5', 'T6', 'T7', 'T8')):
             raise RuntimeError('No INT8 results were dumped')
 
+        configuration_checks = {}
+        if set(wanted) == set(TESTS):
+            (run / 'out-cols1').mkdir()
+            config_text = simulate('single-column', 'tb_raven_npu_top',
+                                   ['+FIXTURES=fixtures', '+OUT=out-cols1', '+TESTS=T1,T3'],
+                                   generics=['-gCOLS=1'], marker='ALL TESTS PASSED')
+            config_summary = re.search(r'SUMMARY: (\d+) passed, (\d+) failed, (\d+) checks', config_text)
+            if (not config_summary or int(config_summary.group(2)) != 0
+                    or any(not re.search(r'^#\s*TEST ' + test + r' PASS\s*$', config_text, re.M)
+                           for test in ('T1', 'T3'))):
+                raise RuntimeError('Single-column reset/NOP checks did not complete')
+            configuration_checks['COLS=1'] = {
+                'tests': ['T1', 'T3'], 'pass_records': int(config_summary.group(1)),
+                'checks': int(config_summary.group(3))}
+
         report['status'] = 'pass'
+        report['configuration_checks'] = configuration_checks
         report['totals'] = {'tests': tests_seen, 'pass_records': len(passes),
                             'checks': int(summary.group(3)), 'int8_comparisons': compared}
         for name in ('vsim-version', 'vlog-version'):

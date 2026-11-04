@@ -12,7 +12,9 @@
 //
 // Independent monitors count core command handshakes and OUT writes, record the cycle of
 // the last OUT write and of every DONE_SEQ change, and fail if completion comes first.
-module tb_raven_npu_top;
+module tb_raven_npu_top #(
+    parameter int COLS = 8
+);
     import raven_ctrl_pkg::*;
     import raven_tb_driver_pkg::*;
 
@@ -37,7 +39,7 @@ module tb_raven_npu_top;
     wire [15:0] ow_strb;
     wire [31:0] out_writes, out_last_cycle;
 
-    raven_npu_top dut (
+    raven_npu_top #(.COLS(COLS)) dut (
         .clk_i(clk), .rst_ni(rst_n),
         .reg_valid_i(bus_if.valid), .reg_ready_o(bus_if.ready), .reg_write_i(bus_if.write),
         .reg_addr_i(bus_if.addr), .reg_wdata_i(bus_if.wdata), .reg_rdata_o(bus_if.rdata),
@@ -382,7 +384,7 @@ module tb_raven_npu_top;
         expect_reg("T1 ID", REG_ID, NPU_ID);
         expect_reg("T1 VERSION", REG_VERSION, NPU_VERSION);
         // [7:0] rows, [15:8] cols, [19:16] banks, [23:20] log2 KiB, [27:24] queue depth.
-        expect_reg("T1 HW_CONFIG", REG_HW_CONFIG, 32'h0146_0808);
+        expect_reg("T1 HW_CONFIG", REG_HW_CONFIG, 32'h0146_0008 | (32'(COLS) << 8));
         expect_reg("T1 HW_LIMITS", REG_HW_LIMITS, 32'h0005_0008);
         expect_reg("T1 HW_FEATURES", REG_HW_FEATURES, 0);
         // Idle: Q_EMPTY and QUIESCENT only, FSM IDLE, executing seq 0.
