@@ -1,6 +1,6 @@
 # RAVEN Memory-System Research
 
-> Reference copy. Use [docs/RAVEN_Memory_System_Research.md](docs/RAVEN_Memory_System_Research.md)
+> Reference copy. Use [docs/RAVEN_Memory_System_Research.md](../../../RAVEN_Memory_System_Research.md)
 > for the current memory proposal and implementation status.
 
 **Status:** A standalone activation buffer and testbench are implemented. The

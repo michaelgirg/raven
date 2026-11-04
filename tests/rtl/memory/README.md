@@ -28,7 +28,7 @@ Compile and run each test independently from the project root.
 ```bash
 iverilog -g2012 -s tb_activation_buffer \
     -o activation_test \
-    rtl/memory/activationBuffer.sv \
+    rtl/memory/activation_buffer.sv \
     test/rtl/memory/tb_activation_buffer.sv
 
 vvp activation_test
@@ -39,7 +39,7 @@ vvp activation_test
 ```bash
 iverilog -g2012 -s tb_weight_buffer \
     -o weight_test \
-    rtl/memory/weightBuffer.sv \
+    rtl/memory/weight_buffer.sv \
     test/rtl/memory/tb_weight_buffer.sv
 
 vvp weight_test
@@ -50,7 +50,7 @@ vvp weight_test
 ```bash
 iverilog -g2012 -s tb_parameter_buffer \
     -o parameter_test \
-    rtl/memory/parameterBuffer.sv \
+    rtl/memory/parameter_buffer.sv \
     test/rtl/memory/tb_parameter_buffer.sv
 
 vvp parameter_test
@@ -61,7 +61,7 @@ vvp parameter_test
 ```bash
 iverilog -g2012 -s tb_output_buffer \
     -o output_test \
-    rtl/memory/outputBuffer.sv \
+    rtl/memory/output_buffer.sv \
     test/rtl/memory/tb_output_buffer.sv
 
 vvp output_test

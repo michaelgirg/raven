@@ -12,8 +12,8 @@ It requires Python 3.9+ and a working Questa installation. See the
 [run instructions and coverage](../README.md#run-the-compute-tests).
 The [operator suite](../rtl/operators/README.md#verification) runs with
 `python tests/rtl/operators/run_questa.py`; the
-[activation-buffer bench](rtl/memory/README) has standalone simulation
-instructions. [Golden fixtures and extra GEMM checks](vectors/prealpha/GEMM_Verification.md)
+[activation-buffer bench](rtl/memory/README.md) has standalone simulation
+instructions. [Golden fixtures and extra GEMM checks](../evidence/prealpha/compute/README.md)
 provide additional compute coverage. Control and integrated verification remain
 future work. See the [current subsystem boundaries](../README.md#current-subsystem-status-and-integration).
 

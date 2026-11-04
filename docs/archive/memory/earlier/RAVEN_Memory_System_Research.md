@@ -1,6 +1,6 @@
 # RAVEN Memory-System Research
 
-> Earlier research copy. Use [the current memory proposal](../docs/RAVEN_Memory_System_Research.md)
+> Earlier research copy. Use [the current memory proposal](../../../RAVEN_Memory_System_Research.md)
 > for shared interfaces, capacity accounting and implementation status.
 
 **Status:** A standalone activation buffer and testbench are implemented. The

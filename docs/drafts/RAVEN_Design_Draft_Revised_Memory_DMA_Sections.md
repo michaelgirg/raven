@@ -1,8 +1,8 @@
 # RAVEN Design Draft - Revised Memory-System Sections
 
 > Current Markdown revision of the memory/DMA draft sections. The shared memory
-> proposal is [docs/RAVEN_Memory_System_Research.md](docs/RAVEN_Memory_System_Research.md).
-> Copies under `Research- Memory/` and existing Word/PDF exports are earlier
+> proposal is [docs/RAVEN_Memory_System_Research.md](../RAVEN_Memory_System_Research.md).
+> Copies under `docs/archive/memory/earlier/` and existing Word/PDF exports are earlier
 > review snapshots; their capacities and interfaces may be superseded here.
 
 *Status: proposed memory/DMA interface requirements for team review. Project-specific register semantics, tile packing, bank organization, and integration details remain proposed/TBD until agreed and validated.*

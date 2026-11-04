@@ -47,7 +47,7 @@ All six tests passed against the Python golden references: **299/299 INT8 output
 
 ## Evidence and remaining work
 
-Screenshots: `docs/logs/prealpha/requantization_verification/`
+Screenshots: `evidence/prealpha/operators/`
 
 Standalone requantization verification passed for the tests above. Integration with the GEMM core, memory buffers, per-channel parameter loading, command control, and output storage still needs a connected testbench and end-to-end checking.
 

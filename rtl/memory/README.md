@@ -12,14 +12,14 @@ The initial implementation targets the pre-alpha demonstration of an 8×16 activ
 
 | File | Description |
 |---|---|
-| `activationBuffer.sv` | Stores the activation matrix. |
-| `weightBuffer.sv` | Stores the weight matrix. |
-| `parameterBuffer.sv` | Stores bias and quantization parameters. |
-| `outputBuffer.sv` | Stores the final INT8 output matrix. |
+| `activation_buffer.sv` | Stores the activation matrix. |
+| `weight_buffer.sv` | Stores the weight matrix. |
+| `parameter_buffer.sv` | Stores bias and quantization parameters. |
+| `output_buffer.sv` | Stores the final INT8 output matrix. |
 
 ## 1. Activation Buffer
 
-**File:** `activationBuffer.sv`
+**File:** `activation_buffer.sv`
 
 The activation buffer stores an 8×16 matrix of signed INT8 values.
 
@@ -46,7 +46,7 @@ The buffer uses valid/ready handshaking and synchronous read behavior.
 
 ## 2. Weight Buffer
 
-**File:** `weightBuffer.sv`
+**File:** `weight_buffer.sv`
 
 The weight buffer stores a 16×8 matrix of signed INT8 values.
 
@@ -73,7 +73,7 @@ The buffer uses valid/ready handshaking and synchronous read behavior.
 
 ## 3. Parameter Buffer
 
-**File:** `parameterBuffer.sv`
+**File:** `parameter_buffer.sv`
 
 The parameter buffer stores the bias and quantization parameters required by the output operators.
 
@@ -115,7 +115,7 @@ The parameter buffer uses valid/ready handshaking and synchronous read behavior.
 
 ## 4. Output Buffer
 
-**File:** `outputBuffer.sv`
+**File:** `output_buffer.sv`
 
 The output buffer stores the final quantized INT8 output matrix produced by the output operators.
 
@@ -170,4 +170,4 @@ The integration logic must ensure that required data has been written before it 
 - Evaluate FPGA synthesis and memory inference.
 - Expand output storage to support future INT32 partial-sum requirements.
 
-This directory currently represents the initial memory subsystem implementation for RAVEN pre-alpha. System integration has been tested/verfied as well but can be found under docs/logs/memory_verification.
+This directory currently represents the initial memory subsystem implementation for RAVEN pre-alpha. System integration has been tested/verfied as well but can be found under evidence/prealpha/memory.
