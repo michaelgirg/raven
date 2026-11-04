@@ -1,7 +1,7 @@
 # Pre-alpha plan: control and integration harness (Nahjay)
 
-**Status:** in progress. C1–C4 are committed (November 3, 2026). **Resume at C5**
-(`rtl/top/raven_result_writer.sv`, §12).
+**Status:** C1–C15 and C17 committed (November 3, 2026). **Remaining: a licensed Questa run of
+both runners, then C16 (evidence).** See "Still open" below.
 **Owner:** Nahjay (control/runtime). **Branch:** `nahjay_control`.
 
 This plan is written for a coding agent working in a fresh session. Read all of it before
@@ -10,48 +10,102 @@ unless a teammate's merged RTL conflicts with them, and if one does, stop and re
 
 ## Progress log
 
+Hashes are after the November 3 history rewrite that removed commit trailers.
+
 | Commit | Step | Hash |
 |---|---|---|
-| C1 | Plan | `1f2fbe4` |
-| — | Merge `origin/main` (Quan's requant, Taylor's buffers) into `nahjay_control` | `93fafa5` |
-| C2 | `rtl/control/raven_ctrl_pkg.sv` | `53c02ac` |
-| C3 | `rtl/control/raven_ctrl_regs.sv` | `ee78b78` |
-| C4 | `rtl/control/raven_ctrl.sv` | `bc40df6` |
+| C1 | Plan | `19d366f` |
+| — | Merge `origin/main` (Quan's requant, Taylor's buffers) | `2858e21` |
+| C2 | `rtl/control/raven_ctrl_pkg.sv` | `e006cf9` |
+| C3 | `rtl/control/raven_ctrl_regs.sv` | `63ea593` |
+| C4 | `rtl/control/raven_ctrl.sv` | `e1748e4` |
+| — | Plan progress (C1–C4), RTL subset docs | `6fe8c49`, `4372612` |
+| — | Merge `origin/main` (memory goldens, requant golden bench, doc reorganization) | `57ea061` |
+| C5 | `rtl/top/raven_result_writer.sv` | `a5e16d6` |
+| C6′ | `rtl/top/raven_requant.sv` (replaces `sim_requant.sv`, see below) | `aa2966b` |
+| C7 | `tests/rtl/integration/sim_write_memory.sv` | `403601e` |
+| C8 | `rtl/top/raven_npu_top.sv` | `bef0b96` |
+| C9 | `tests/rtl/integration/export_fixtures.py` | `eabf976` |
+| C10 | `tests/rtl/integration/raven_tb_driver_pkg.sv` | `f1f1dba` |
+| C11 | testbench T1–T4 | `de09c6d` |
+| C12 | T5–T8, exporter `golden.txt` | `b64a02d` |
+| C13 | T9–T11 | `4452f8f` |
+| C14 | T12–T15 | `2e2a27f` |
+| C15 | `run_questa.py`, `run_batch.do` | `8850032` |
+| C16 | evidence | **not yet**, needs licensed Questa |
+| C17 | README, rtl/README, tests/README | `2f5f7ef` |
 
-**Next: C5**, then continue down §12 in order.
+### Still open
 
-Notes for the next session:
+1. **Questa run.** The `vlog`/`vsim` on PATH is ModelSim Intel FPGA 2020.1, which parses SVA
+   but does not simulate it. Questa FSE 23.1 is installed under
+   `~/intelFPGA_lite/23.1std/questa_fse/` but has no license configured (no
+   `LM_LICENSE_FILE`/`SALT_LICENSE_SERVER`). With a license, pass
+   `--questa-bin .../questa_fse/linux_x86_64` (not `bin/`, whose `vco` symlinks break the
+   runners) to both `tests/rtl/compute/run_questa.py` (Phase 0 baseline, still unconfirmed)
+   and `tests/rtl/integration/run_questa.py`. Any assertion failure there is new
+   information: fix it per §12's "Fix <what> in <module>" rule.
+2. **C16.** Copy the passing Questa run's `integration.log` (as `verification.log`) and
+   `results.json` into `evidence/questa/integration/`. Do not commit the ModelSim
+   `--no-sva-guard` run as evidence.
 
-- **Simulator.** The `vlog`/`vsim` on PATH is ModelSim Intel FPGA 2020.1. It compiles and
-  simulates, but warns `vlog-2186` on SVA and cannot run concurrent assertions, so the
-  compute runner rejects it. Questa FSE 23.1 is installed under
-  `~/intelFPGA_lite/23.1std/questa_fse/` but has no license configured. To use it, set the
-  license and pass `--questa-bin .../questa_fse/linux_x86_64` (not `bin/`, whose `vco`
-  symlinks break the runner). Phase 0's compute baseline has not been confirmed for this reason.
-- **C2–C4 checks.** All three compile cleanly with `vlog -sv`, apart from the ModelSim-only
-  `vlog-2186`. Throwaway smoke sims of regs + ctrl against a scripted fake core passed. They
-  were not committed, and the real coverage is T1–T15.
-- **Teammate RTL now on `main` (D6 conflict, unresolved).** These don't match §5.3/D7. Decide
-  how to adapt before C6/C8:
-  - `rtl/operators/raven_requantize_clamp.sv` (Quan) takes multiplier/shift/zp/clamp as
-    direct per-element inputs. It has no `cfg_load`, no PRM read port and no channel lookup.
-    The top must fetch PARAM records itself, or C6 becomes a wrapper around Quan's module
-    rather than a stand-in.
-  - `rtl/memory/*_buffer.sv` (Taylor) use async active-high `rst`, small row-based ports
-    (for example a 64-byte `outputBuffer`), and not the 128-bit byte-strobed 16 KiB/8 KiB bank
-    ports assumed here. Keep `sim_read_memory`/`sim_write_memory` behind the top-level ports
-    for now.
-- **Interpretations made in C2–C4** (list in the final report):
-  - `OUT0_BYTES` = 8192 (the contract's lower bound).
-  - CHECK tests K only for zero. K's bank span is left to the core's backstop, since
-    `HW_LIMITS[15:0]=8` applies to M/N.
-  - START while busy records ERR_CODE seq = the NEXT_SEQ that START would have received, and
-    ERR_INFO = `0x010` (CTRL). The first error wins over a later core error.
-  - The register bus returns `reg_rvalid_o` for writes as well as reads (one-cycle response
-    to every access).
-  - `raven_ctrl` interface for C8: `op_cfg_load_o` pulses on the core launch handshake,
-    `stored_last_i` comes from the writer, and `out_stall_i` is a per-clock output-backpressure
-    flag. `local_rst_no = rst_ni && !soft_reset`.
+### What was verified (ModelSim 2020.1, `--no-sva-guard`)
+
+- T1–T15 all pass: 47 PASS records, 657 checks, and 20 INT8 dumps each re-checked by
+  `compare_prealpha.py` with 0 mismatches. A deliberately corrupted expected byte makes the
+  run fail with the address of the bad byte.
+- No RTL bug in C2–C8 turned up, so there are no "Fix ..." commits.
+- Throwaway unit smoke tests (not committed): the writer, under random stalls, wrote the
+  correct pitched bytes and kept the guards. The requant wrapper plus Quan's module was
+  bit-exact on all six fixtures with PRM and output stalls. The six fixtures also passed
+  end to end through `raven_npu_top` before the testbench existed.
+
+### Deviations from the plan
+
+- **C6 / D6 resolved as a wrapper.** Quan's `raven_requantize_clamp` is merged but takes
+  multiplier/shift/zero-point/clamp as per-element inputs. `rtl/top/raven_requant.sv` keeps
+  the §5.3 port list, loads the N PARAM records through PRM port B when PER_CHANNEL=1 (D7),
+  holds `in_ready` low until they are loaded, and feeds Quan's module unmodified, with each
+  column's parameters. `sim_requant.sv` was not written.
+- **Taylor's buffers (D6) are still not connected.** Their ports and reset (async
+  active-high, 64–128-byte row ports) don't match the 128-bit bank ports. The top keeps the
+  banks as ports, served by `sim_read_memory`/`sim_write_memory`.
+- **`run_questa.py --no-sva-guard`** was added so the suite can run on ModelSim. It records
+  `"sva_checked": false`.
+- **Testbench output** adds `dumps.txt` (`<tag> <fixture>` for each `actual_int8_<tag>.bin`),
+  and the exporter adds `golden.txt` per valid case so the runner knows which vectors case
+  to compare against.
+- **T10** uses two reserved-bit cases (SRC_A bit 24 → info 0x038, P5 → info 0x054) and two
+  DST range cases (offset 0x008 misaligned, offset 0x1FF0 span overflow).
+- **T11's overflow fixture** is synthetic: A = B = 127, K = 16, bias INT32_MAX − 1000. It is
+  generated by the exporter, as the plan allowed.
+
+### Interpretations (list in the final report)
+
+From C2–C4:
+
+- `OUT0_BYTES` = 8192 (the contract's lower bound).
+- CHECK tests K only for zero. K's bank span is left to the core's backstop, since
+  `HW_LIMITS[15:0]=8` applies to M/N.
+- START while busy records ERR_CODE seq = the NEXT_SEQ that START would have received, and
+  ERR_INFO = `0x010` (CTRL). The first error wins over a later core error.
+- The register bus returns `reg_rvalid_o` for writes as well as reads (one-cycle response to
+  every access).
+- `local_rst_no = rst_ni && !soft_reset`. The register block stays on `rst_ni` and clears its
+  own staging on SOFT_RESET. IRQ_ENABLE survives SOFT_RESET (T13 checks this).
+
+From C5–C15:
+
+- The writer and the requant are one-entry elastic stages. `out_stall_i` is
+  `(core result valid && !ready) || writer stall`.
+- The writer latches DST/P4 and the requant latches its config on `op_cfg_load_o` (the core
+  launch handshake).
+- RELU_EN: the effective clamp minimum is `max(clamp_min, out_zp)`. The
+  `channel_scales_relu_clamp` fixture sets RELU_EN, and its clamp_min already equals out_zp.
+- Control does not range-check Q_SHIFT/Q_MULT. `raven_requant` has a simulation assertion
+  for the TFLM range. Raise with Quan whether CHECK should reject out-of-range values
+  (ERR_RSVD at 0x068?).
+- A hardware reset clears IRQ_ENABLE, so firmware must re-run `raven_init` (T14 does).
 
 ---
 
