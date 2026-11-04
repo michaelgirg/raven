@@ -2,6 +2,10 @@
 
 This directory is reserved for reproducible Ultra96-V2 hardware setup. It does not contain a working Vivado project or bitstream yet.
 
+`check_npu_synthesis.tcl` runs the NPU block out of context for the ZU3EG. It is a
+feasibility check, not a board build. See the [review and reproduction commands](../docs/reviews/RAVEN_BOARD_READINESS_REVIEW.md#reproduce-the-checks)
+for its required PR #4 source checkout, resource/timing estimates and limitations.
+
 - `constraints/`: reviewed board pin, clock, timing, and physical constraints.
 - `ip/`: vendor-IP configuration sources, such as reviewed Tcl or XCI files.
 - `debug/`: future ILA/JTAG setup, debug Tcl, and capture configuration; generated captures belong under `build/hw/`.

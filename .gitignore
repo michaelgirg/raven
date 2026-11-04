@@ -35,6 +35,11 @@ __pycache__/
 .DS_Store
 Thumbs.db
 
+# Reviewed FPGA feasibility evidence; generated Vivado output stays under /build/.
+!/evidence/vivado/board-readiness/synthesis.log
+!/evidence/vivado/board-readiness/pipeline_buffered.log
+!/evidence/vivado/board-readiness/pipeline_direct.log
+
 # Reviewed compute evidence; generated simulator logs remain under /build/.
 !/evidence/questa/verification.log
 !/evidence/questa/experiments/01-original-compile.log

@@ -1,0 +1,1256 @@
+Copyright 1986-2022 Xilinx, Inc. All Rights Reserved. Copyright 2022-2025 Advanced Micro Devices, Inc. All Rights Reserved.
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+| Tool Version      : Vivado v.2025.2 (win64) Build 6299465 Fri Nov 14 19:35:11 GMT 2025
+| Command           : report_timing -from [all_registers] -to [all_registers] -max_paths 10 -file <workspace>/outputs/raven-board-review/buffered/internal_timing_synth.rpt
+| Design            : raven_npu_top
+| Device            : xczu3eg-sbva484
+| Speed File        : -1  PRODUCTION 1.30 05-15-2022
+| Design State      : Synthesized
+| Temperature Grade : E
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+Timing Report
+
+Slack (MET) :             1.169ns  (required time - arrival time)
+  Source:                 u_core/u_array/g_row[7].g_col[7].u_pe/sum_o_reg[8]/C
+                            (rising edge-triggered cell FDRE clocked by npu_clk  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Destination:            u_requant/u_requant/out_data_o_reg[7]/D
+                            (rising edge-triggered cell FDRE clocked by npu_clk  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Path Group:             npu_clk
+  Path Type:              Setup (Max at Slow Process Corner)
+  Requirement:            10.000ns  (npu_clk rise@10.000ns - npu_clk rise@0.000ns)
+  Data Path Delay:        8.812ns  (logic 5.320ns (60.372%)  route 3.492ns (39.628%))
+  Logic Levels:           32  (CARRY8=12 DSP_A_B_DATA=1 DSP_ALU=2 DSP_M_DATA=1 DSP_MULTIPLIER=1 DSP_OUTPUT=2 DSP_PREADD_DATA=1 LUT2=2 LUT3=1 LUT5=4 LUT6=5)
+  Clock Path Skew:        -0.011ns (DCD - SCD + CPR)
+    Destination Clock Delay (DCD):    0.026ns = ( 10.026 - 10.000 )
+    Source Clock Delay      (SCD):    0.037ns
+    Clock Pessimism Removal (CPR):    0.000ns
+  Clock Uncertainty:      0.035ns  ((TSJ^2 + TIJ^2)^1/2 + DJ) / 2 + PE
+    Total System Jitter     (TSJ):    0.071ns
+    Total Input Jitter      (TIJ):    0.000ns
+    Discrete Jitter          (DJ):    0.000ns
+    Phase Error              (PE):    0.000ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock npu_clk rise edge)    0.000     0.000 r
+                                                      0.000     0.000 r  clk_i (IN)
+                         net (fo=14910, unset)        0.037     0.037    u_core/u_array/g_row[7].g_col[7].u_pe/clk_i
+                         FDRE                                         r  u_core/u_array/g_row[7].g_col[7].u_pe/sum_o_reg[8]/C
+  -------------------------------------------------------------------    -------------------
+                         FDRE (Prop_FDRE_C_Q)         0.093     0.130 f  u_core/u_array/g_row[7].g_col[7].u_pe/sum_o_reg[8]/Q
+                         net (fo=4, unplaced)         0.189     0.319    u_core/u_array/g_row[7].g_col[7].u_pe/sums[7][7]_89[8]
+                         LUT6 (Prop_LUT6_I0_O)        0.179     0.498 f  u_core/u_array/g_row[7].g_col[7].u_pe/tflm_single_round_return1__1_i_206/O
+                         net (fo=1, unplaced)         0.161     0.659    u_core/u_array/g_row[7].g_col[7].u_pe/tflm_single_round_return1__1_i_206_n_0
+                         LUT6 (Prop_LUT6_I0_O)        0.116     0.775 r  u_core/u_array/g_row[7].g_col[7].u_pe/tflm_single_round_return1__1_i_50/O
+                         net (fo=1, unplaced)         0.161     0.936    u_core/u_array/g_row[7].g_col[7].u_pe/tflm_single_round_return1__1_i_50_n_0
+                         LUT6 (Prop_LUT6_I0_O)        0.116     1.052 f  u_core/u_array/g_row[7].g_col[7].u_pe/tflm_single_round_return1__1_i_9/O
+                         net (fo=1, unplaced)         0.262     1.314    u_requant/u_requant/tflm_single_round_return1__1/A[8]
+                         DSP_A_B_DATA (Prop_DSP_A_B_DATA_A[8]_A2_DATA[8])
+                                                      0.241     1.555 r  u_requant/u_requant/tflm_single_round_return1__1/DSP_A_B_DATA_INST/A2_DATA[8]
+                         net (fo=1, unplaced)         0.000     1.555    u_requant/u_requant/tflm_single_round_return1__1/DSP_A_B_DATA.A2_DATA<8>
+                         DSP_PREADD_DATA (Prop_DSP_PREADD_DATA_A2_DATA[8]_A2A1[8])
+                                                      0.098     1.653 r  u_requant/u_requant/tflm_single_round_return1__1/DSP_PREADD_DATA_INST/A2A1[8]
+                         net (fo=1, unplaced)         0.000     1.653    u_requant/u_requant/tflm_single_round_return1__1/DSP_PREADD_DATA.A2A1<8>
+                         DSP_MULTIPLIER (Prop_DSP_MULTIPLIER_A2A1[8]_U[29])
+                                                      0.647     2.300 f  u_requant/u_requant/tflm_single_round_return1__1/DSP_MULTIPLIER_INST/U[29]
+                         net (fo=1, unplaced)         0.000     2.300    u_requant/u_requant/tflm_single_round_return1__1/DSP_MULTIPLIER.U<29>
+                         DSP_M_DATA (Prop_DSP_M_DATA_U[29]_U_DATA[29])
+                                                      0.059     2.359 r  u_requant/u_requant/tflm_single_round_return1__1/DSP_M_DATA_INST/U_DATA[29]
+                         net (fo=1, unplaced)         0.000     2.359    u_requant/u_requant/tflm_single_round_return1__1/DSP_M_DATA.U_DATA<29>
+                         DSP_ALU (Prop_DSP_ALU_U_DATA[29]_ALU_OUT[47])
+                                                      0.699     3.058 f  u_requant/u_requant/tflm_single_round_return1__1/DSP_ALU_INST/ALU_OUT[47]
+                         net (fo=1, unplaced)         0.000     3.058    u_requant/u_requant/tflm_single_round_return1__1/DSP_ALU.ALU_OUT<47>
+                         DSP_OUTPUT (Prop_DSP_OUTPUT_ALU_OUT[47]_PCOUT[47])
+                                                      0.159     3.217 r  u_requant/u_requant/tflm_single_round_return1__1/DSP_OUTPUT_INST/PCOUT[47]
+                         net (fo=1, unplaced)         0.016     3.233    u_requant/u_requant/tflm_single_round_return1__2/PCIN[47]
+                         DSP_ALU (Prop_DSP_ALU_PCIN[47]_ALU_OUT[0])
+                                                      0.698     3.931 f  u_requant/u_requant/tflm_single_round_return1__2/DSP_ALU_INST/ALU_OUT[0]
+                         net (fo=1, unplaced)         0.000     3.931    u_requant/u_requant/tflm_single_round_return1__2/DSP_ALU.ALU_OUT<0>
+                         DSP_OUTPUT (Prop_DSP_OUTPUT_ALU_OUT[0]_P[0])
+                                                      0.141     4.072 r  u_requant/u_requant/tflm_single_round_return1__2/DSP_OUTPUT_INST/P[0]
+                         net (fo=2, unplaced)         0.241     4.313    u_requant/u_requant/tflm_single_round_return1__2_n_105
+                         LUT2 (Prop_LUT2_I0_O)        0.063     4.376 r  u_requant/u_requant/i__carry_i_7__1/O
+                         net (fo=1, unplaced)         0.025     4.401    u_requant/u_requant/i__carry_i_7__1_n_0
+                         CARRY8 (Prop_CARRY8_S[1]_O[4])
+                                                      0.255     4.656 r  u_requant/u_requant/tflm_single_round_return1_inferred__0/i__carry/O[4]
+                         net (fo=2, unplaced)         0.248     4.904    u_requant/u_requant/tflm_single_round_return1_inferred__0/i__carry_n_11
+                         LUT5 (Prop_LUT5_I0_O)        0.148     5.052 r  u_requant/u_requant/tflm_single_round_return0_carry__1_i_4/O
+                         net (fo=1, unplaced)         0.022     5.074    u_requant/u_requant/tflm_single_round_return0_carry__1_i_4_n_0
+                         CARRY8 (Prop_CARRY8_S[4]_CO[7])
+                                                      0.205     5.279 r  u_requant/u_requant/tflm_single_round_return0_carry__1/CO[7]
+                         net (fo=1, unplaced)         0.007     5.286    u_requant/u_requant/tflm_single_round_return0_carry__1_n_0
+                         CARRY8 (Prop_CARRY8_CI_CO[7])
+                                                      0.030     5.316 r  u_requant/u_requant/tflm_single_round_return0_carry__2/CO[7]
+                         net (fo=1, unplaced)         0.007     5.323    u_requant/u_requant/tflm_single_round_return0_carry__2_n_0
+                         CARRY8 (Prop_CARRY8_CI_CO[7])
+                                                      0.030     5.353 r  u_requant/u_requant/tflm_single_round_return0_carry__3/CO[7]
+                         net (fo=1, unplaced)         0.007     5.360    u_requant/u_requant/tflm_single_round_return0_carry__3_n_0
+                         CARRY8 (Prop_CARRY8_CI_CO[7])
+                                                      0.030     5.390 r  u_requant/u_requant/tflm_single_round_return0_carry__4/CO[7]
+                         net (fo=1, unplaced)         0.007     5.397    u_requant/u_requant/tflm_single_round_return0_carry__4_n_0
+                         CARRY8 (Prop_CARRY8_CI_CO[7])
+                                                      0.030     5.427 r  u_requant/u_requant/tflm_single_round_return0_carry__5/CO[7]
+                         net (fo=1, unplaced)         0.007     5.434    u_requant/u_requant/tflm_single_round_return0_carry__5_n_0
+                         CARRY8 (Prop_CARRY8_CI_O[7])
+                                                      0.146     5.580 r  u_requant/u_requant/tflm_single_round_return0_carry__6/O[7]
+                         net (fo=128, unplaced)       0.248     5.828    u_requant/u_requant/tflm_single_round_return0[63]
+                         LUT6 (Prop_LUT6_I3_O)        0.040     5.868 r  u_requant/u_requant/clamped_c2_carry__0_i_33/O
+                         net (fo=4, unplaced)         0.173     6.041    u_requant/u_requant/clamped_c2_carry__0_i_33_n_0
+                         LUT6 (Prop_LUT6_I0_O)        0.116     6.157 r  u_requant/u_requant/clamped_c2_carry__1_i_32/O
+                         net (fo=2, unplaced)         0.214     6.371    u_requant/u_requant/clamped_c2_carry__1_i_32_n_0
+                         LUT3 (Prop_LUT3_I2_O)        0.085     6.456 r  u_requant/u_requant/clamped_c2_carry__1_i_24/O
+                         net (fo=5, unplaced)         0.232     6.688    u_requant/u_requant/clamped_c2_carry__1_i_24_n_0
+                         LUT5 (Prop_LUT5_I2_O)        0.040     6.728 r  u_requant/u_requant/clamped_c2_carry__2_i_8/O
+                         net (fo=1, unplaced)         0.259     6.987    u_requant/u_requant/tflm_single_round_return[23]
+                         CARRY8 (Prop_CARRY8_DI[0]_CO[7])
+                                                      0.177     7.164 r  u_requant/u_requant/clamped_c2_carry__2/CO[7]
+                         net (fo=1, unplaced)         0.007     7.171    u_requant/u_requant/clamped_c2_carry__2_n_0
+                         CARRY8 (Prop_CARRY8_CI_CO[7])
+                                                      0.030     7.201 r  u_requant/u_requant/clamped_c2_carry__3/CO[7]
+                         net (fo=1, unplaced)         0.007     7.208    u_requant/u_requant/clamped_c2_carry__3_n_0
+                         CARRY8 (Prop_CARRY8_CI_CO[7])
+                                                      0.030     7.238 r  u_requant/u_requant/clamped_c2_carry__4/CO[7]
+                         net (fo=1, unplaced)         0.007     7.245    u_requant/u_requant/clamped_c2_carry__4_n_0
+                         CARRY8 (Prop_CARRY8_CI_O[7])
+                                                      0.146     7.391 f  u_requant/u_requant/clamped_c2_carry__5/O[7]
+                         net (fo=8, unplaced)         0.185     7.576    u_requant/u_requant/clamped_c2_carry__5_n_8
+                         LUT2 (Prop_LUT2_I1_O)        0.085     7.661 r  u_requant/u_requant/i__carry__2_i_5__2/O
+                         net (fo=1, unplaced)         0.287     7.948    u_requant/u_requant/i__carry__2_i_5__2_n_0
+                         CARRY8 (Prop_CARRY8_DI[0]_CO[4])
+                                                      0.232     8.180 r  u_requant/u_requant/clamped_c1_inferred__0/i__carry__2/CO[4]
+                         net (fo=8, unplaced)         0.241     8.421    u_requant/u_requant/clamped_c1_inferred__0/i__carry__2_n_3
+                         LUT5 (Prop_LUT5_I0_O)        0.116     8.537 r  u_requant/u_requant/out_data_o[7]_i_2/O
+                         net (fo=1, unplaced)         0.214     8.751    u_requant/u_requant/out_data_o[7]_i_2_n_0
+                         LUT5 (Prop_LUT5_I0_O)        0.040     8.791 r  u_requant/u_requant/out_data_o[7]_i_1/O
+                         net (fo=1, unplaced)         0.058     8.849    u_requant/u_requant/out_data_o[7]_i_1_n_0
+                         FDRE                                         r  u_requant/u_requant/out_data_o_reg[7]/D
+  -------------------------------------------------------------------    -------------------
+
+                         (clock npu_clk rise edge)   10.000    10.000 r
+                                                      0.000    10.000 r  clk_i (IN)
+                         net (fo=14910, unset)        0.026    10.026    u_requant/u_requant/clk_i
+                         FDRE                                         r  u_requant/u_requant/out_data_o_reg[7]/C
+                         clock pessimism              0.000    10.026
+                         clock uncertainty           -0.035     9.991
+                         FDRE (Setup_FDRE_C_D)        0.027    10.018    u_requant/u_requant/out_data_o_reg[7]
+  -------------------------------------------------------------------
+                         required time                         10.018
+                         arrival time                          -8.849
+  -------------------------------------------------------------------
+                         slack                                  1.169
+
+Slack (MET) :             1.420ns  (required time - arrival time)
+  Source:                 u_core/u_array/g_row[7].g_col[7].u_pe/sum_o_reg[8]/C
+                            (rising edge-triggered cell FDRE clocked by npu_clk  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Destination:            u_requant/u_requant/out_data_o_reg[0]/D
+                            (rising edge-triggered cell FDRE clocked by npu_clk  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Path Group:             npu_clk
+  Path Type:              Setup (Max at Slow Process Corner)
+  Requirement:            10.000ns  (npu_clk rise@10.000ns - npu_clk rise@0.000ns)
+  Data Path Delay:        8.561ns  (logic 5.140ns (60.040%)  route 3.421ns (39.960%))
+  Logic Levels:           32  (CARRY8=12 DSP_A_B_DATA=1 DSP_ALU=2 DSP_M_DATA=1 DSP_MULTIPLIER=1 DSP_OUTPUT=2 DSP_PREADD_DATA=1 LUT2=1 LUT3=2 LUT5=2 LUT6=7)
+  Clock Path Skew:        -0.011ns (DCD - SCD + CPR)
+    Destination Clock Delay (DCD):    0.026ns = ( 10.026 - 10.000 )
+    Source Clock Delay      (SCD):    0.037ns
+    Clock Pessimism Removal (CPR):    0.000ns
+  Clock Uncertainty:      0.035ns  ((TSJ^2 + TIJ^2)^1/2 + DJ) / 2 + PE
+    Total System Jitter     (TSJ):    0.071ns
+    Total Input Jitter      (TIJ):    0.000ns
+    Discrete Jitter          (DJ):    0.000ns
+    Phase Error              (PE):    0.000ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock npu_clk rise edge)    0.000     0.000 r
+                                                      0.000     0.000 r  clk_i (IN)
+                         net (fo=14910, unset)        0.037     0.037    u_core/u_array/g_row[7].g_col[7].u_pe/clk_i
+                         FDRE                                         r  u_core/u_array/g_row[7].g_col[7].u_pe/sum_o_reg[8]/C
+  -------------------------------------------------------------------    -------------------
+                         FDRE (Prop_FDRE_C_Q)         0.093     0.130 f  u_core/u_array/g_row[7].g_col[7].u_pe/sum_o_reg[8]/Q
+                         net (fo=4, unplaced)         0.189     0.319    u_core/u_array/g_row[7].g_col[7].u_pe/sums[7][7]_89[8]
+                         LUT6 (Prop_LUT6_I0_O)        0.179     0.498 f  u_core/u_array/g_row[7].g_col[7].u_pe/tflm_single_round_return1__1_i_206/O
+                         net (fo=1, unplaced)         0.161     0.659    u_core/u_array/g_row[7].g_col[7].u_pe/tflm_single_round_return1__1_i_206_n_0
+                         LUT6 (Prop_LUT6_I0_O)        0.116     0.775 r  u_core/u_array/g_row[7].g_col[7].u_pe/tflm_single_round_return1__1_i_50/O
+                         net (fo=1, unplaced)         0.161     0.936    u_core/u_array/g_row[7].g_col[7].u_pe/tflm_single_round_return1__1_i_50_n_0
+                         LUT6 (Prop_LUT6_I0_O)        0.116     1.052 f  u_core/u_array/g_row[7].g_col[7].u_pe/tflm_single_round_return1__1_i_9/O
+                         net (fo=1, unplaced)         0.262     1.314    u_requant/u_requant/tflm_single_round_return1__1/A[8]
+                         DSP_A_B_DATA (Prop_DSP_A_B_DATA_A[8]_A2_DATA[8])
+                                                      0.241     1.555 r  u_requant/u_requant/tflm_single_round_return1__1/DSP_A_B_DATA_INST/A2_DATA[8]
+                         net (fo=1, unplaced)         0.000     1.555    u_requant/u_requant/tflm_single_round_return1__1/DSP_A_B_DATA.A2_DATA<8>
+                         DSP_PREADD_DATA (Prop_DSP_PREADD_DATA_A2_DATA[8]_A2A1[8])
+                                                      0.098     1.653 r  u_requant/u_requant/tflm_single_round_return1__1/DSP_PREADD_DATA_INST/A2A1[8]
+                         net (fo=1, unplaced)         0.000     1.653    u_requant/u_requant/tflm_single_round_return1__1/DSP_PREADD_DATA.A2A1<8>
+                         DSP_MULTIPLIER (Prop_DSP_MULTIPLIER_A2A1[8]_U[29])
+                                                      0.647     2.300 f  u_requant/u_requant/tflm_single_round_return1__1/DSP_MULTIPLIER_INST/U[29]
+                         net (fo=1, unplaced)         0.000     2.300    u_requant/u_requant/tflm_single_round_return1__1/DSP_MULTIPLIER.U<29>
+                         DSP_M_DATA (Prop_DSP_M_DATA_U[29]_U_DATA[29])
+                                                      0.059     2.359 r  u_requant/u_requant/tflm_single_round_return1__1/DSP_M_DATA_INST/U_DATA[29]
+                         net (fo=1, unplaced)         0.000     2.359    u_requant/u_requant/tflm_single_round_return1__1/DSP_M_DATA.U_DATA<29>
+                         DSP_ALU (Prop_DSP_ALU_U_DATA[29]_ALU_OUT[47])
+                                                      0.699     3.058 f  u_requant/u_requant/tflm_single_round_return1__1/DSP_ALU_INST/ALU_OUT[47]
+                         net (fo=1, unplaced)         0.000     3.058    u_requant/u_requant/tflm_single_round_return1__1/DSP_ALU.ALU_OUT<47>
+                         DSP_OUTPUT (Prop_DSP_OUTPUT_ALU_OUT[47]_PCOUT[47])
+                                                      0.159     3.217 r  u_requant/u_requant/tflm_single_round_return1__1/DSP_OUTPUT_INST/PCOUT[47]
+                         net (fo=1, unplaced)         0.016     3.233    u_requant/u_requant/tflm_single_round_return1__2/PCIN[47]
+                         DSP_ALU (Prop_DSP_ALU_PCIN[47]_ALU_OUT[0])
+                                                      0.698     3.931 f  u_requant/u_requant/tflm_single_round_return1__2/DSP_ALU_INST/ALU_OUT[0]
+                         net (fo=1, unplaced)         0.000     3.931    u_requant/u_requant/tflm_single_round_return1__2/DSP_ALU.ALU_OUT<0>
+                         DSP_OUTPUT (Prop_DSP_OUTPUT_ALU_OUT[0]_P[0])
+                                                      0.141     4.072 r  u_requant/u_requant/tflm_single_round_return1__2/DSP_OUTPUT_INST/P[0]
+                         net (fo=2, unplaced)         0.241     4.313    u_requant/u_requant/tflm_single_round_return1__2_n_105
+                         LUT2 (Prop_LUT2_I0_O)        0.063     4.376 r  u_requant/u_requant/i__carry_i_7__1/O
+                         net (fo=1, unplaced)         0.025     4.401    u_requant/u_requant/i__carry_i_7__1_n_0
+                         CARRY8 (Prop_CARRY8_S[1]_O[4])
+                                                      0.255     4.656 r  u_requant/u_requant/tflm_single_round_return1_inferred__0/i__carry/O[4]
+                         net (fo=2, unplaced)         0.248     4.904    u_requant/u_requant/tflm_single_round_return1_inferred__0/i__carry_n_11
+                         LUT5 (Prop_LUT5_I0_O)        0.148     5.052 r  u_requant/u_requant/tflm_single_round_return0_carry__1_i_4/O
+                         net (fo=1, unplaced)         0.022     5.074    u_requant/u_requant/tflm_single_round_return0_carry__1_i_4_n_0
+                         CARRY8 (Prop_CARRY8_S[4]_CO[7])
+                                                      0.205     5.279 r  u_requant/u_requant/tflm_single_round_return0_carry__1/CO[7]
+                         net (fo=1, unplaced)         0.007     5.286    u_requant/u_requant/tflm_single_round_return0_carry__1_n_0
+                         CARRY8 (Prop_CARRY8_CI_CO[7])
+                                                      0.030     5.316 r  u_requant/u_requant/tflm_single_round_return0_carry__2/CO[7]
+                         net (fo=1, unplaced)         0.007     5.323    u_requant/u_requant/tflm_single_round_return0_carry__2_n_0
+                         CARRY8 (Prop_CARRY8_CI_CO[7])
+                                                      0.030     5.353 r  u_requant/u_requant/tflm_single_round_return0_carry__3/CO[7]
+                         net (fo=1, unplaced)         0.007     5.360    u_requant/u_requant/tflm_single_round_return0_carry__3_n_0
+                         CARRY8 (Prop_CARRY8_CI_CO[7])
+                                                      0.030     5.390 r  u_requant/u_requant/tflm_single_round_return0_carry__4/CO[7]
+                         net (fo=1, unplaced)         0.007     5.397    u_requant/u_requant/tflm_single_round_return0_carry__4_n_0
+                         CARRY8 (Prop_CARRY8_CI_CO[7])
+                                                      0.030     5.427 r  u_requant/u_requant/tflm_single_round_return0_carry__5/CO[7]
+                         net (fo=1, unplaced)         0.007     5.434    u_requant/u_requant/tflm_single_round_return0_carry__5_n_0
+                         CARRY8 (Prop_CARRY8_CI_O[7])
+                                                      0.146     5.580 r  u_requant/u_requant/tflm_single_round_return0_carry__6/O[7]
+                         net (fo=128, unplaced)       0.248     5.828    u_requant/u_requant/tflm_single_round_return0[63]
+                         LUT6 (Prop_LUT6_I3_O)        0.040     5.868 r  u_requant/u_requant/clamped_c2_carry__0_i_33/O
+                         net (fo=4, unplaced)         0.173     6.041    u_requant/u_requant/clamped_c2_carry__0_i_33_n_0
+                         LUT6 (Prop_LUT6_I0_O)        0.116     6.157 r  u_requant/u_requant/clamped_c2_carry__1_i_32/O
+                         net (fo=2, unplaced)         0.214     6.371    u_requant/u_requant/clamped_c2_carry__1_i_32_n_0
+                         LUT3 (Prop_LUT3_I2_O)        0.085     6.456 r  u_requant/u_requant/clamped_c2_carry__1_i_24/O
+                         net (fo=5, unplaced)         0.232     6.688    u_requant/u_requant/clamped_c2_carry__1_i_24_n_0
+                         LUT5 (Prop_LUT5_I2_O)        0.040     6.728 r  u_requant/u_requant/clamped_c2_carry__2_i_8/O
+                         net (fo=1, unplaced)         0.259     6.987    u_requant/u_requant/tflm_single_round_return[23]
+                         CARRY8 (Prop_CARRY8_DI[0]_CO[7])
+                                                      0.177     7.164 r  u_requant/u_requant/clamped_c2_carry__2/CO[7]
+                         net (fo=1, unplaced)         0.007     7.171    u_requant/u_requant/clamped_c2_carry__2_n_0
+                         CARRY8 (Prop_CARRY8_CI_CO[7])
+                                                      0.030     7.201 r  u_requant/u_requant/clamped_c2_carry__3/CO[7]
+                         net (fo=1, unplaced)         0.007     7.208    u_requant/u_requant/clamped_c2_carry__3_n_0
+                         CARRY8 (Prop_CARRY8_CI_CO[7])
+                                                      0.030     7.238 r  u_requant/u_requant/clamped_c2_carry__4/CO[7]
+                         net (fo=1, unplaced)         0.007     7.245    u_requant/u_requant/clamped_c2_carry__4_n_0
+                         CARRY8 (Prop_CARRY8_CI_O[1])
+                                                      0.097     7.342 r  u_requant/u_requant/clamped_c2_carry__5/O[1]
+                         net (fo=8, unplaced)         0.240     7.582    u_requant/u_requant/clamped_c2_carry__5_n_14
+                         LUT3 (Prop_LUT3_I2_O)        0.085     7.667 r  u_requant/u_requant/i__carry__2_i_8__0/O
+                         net (fo=1, unplaced)         0.287     7.954    u_requant/u_requant/i__carry__2_i_8__0_n_0
+                         CARRY8 (Prop_CARRY8_DI[0]_CO[7])
+                                                      0.177     8.131 r  u_requant/u_requant/clamped_c1_inferred__1/i__carry__2/CO[7]
+                         net (fo=16, unplaced)        0.115     8.246    u_requant/u_requant/clamped_c1_inferred__1/i__carry__2_n_0
+                         LUT6 (Prop_LUT6_I5_O)        0.040     8.286 r  u_requant/u_requant/out_data_o[0]_i_2/O
+                         net (fo=1, unplaced)         0.214     8.500    u_requant/u_requant/out_data_o[0]_i_2_n_0
+                         LUT6 (Prop_LUT6_I5_O)        0.040     8.540 r  u_requant/u_requant/out_data_o[0]_i_1/O
+                         net (fo=1, unplaced)         0.058     8.598    u_requant/u_requant/out_data_o[0]_i_1_n_0
+                         FDRE                                         r  u_requant/u_requant/out_data_o_reg[0]/D
+  -------------------------------------------------------------------    -------------------
+
+                         (clock npu_clk rise edge)   10.000    10.000 r
+                                                      0.000    10.000 r  clk_i (IN)
+                         net (fo=14910, unset)        0.026    10.026    u_requant/u_requant/clk_i
+                         FDRE                                         r  u_requant/u_requant/out_data_o_reg[0]/C
+                         clock pessimism              0.000    10.026
+                         clock uncertainty           -0.035     9.991
+                         FDRE (Setup_FDRE_C_D)        0.027    10.018    u_requant/u_requant/out_data_o_reg[0]
+  -------------------------------------------------------------------
+                         required time                         10.018
+                         arrival time                          -8.598
+  -------------------------------------------------------------------
+                         slack                                  1.420
+
+Slack (MET) :             1.420ns  (required time - arrival time)
+  Source:                 u_core/u_array/g_row[7].g_col[7].u_pe/sum_o_reg[8]/C
+                            (rising edge-triggered cell FDRE clocked by npu_clk  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Destination:            u_requant/u_requant/out_data_o_reg[1]/D
+                            (rising edge-triggered cell FDRE clocked by npu_clk  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Path Group:             npu_clk
+  Path Type:              Setup (Max at Slow Process Corner)
+  Requirement:            10.000ns  (npu_clk rise@10.000ns - npu_clk rise@0.000ns)
+  Data Path Delay:        8.561ns  (logic 5.140ns (60.040%)  route 3.421ns (39.960%))
+  Logic Levels:           32  (CARRY8=12 DSP_A_B_DATA=1 DSP_ALU=2 DSP_M_DATA=1 DSP_MULTIPLIER=1 DSP_OUTPUT=2 DSP_PREADD_DATA=1 LUT2=1 LUT3=2 LUT5=2 LUT6=7)
+  Clock Path Skew:        -0.011ns (DCD - SCD + CPR)
+    Destination Clock Delay (DCD):    0.026ns = ( 10.026 - 10.000 )
+    Source Clock Delay      (SCD):    0.037ns
+    Clock Pessimism Removal (CPR):    0.000ns
+  Clock Uncertainty:      0.035ns  ((TSJ^2 + TIJ^2)^1/2 + DJ) / 2 + PE
+    Total System Jitter     (TSJ):    0.071ns
+    Total Input Jitter      (TIJ):    0.000ns
+    Discrete Jitter          (DJ):    0.000ns
+    Phase Error              (PE):    0.000ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock npu_clk rise edge)    0.000     0.000 r
+                                                      0.000     0.000 r  clk_i (IN)
+                         net (fo=14910, unset)        0.037     0.037    u_core/u_array/g_row[7].g_col[7].u_pe/clk_i
+                         FDRE                                         r  u_core/u_array/g_row[7].g_col[7].u_pe/sum_o_reg[8]/C
+  -------------------------------------------------------------------    -------------------
+                         FDRE (Prop_FDRE_C_Q)         0.093     0.130 f  u_core/u_array/g_row[7].g_col[7].u_pe/sum_o_reg[8]/Q
+                         net (fo=4, unplaced)         0.189     0.319    u_core/u_array/g_row[7].g_col[7].u_pe/sums[7][7]_89[8]
+                         LUT6 (Prop_LUT6_I0_O)        0.179     0.498 f  u_core/u_array/g_row[7].g_col[7].u_pe/tflm_single_round_return1__1_i_206/O
+                         net (fo=1, unplaced)         0.161     0.659    u_core/u_array/g_row[7].g_col[7].u_pe/tflm_single_round_return1__1_i_206_n_0
+                         LUT6 (Prop_LUT6_I0_O)        0.116     0.775 r  u_core/u_array/g_row[7].g_col[7].u_pe/tflm_single_round_return1__1_i_50/O
+                         net (fo=1, unplaced)         0.161     0.936    u_core/u_array/g_row[7].g_col[7].u_pe/tflm_single_round_return1__1_i_50_n_0
+                         LUT6 (Prop_LUT6_I0_O)        0.116     1.052 f  u_core/u_array/g_row[7].g_col[7].u_pe/tflm_single_round_return1__1_i_9/O
+                         net (fo=1, unplaced)         0.262     1.314    u_requant/u_requant/tflm_single_round_return1__1/A[8]
+                         DSP_A_B_DATA (Prop_DSP_A_B_DATA_A[8]_A2_DATA[8])
+                                                      0.241     1.555 r  u_requant/u_requant/tflm_single_round_return1__1/DSP_A_B_DATA_INST/A2_DATA[8]
+                         net (fo=1, unplaced)         0.000     1.555    u_requant/u_requant/tflm_single_round_return1__1/DSP_A_B_DATA.A2_DATA<8>
+                         DSP_PREADD_DATA (Prop_DSP_PREADD_DATA_A2_DATA[8]_A2A1[8])
+                                                      0.098     1.653 r  u_requant/u_requant/tflm_single_round_return1__1/DSP_PREADD_DATA_INST/A2A1[8]
+                         net (fo=1, unplaced)         0.000     1.653    u_requant/u_requant/tflm_single_round_return1__1/DSP_PREADD_DATA.A2A1<8>
+                         DSP_MULTIPLIER (Prop_DSP_MULTIPLIER_A2A1[8]_U[29])
+                                                      0.647     2.300 f  u_requant/u_requant/tflm_single_round_return1__1/DSP_MULTIPLIER_INST/U[29]
+                         net (fo=1, unplaced)         0.000     2.300    u_requant/u_requant/tflm_single_round_return1__1/DSP_MULTIPLIER.U<29>
+                         DSP_M_DATA (Prop_DSP_M_DATA_U[29]_U_DATA[29])
+                                                      0.059     2.359 r  u_requant/u_requant/tflm_single_round_return1__1/DSP_M_DATA_INST/U_DATA[29]
+                         net (fo=1, unplaced)         0.000     2.359    u_requant/u_requant/tflm_single_round_return1__1/DSP_M_DATA.U_DATA<29>
+                         DSP_ALU (Prop_DSP_ALU_U_DATA[29]_ALU_OUT[47])
+                                                      0.699     3.058 f  u_requant/u_requant/tflm_single_round_return1__1/DSP_ALU_INST/ALU_OUT[47]
+                         net (fo=1, unplaced)         0.000     3.058    u_requant/u_requant/tflm_single_round_return1__1/DSP_ALU.ALU_OUT<47>
+                         DSP_OUTPUT (Prop_DSP_OUTPUT_ALU_OUT[47]_PCOUT[47])
+                                                      0.159     3.217 r  u_requant/u_requant/tflm_single_round_return1__1/DSP_OUTPUT_INST/PCOUT[47]
+                         net (fo=1, unplaced)         0.016     3.233    u_requant/u_requant/tflm_single_round_return1__2/PCIN[47]
+                         DSP_ALU (Prop_DSP_ALU_PCIN[47]_ALU_OUT[0])
+                                                      0.698     3.931 f  u_requant/u_requant/tflm_single_round_return1__2/DSP_ALU_INST/ALU_OUT[0]
+                         net (fo=1, unplaced)         0.000     3.931    u_requant/u_requant/tflm_single_round_return1__2/DSP_ALU.ALU_OUT<0>
+                         DSP_OUTPUT (Prop_DSP_OUTPUT_ALU_OUT[0]_P[0])
+                                                      0.141     4.072 r  u_requant/u_requant/tflm_single_round_return1__2/DSP_OUTPUT_INST/P[0]
+                         net (fo=2, unplaced)         0.241     4.313    u_requant/u_requant/tflm_single_round_return1__2_n_105
+                         LUT2 (Prop_LUT2_I0_O)        0.063     4.376 r  u_requant/u_requant/i__carry_i_7__1/O
+                         net (fo=1, unplaced)         0.025     4.401    u_requant/u_requant/i__carry_i_7__1_n_0
+                         CARRY8 (Prop_CARRY8_S[1]_O[4])
+                                                      0.255     4.656 r  u_requant/u_requant/tflm_single_round_return1_inferred__0/i__carry/O[4]
+                         net (fo=2, unplaced)         0.248     4.904    u_requant/u_requant/tflm_single_round_return1_inferred__0/i__carry_n_11
+                         LUT5 (Prop_LUT5_I0_O)        0.148     5.052 r  u_requant/u_requant/tflm_single_round_return0_carry__1_i_4/O
+                         net (fo=1, unplaced)         0.022     5.074    u_requant/u_requant/tflm_single_round_return0_carry__1_i_4_n_0
+                         CARRY8 (Prop_CARRY8_S[4]_CO[7])
+                                                      0.205     5.279 r  u_requant/u_requant/tflm_single_round_return0_carry__1/CO[7]
+                         net (fo=1, unplaced)         0.007     5.286    u_requant/u_requant/tflm_single_round_return0_carry__1_n_0
+                         CARRY8 (Prop_CARRY8_CI_CO[7])
+                                                      0.030     5.316 r  u_requant/u_requant/tflm_single_round_return0_carry__2/CO[7]
+                         net (fo=1, unplaced)         0.007     5.323    u_requant/u_requant/tflm_single_round_return0_carry__2_n_0
+                         CARRY8 (Prop_CARRY8_CI_CO[7])
+                                                      0.030     5.353 r  u_requant/u_requant/tflm_single_round_return0_carry__3/CO[7]
+                         net (fo=1, unplaced)         0.007     5.360    u_requant/u_requant/tflm_single_round_return0_carry__3_n_0
+                         CARRY8 (Prop_CARRY8_CI_CO[7])
+                                                      0.030     5.390 r  u_requant/u_requant/tflm_single_round_return0_carry__4/CO[7]
+                         net (fo=1, unplaced)         0.007     5.397    u_requant/u_requant/tflm_single_round_return0_carry__4_n_0
+                         CARRY8 (Prop_CARRY8_CI_CO[7])
+                                                      0.030     5.427 r  u_requant/u_requant/tflm_single_round_return0_carry__5/CO[7]
+                         net (fo=1, unplaced)         0.007     5.434    u_requant/u_requant/tflm_single_round_return0_carry__5_n_0
+                         CARRY8 (Prop_CARRY8_CI_O[7])
+                                                      0.146     5.580 r  u_requant/u_requant/tflm_single_round_return0_carry__6/O[7]
+                         net (fo=128, unplaced)       0.248     5.828    u_requant/u_requant/tflm_single_round_return0[63]
+                         LUT6 (Prop_LUT6_I3_O)        0.040     5.868 r  u_requant/u_requant/clamped_c2_carry__0_i_33/O
+                         net (fo=4, unplaced)         0.173     6.041    u_requant/u_requant/clamped_c2_carry__0_i_33_n_0
+                         LUT6 (Prop_LUT6_I0_O)        0.116     6.157 r  u_requant/u_requant/clamped_c2_carry__1_i_32/O
+                         net (fo=2, unplaced)         0.214     6.371    u_requant/u_requant/clamped_c2_carry__1_i_32_n_0
+                         LUT3 (Prop_LUT3_I2_O)        0.085     6.456 r  u_requant/u_requant/clamped_c2_carry__1_i_24/O
+                         net (fo=5, unplaced)         0.232     6.688    u_requant/u_requant/clamped_c2_carry__1_i_24_n_0
+                         LUT5 (Prop_LUT5_I2_O)        0.040     6.728 r  u_requant/u_requant/clamped_c2_carry__2_i_8/O
+                         net (fo=1, unplaced)         0.259     6.987    u_requant/u_requant/tflm_single_round_return[23]
+                         CARRY8 (Prop_CARRY8_DI[0]_CO[7])
+                                                      0.177     7.164 r  u_requant/u_requant/clamped_c2_carry__2/CO[7]
+                         net (fo=1, unplaced)         0.007     7.171    u_requant/u_requant/clamped_c2_carry__2_n_0
+                         CARRY8 (Prop_CARRY8_CI_CO[7])
+                                                      0.030     7.201 r  u_requant/u_requant/clamped_c2_carry__3/CO[7]
+                         net (fo=1, unplaced)         0.007     7.208    u_requant/u_requant/clamped_c2_carry__3_n_0
+                         CARRY8 (Prop_CARRY8_CI_CO[7])
+                                                      0.030     7.238 r  u_requant/u_requant/clamped_c2_carry__4/CO[7]
+                         net (fo=1, unplaced)         0.007     7.245    u_requant/u_requant/clamped_c2_carry__4_n_0
+                         CARRY8 (Prop_CARRY8_CI_O[1])
+                                                      0.097     7.342 r  u_requant/u_requant/clamped_c2_carry__5/O[1]
+                         net (fo=8, unplaced)         0.240     7.582    u_requant/u_requant/clamped_c2_carry__5_n_14
+                         LUT3 (Prop_LUT3_I2_O)        0.085     7.667 r  u_requant/u_requant/i__carry__2_i_8__0/O
+                         net (fo=1, unplaced)         0.287     7.954    u_requant/u_requant/i__carry__2_i_8__0_n_0
+                         CARRY8 (Prop_CARRY8_DI[0]_CO[7])
+                                                      0.177     8.131 r  u_requant/u_requant/clamped_c1_inferred__1/i__carry__2/CO[7]
+                         net (fo=16, unplaced)        0.115     8.246    u_requant/u_requant/clamped_c1_inferred__1/i__carry__2_n_0
+                         LUT6 (Prop_LUT6_I5_O)        0.040     8.286 r  u_requant/u_requant/out_data_o[1]_i_2/O
+                         net (fo=1, unplaced)         0.214     8.500    u_requant/u_requant/out_data_o[1]_i_2_n_0
+                         LUT6 (Prop_LUT6_I5_O)        0.040     8.540 r  u_requant/u_requant/out_data_o[1]_i_1/O
+                         net (fo=1, unplaced)         0.058     8.598    u_requant/u_requant/out_data_o[1]_i_1_n_0
+                         FDRE                                         r  u_requant/u_requant/out_data_o_reg[1]/D
+  -------------------------------------------------------------------    -------------------
+
+                         (clock npu_clk rise edge)   10.000    10.000 r
+                                                      0.000    10.000 r  clk_i (IN)
+                         net (fo=14910, unset)        0.026    10.026    u_requant/u_requant/clk_i
+                         FDRE                                         r  u_requant/u_requant/out_data_o_reg[1]/C
+                         clock pessimism              0.000    10.026
+                         clock uncertainty           -0.035     9.991
+                         FDRE (Setup_FDRE_C_D)        0.027    10.018    u_requant/u_requant/out_data_o_reg[1]
+  -------------------------------------------------------------------
+                         required time                         10.018
+                         arrival time                          -8.598
+  -------------------------------------------------------------------
+                         slack                                  1.420
+
+Slack (MET) :             1.420ns  (required time - arrival time)
+  Source:                 u_core/u_array/g_row[7].g_col[7].u_pe/sum_o_reg[8]/C
+                            (rising edge-triggered cell FDRE clocked by npu_clk  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Destination:            u_requant/u_requant/out_data_o_reg[2]/D
+                            (rising edge-triggered cell FDRE clocked by npu_clk  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Path Group:             npu_clk
+  Path Type:              Setup (Max at Slow Process Corner)
+  Requirement:            10.000ns  (npu_clk rise@10.000ns - npu_clk rise@0.000ns)
+  Data Path Delay:        8.561ns  (logic 5.140ns (60.040%)  route 3.421ns (39.960%))
+  Logic Levels:           32  (CARRY8=12 DSP_A_B_DATA=1 DSP_ALU=2 DSP_M_DATA=1 DSP_MULTIPLIER=1 DSP_OUTPUT=2 DSP_PREADD_DATA=1 LUT2=1 LUT3=2 LUT5=2 LUT6=7)
+  Clock Path Skew:        -0.011ns (DCD - SCD + CPR)
+    Destination Clock Delay (DCD):    0.026ns = ( 10.026 - 10.000 )
+    Source Clock Delay      (SCD):    0.037ns
+    Clock Pessimism Removal (CPR):    0.000ns
+  Clock Uncertainty:      0.035ns  ((TSJ^2 + TIJ^2)^1/2 + DJ) / 2 + PE
+    Total System Jitter     (TSJ):    0.071ns
+    Total Input Jitter      (TIJ):    0.000ns
+    Discrete Jitter          (DJ):    0.000ns
+    Phase Error              (PE):    0.000ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock npu_clk rise edge)    0.000     0.000 r
+                                                      0.000     0.000 r  clk_i (IN)
+                         net (fo=14910, unset)        0.037     0.037    u_core/u_array/g_row[7].g_col[7].u_pe/clk_i
+                         FDRE                                         r  u_core/u_array/g_row[7].g_col[7].u_pe/sum_o_reg[8]/C
+  -------------------------------------------------------------------    -------------------
+                         FDRE (Prop_FDRE_C_Q)         0.093     0.130 f  u_core/u_array/g_row[7].g_col[7].u_pe/sum_o_reg[8]/Q
+                         net (fo=4, unplaced)         0.189     0.319    u_core/u_array/g_row[7].g_col[7].u_pe/sums[7][7]_89[8]
+                         LUT6 (Prop_LUT6_I0_O)        0.179     0.498 f  u_core/u_array/g_row[7].g_col[7].u_pe/tflm_single_round_return1__1_i_206/O
+                         net (fo=1, unplaced)         0.161     0.659    u_core/u_array/g_row[7].g_col[7].u_pe/tflm_single_round_return1__1_i_206_n_0
+                         LUT6 (Prop_LUT6_I0_O)        0.116     0.775 r  u_core/u_array/g_row[7].g_col[7].u_pe/tflm_single_round_return1__1_i_50/O
+                         net (fo=1, unplaced)         0.161     0.936    u_core/u_array/g_row[7].g_col[7].u_pe/tflm_single_round_return1__1_i_50_n_0
+                         LUT6 (Prop_LUT6_I0_O)        0.116     1.052 f  u_core/u_array/g_row[7].g_col[7].u_pe/tflm_single_round_return1__1_i_9/O
+                         net (fo=1, unplaced)         0.262     1.314    u_requant/u_requant/tflm_single_round_return1__1/A[8]
+                         DSP_A_B_DATA (Prop_DSP_A_B_DATA_A[8]_A2_DATA[8])
+                                                      0.241     1.555 r  u_requant/u_requant/tflm_single_round_return1__1/DSP_A_B_DATA_INST/A2_DATA[8]
+                         net (fo=1, unplaced)         0.000     1.555    u_requant/u_requant/tflm_single_round_return1__1/DSP_A_B_DATA.A2_DATA<8>
+                         DSP_PREADD_DATA (Prop_DSP_PREADD_DATA_A2_DATA[8]_A2A1[8])
+                                                      0.098     1.653 r  u_requant/u_requant/tflm_single_round_return1__1/DSP_PREADD_DATA_INST/A2A1[8]
+                         net (fo=1, unplaced)         0.000     1.653    u_requant/u_requant/tflm_single_round_return1__1/DSP_PREADD_DATA.A2A1<8>
+                         DSP_MULTIPLIER (Prop_DSP_MULTIPLIER_A2A1[8]_U[29])
+                                                      0.647     2.300 f  u_requant/u_requant/tflm_single_round_return1__1/DSP_MULTIPLIER_INST/U[29]
+                         net (fo=1, unplaced)         0.000     2.300    u_requant/u_requant/tflm_single_round_return1__1/DSP_MULTIPLIER.U<29>
+                         DSP_M_DATA (Prop_DSP_M_DATA_U[29]_U_DATA[29])
+                                                      0.059     2.359 r  u_requant/u_requant/tflm_single_round_return1__1/DSP_M_DATA_INST/U_DATA[29]
+                         net (fo=1, unplaced)         0.000     2.359    u_requant/u_requant/tflm_single_round_return1__1/DSP_M_DATA.U_DATA<29>
+                         DSP_ALU (Prop_DSP_ALU_U_DATA[29]_ALU_OUT[47])
+                                                      0.699     3.058 f  u_requant/u_requant/tflm_single_round_return1__1/DSP_ALU_INST/ALU_OUT[47]
+                         net (fo=1, unplaced)         0.000     3.058    u_requant/u_requant/tflm_single_round_return1__1/DSP_ALU.ALU_OUT<47>
+                         DSP_OUTPUT (Prop_DSP_OUTPUT_ALU_OUT[47]_PCOUT[47])
+                                                      0.159     3.217 r  u_requant/u_requant/tflm_single_round_return1__1/DSP_OUTPUT_INST/PCOUT[47]
+                         net (fo=1, unplaced)         0.016     3.233    u_requant/u_requant/tflm_single_round_return1__2/PCIN[47]
+                         DSP_ALU (Prop_DSP_ALU_PCIN[47]_ALU_OUT[0])
+                                                      0.698     3.931 f  u_requant/u_requant/tflm_single_round_return1__2/DSP_ALU_INST/ALU_OUT[0]
+                         net (fo=1, unplaced)         0.000     3.931    u_requant/u_requant/tflm_single_round_return1__2/DSP_ALU.ALU_OUT<0>
+                         DSP_OUTPUT (Prop_DSP_OUTPUT_ALU_OUT[0]_P[0])
+                                                      0.141     4.072 r  u_requant/u_requant/tflm_single_round_return1__2/DSP_OUTPUT_INST/P[0]
+                         net (fo=2, unplaced)         0.241     4.313    u_requant/u_requant/tflm_single_round_return1__2_n_105
+                         LUT2 (Prop_LUT2_I0_O)        0.063     4.376 r  u_requant/u_requant/i__carry_i_7__1/O
+                         net (fo=1, unplaced)         0.025     4.401    u_requant/u_requant/i__carry_i_7__1_n_0
+                         CARRY8 (Prop_CARRY8_S[1]_O[4])
+                                                      0.255     4.656 r  u_requant/u_requant/tflm_single_round_return1_inferred__0/i__carry/O[4]
+                         net (fo=2, unplaced)         0.248     4.904    u_requant/u_requant/tflm_single_round_return1_inferred__0/i__carry_n_11
+                         LUT5 (Prop_LUT5_I0_O)        0.148     5.052 r  u_requant/u_requant/tflm_single_round_return0_carry__1_i_4/O
+                         net (fo=1, unplaced)         0.022     5.074    u_requant/u_requant/tflm_single_round_return0_carry__1_i_4_n_0
+                         CARRY8 (Prop_CARRY8_S[4]_CO[7])
+                                                      0.205     5.279 r  u_requant/u_requant/tflm_single_round_return0_carry__1/CO[7]
+                         net (fo=1, unplaced)         0.007     5.286    u_requant/u_requant/tflm_single_round_return0_carry__1_n_0
+                         CARRY8 (Prop_CARRY8_CI_CO[7])
+                                                      0.030     5.316 r  u_requant/u_requant/tflm_single_round_return0_carry__2/CO[7]
+                         net (fo=1, unplaced)         0.007     5.323    u_requant/u_requant/tflm_single_round_return0_carry__2_n_0
+                         CARRY8 (Prop_CARRY8_CI_CO[7])
+                                                      0.030     5.353 r  u_requant/u_requant/tflm_single_round_return0_carry__3/CO[7]
+                         net (fo=1, unplaced)         0.007     5.360    u_requant/u_requant/tflm_single_round_return0_carry__3_n_0
+                         CARRY8 (Prop_CARRY8_CI_CO[7])
+                                                      0.030     5.390 r  u_requant/u_requant/tflm_single_round_return0_carry__4/CO[7]
+                         net (fo=1, unplaced)         0.007     5.397    u_requant/u_requant/tflm_single_round_return0_carry__4_n_0
+                         CARRY8 (Prop_CARRY8_CI_CO[7])
+                                                      0.030     5.427 r  u_requant/u_requant/tflm_single_round_return0_carry__5/CO[7]
+                         net (fo=1, unplaced)         0.007     5.434    u_requant/u_requant/tflm_single_round_return0_carry__5_n_0
+                         CARRY8 (Prop_CARRY8_CI_O[7])
+                                                      0.146     5.580 r  u_requant/u_requant/tflm_single_round_return0_carry__6/O[7]
+                         net (fo=128, unplaced)       0.248     5.828    u_requant/u_requant/tflm_single_round_return0[63]
+                         LUT6 (Prop_LUT6_I3_O)        0.040     5.868 r  u_requant/u_requant/clamped_c2_carry__0_i_33/O
+                         net (fo=4, unplaced)         0.173     6.041    u_requant/u_requant/clamped_c2_carry__0_i_33_n_0
+                         LUT6 (Prop_LUT6_I0_O)        0.116     6.157 r  u_requant/u_requant/clamped_c2_carry__1_i_32/O
+                         net (fo=2, unplaced)         0.214     6.371    u_requant/u_requant/clamped_c2_carry__1_i_32_n_0
+                         LUT3 (Prop_LUT3_I2_O)        0.085     6.456 r  u_requant/u_requant/clamped_c2_carry__1_i_24/O
+                         net (fo=5, unplaced)         0.232     6.688    u_requant/u_requant/clamped_c2_carry__1_i_24_n_0
+                         LUT5 (Prop_LUT5_I2_O)        0.040     6.728 r  u_requant/u_requant/clamped_c2_carry__2_i_8/O
+                         net (fo=1, unplaced)         0.259     6.987    u_requant/u_requant/tflm_single_round_return[23]
+                         CARRY8 (Prop_CARRY8_DI[0]_CO[7])
+                                                      0.177     7.164 r  u_requant/u_requant/clamped_c2_carry__2/CO[7]
+                         net (fo=1, unplaced)         0.007     7.171    u_requant/u_requant/clamped_c2_carry__2_n_0
+                         CARRY8 (Prop_CARRY8_CI_CO[7])
+                                                      0.030     7.201 r  u_requant/u_requant/clamped_c2_carry__3/CO[7]
+                         net (fo=1, unplaced)         0.007     7.208    u_requant/u_requant/clamped_c2_carry__3_n_0
+                         CARRY8 (Prop_CARRY8_CI_CO[7])
+                                                      0.030     7.238 r  u_requant/u_requant/clamped_c2_carry__4/CO[7]
+                         net (fo=1, unplaced)         0.007     7.245    u_requant/u_requant/clamped_c2_carry__4_n_0
+                         CARRY8 (Prop_CARRY8_CI_O[1])
+                                                      0.097     7.342 r  u_requant/u_requant/clamped_c2_carry__5/O[1]
+                         net (fo=8, unplaced)         0.240     7.582    u_requant/u_requant/clamped_c2_carry__5_n_14
+                         LUT3 (Prop_LUT3_I2_O)        0.085     7.667 r  u_requant/u_requant/i__carry__2_i_8__0/O
+                         net (fo=1, unplaced)         0.287     7.954    u_requant/u_requant/i__carry__2_i_8__0_n_0
+                         CARRY8 (Prop_CARRY8_DI[0]_CO[7])
+                                                      0.177     8.131 r  u_requant/u_requant/clamped_c1_inferred__1/i__carry__2/CO[7]
+                         net (fo=16, unplaced)        0.115     8.246    u_requant/u_requant/clamped_c1_inferred__1/i__carry__2_n_0
+                         LUT6 (Prop_LUT6_I5_O)        0.040     8.286 r  u_requant/u_requant/out_data_o[2]_i_2/O
+                         net (fo=1, unplaced)         0.214     8.500    u_requant/u_requant/out_data_o[2]_i_2_n_0
+                         LUT6 (Prop_LUT6_I5_O)        0.040     8.540 r  u_requant/u_requant/out_data_o[2]_i_1/O
+                         net (fo=1, unplaced)         0.058     8.598    u_requant/u_requant/out_data_o[2]_i_1_n_0
+                         FDRE                                         r  u_requant/u_requant/out_data_o_reg[2]/D
+  -------------------------------------------------------------------    -------------------
+
+                         (clock npu_clk rise edge)   10.000    10.000 r
+                                                      0.000    10.000 r  clk_i (IN)
+                         net (fo=14910, unset)        0.026    10.026    u_requant/u_requant/clk_i
+                         FDRE                                         r  u_requant/u_requant/out_data_o_reg[2]/C
+                         clock pessimism              0.000    10.026
+                         clock uncertainty           -0.035     9.991
+                         FDRE (Setup_FDRE_C_D)        0.027    10.018    u_requant/u_requant/out_data_o_reg[2]
+  -------------------------------------------------------------------
+                         required time                         10.018
+                         arrival time                          -8.598
+  -------------------------------------------------------------------
+                         slack                                  1.420
+
+Slack (MET) :             1.420ns  (required time - arrival time)
+  Source:                 u_core/u_array/g_row[7].g_col[7].u_pe/sum_o_reg[8]/C
+                            (rising edge-triggered cell FDRE clocked by npu_clk  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Destination:            u_requant/u_requant/out_data_o_reg[3]/D
+                            (rising edge-triggered cell FDRE clocked by npu_clk  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Path Group:             npu_clk
+  Path Type:              Setup (Max at Slow Process Corner)
+  Requirement:            10.000ns  (npu_clk rise@10.000ns - npu_clk rise@0.000ns)
+  Data Path Delay:        8.561ns  (logic 5.140ns (60.040%)  route 3.421ns (39.960%))
+  Logic Levels:           32  (CARRY8=12 DSP_A_B_DATA=1 DSP_ALU=2 DSP_M_DATA=1 DSP_MULTIPLIER=1 DSP_OUTPUT=2 DSP_PREADD_DATA=1 LUT2=1 LUT3=2 LUT5=2 LUT6=7)
+  Clock Path Skew:        -0.011ns (DCD - SCD + CPR)
+    Destination Clock Delay (DCD):    0.026ns = ( 10.026 - 10.000 )
+    Source Clock Delay      (SCD):    0.037ns
+    Clock Pessimism Removal (CPR):    0.000ns
+  Clock Uncertainty:      0.035ns  ((TSJ^2 + TIJ^2)^1/2 + DJ) / 2 + PE
+    Total System Jitter     (TSJ):    0.071ns
+    Total Input Jitter      (TIJ):    0.000ns
+    Discrete Jitter          (DJ):    0.000ns
+    Phase Error              (PE):    0.000ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock npu_clk rise edge)    0.000     0.000 r
+                                                      0.000     0.000 r  clk_i (IN)
+                         net (fo=14910, unset)        0.037     0.037    u_core/u_array/g_row[7].g_col[7].u_pe/clk_i
+                         FDRE                                         r  u_core/u_array/g_row[7].g_col[7].u_pe/sum_o_reg[8]/C
+  -------------------------------------------------------------------    -------------------
+                         FDRE (Prop_FDRE_C_Q)         0.093     0.130 f  u_core/u_array/g_row[7].g_col[7].u_pe/sum_o_reg[8]/Q
+                         net (fo=4, unplaced)         0.189     0.319    u_core/u_array/g_row[7].g_col[7].u_pe/sums[7][7]_89[8]
+                         LUT6 (Prop_LUT6_I0_O)        0.179     0.498 f  u_core/u_array/g_row[7].g_col[7].u_pe/tflm_single_round_return1__1_i_206/O
+                         net (fo=1, unplaced)         0.161     0.659    u_core/u_array/g_row[7].g_col[7].u_pe/tflm_single_round_return1__1_i_206_n_0
+                         LUT6 (Prop_LUT6_I0_O)        0.116     0.775 r  u_core/u_array/g_row[7].g_col[7].u_pe/tflm_single_round_return1__1_i_50/O
+                         net (fo=1, unplaced)         0.161     0.936    u_core/u_array/g_row[7].g_col[7].u_pe/tflm_single_round_return1__1_i_50_n_0
+                         LUT6 (Prop_LUT6_I0_O)        0.116     1.052 f  u_core/u_array/g_row[7].g_col[7].u_pe/tflm_single_round_return1__1_i_9/O
+                         net (fo=1, unplaced)         0.262     1.314    u_requant/u_requant/tflm_single_round_return1__1/A[8]
+                         DSP_A_B_DATA (Prop_DSP_A_B_DATA_A[8]_A2_DATA[8])
+                                                      0.241     1.555 r  u_requant/u_requant/tflm_single_round_return1__1/DSP_A_B_DATA_INST/A2_DATA[8]
+                         net (fo=1, unplaced)         0.000     1.555    u_requant/u_requant/tflm_single_round_return1__1/DSP_A_B_DATA.A2_DATA<8>
+                         DSP_PREADD_DATA (Prop_DSP_PREADD_DATA_A2_DATA[8]_A2A1[8])
+                                                      0.098     1.653 r  u_requant/u_requant/tflm_single_round_return1__1/DSP_PREADD_DATA_INST/A2A1[8]
+                         net (fo=1, unplaced)         0.000     1.653    u_requant/u_requant/tflm_single_round_return1__1/DSP_PREADD_DATA.A2A1<8>
+                         DSP_MULTIPLIER (Prop_DSP_MULTIPLIER_A2A1[8]_U[29])
+                                                      0.647     2.300 f  u_requant/u_requant/tflm_single_round_return1__1/DSP_MULTIPLIER_INST/U[29]
+                         net (fo=1, unplaced)         0.000     2.300    u_requant/u_requant/tflm_single_round_return1__1/DSP_MULTIPLIER.U<29>
+                         DSP_M_DATA (Prop_DSP_M_DATA_U[29]_U_DATA[29])
+                                                      0.059     2.359 r  u_requant/u_requant/tflm_single_round_return1__1/DSP_M_DATA_INST/U_DATA[29]
+                         net (fo=1, unplaced)         0.000     2.359    u_requant/u_requant/tflm_single_round_return1__1/DSP_M_DATA.U_DATA<29>
+                         DSP_ALU (Prop_DSP_ALU_U_DATA[29]_ALU_OUT[47])
+                                                      0.699     3.058 f  u_requant/u_requant/tflm_single_round_return1__1/DSP_ALU_INST/ALU_OUT[47]
+                         net (fo=1, unplaced)         0.000     3.058    u_requant/u_requant/tflm_single_round_return1__1/DSP_ALU.ALU_OUT<47>
+                         DSP_OUTPUT (Prop_DSP_OUTPUT_ALU_OUT[47]_PCOUT[47])
+                                                      0.159     3.217 r  u_requant/u_requant/tflm_single_round_return1__1/DSP_OUTPUT_INST/PCOUT[47]
+                         net (fo=1, unplaced)         0.016     3.233    u_requant/u_requant/tflm_single_round_return1__2/PCIN[47]
+                         DSP_ALU (Prop_DSP_ALU_PCIN[47]_ALU_OUT[0])
+                                                      0.698     3.931 f  u_requant/u_requant/tflm_single_round_return1__2/DSP_ALU_INST/ALU_OUT[0]
+                         net (fo=1, unplaced)         0.000     3.931    u_requant/u_requant/tflm_single_round_return1__2/DSP_ALU.ALU_OUT<0>
+                         DSP_OUTPUT (Prop_DSP_OUTPUT_ALU_OUT[0]_P[0])
+                                                      0.141     4.072 r  u_requant/u_requant/tflm_single_round_return1__2/DSP_OUTPUT_INST/P[0]
+                         net (fo=2, unplaced)         0.241     4.313    u_requant/u_requant/tflm_single_round_return1__2_n_105
+                         LUT2 (Prop_LUT2_I0_O)        0.063     4.376 r  u_requant/u_requant/i__carry_i_7__1/O
+                         net (fo=1, unplaced)         0.025     4.401    u_requant/u_requant/i__carry_i_7__1_n_0
+                         CARRY8 (Prop_CARRY8_S[1]_O[4])
+                                                      0.255     4.656 r  u_requant/u_requant/tflm_single_round_return1_inferred__0/i__carry/O[4]
+                         net (fo=2, unplaced)         0.248     4.904    u_requant/u_requant/tflm_single_round_return1_inferred__0/i__carry_n_11
+                         LUT5 (Prop_LUT5_I0_O)        0.148     5.052 r  u_requant/u_requant/tflm_single_round_return0_carry__1_i_4/O
+                         net (fo=1, unplaced)         0.022     5.074    u_requant/u_requant/tflm_single_round_return0_carry__1_i_4_n_0
+                         CARRY8 (Prop_CARRY8_S[4]_CO[7])
+                                                      0.205     5.279 r  u_requant/u_requant/tflm_single_round_return0_carry__1/CO[7]
+                         net (fo=1, unplaced)         0.007     5.286    u_requant/u_requant/tflm_single_round_return0_carry__1_n_0
+                         CARRY8 (Prop_CARRY8_CI_CO[7])
+                                                      0.030     5.316 r  u_requant/u_requant/tflm_single_round_return0_carry__2/CO[7]
+                         net (fo=1, unplaced)         0.007     5.323    u_requant/u_requant/tflm_single_round_return0_carry__2_n_0
+                         CARRY8 (Prop_CARRY8_CI_CO[7])
+                                                      0.030     5.353 r  u_requant/u_requant/tflm_single_round_return0_carry__3/CO[7]
+                         net (fo=1, unplaced)         0.007     5.360    u_requant/u_requant/tflm_single_round_return0_carry__3_n_0
+                         CARRY8 (Prop_CARRY8_CI_CO[7])
+                                                      0.030     5.390 r  u_requant/u_requant/tflm_single_round_return0_carry__4/CO[7]
+                         net (fo=1, unplaced)         0.007     5.397    u_requant/u_requant/tflm_single_round_return0_carry__4_n_0
+                         CARRY8 (Prop_CARRY8_CI_CO[7])
+                                                      0.030     5.427 r  u_requant/u_requant/tflm_single_round_return0_carry__5/CO[7]
+                         net (fo=1, unplaced)         0.007     5.434    u_requant/u_requant/tflm_single_round_return0_carry__5_n_0
+                         CARRY8 (Prop_CARRY8_CI_O[7])
+                                                      0.146     5.580 r  u_requant/u_requant/tflm_single_round_return0_carry__6/O[7]
+                         net (fo=128, unplaced)       0.248     5.828    u_requant/u_requant/tflm_single_round_return0[63]
+                         LUT6 (Prop_LUT6_I3_O)        0.040     5.868 r  u_requant/u_requant/clamped_c2_carry__0_i_33/O
+                         net (fo=4, unplaced)         0.173     6.041    u_requant/u_requant/clamped_c2_carry__0_i_33_n_0
+                         LUT6 (Prop_LUT6_I0_O)        0.116     6.157 r  u_requant/u_requant/clamped_c2_carry__1_i_32/O
+                         net (fo=2, unplaced)         0.214     6.371    u_requant/u_requant/clamped_c2_carry__1_i_32_n_0
+                         LUT3 (Prop_LUT3_I2_O)        0.085     6.456 r  u_requant/u_requant/clamped_c2_carry__1_i_24/O
+                         net (fo=5, unplaced)         0.232     6.688    u_requant/u_requant/clamped_c2_carry__1_i_24_n_0
+                         LUT5 (Prop_LUT5_I2_O)        0.040     6.728 r  u_requant/u_requant/clamped_c2_carry__2_i_8/O
+                         net (fo=1, unplaced)         0.259     6.987    u_requant/u_requant/tflm_single_round_return[23]
+                         CARRY8 (Prop_CARRY8_DI[0]_CO[7])
+                                                      0.177     7.164 r  u_requant/u_requant/clamped_c2_carry__2/CO[7]
+                         net (fo=1, unplaced)         0.007     7.171    u_requant/u_requant/clamped_c2_carry__2_n_0
+                         CARRY8 (Prop_CARRY8_CI_CO[7])
+                                                      0.030     7.201 r  u_requant/u_requant/clamped_c2_carry__3/CO[7]
+                         net (fo=1, unplaced)         0.007     7.208    u_requant/u_requant/clamped_c2_carry__3_n_0
+                         CARRY8 (Prop_CARRY8_CI_CO[7])
+                                                      0.030     7.238 r  u_requant/u_requant/clamped_c2_carry__4/CO[7]
+                         net (fo=1, unplaced)         0.007     7.245    u_requant/u_requant/clamped_c2_carry__4_n_0
+                         CARRY8 (Prop_CARRY8_CI_O[1])
+                                                      0.097     7.342 r  u_requant/u_requant/clamped_c2_carry__5/O[1]
+                         net (fo=8, unplaced)         0.240     7.582    u_requant/u_requant/clamped_c2_carry__5_n_14
+                         LUT3 (Prop_LUT3_I2_O)        0.085     7.667 r  u_requant/u_requant/i__carry__2_i_8__0/O
+                         net (fo=1, unplaced)         0.287     7.954    u_requant/u_requant/i__carry__2_i_8__0_n_0
+                         CARRY8 (Prop_CARRY8_DI[0]_CO[7])
+                                                      0.177     8.131 r  u_requant/u_requant/clamped_c1_inferred__1/i__carry__2/CO[7]
+                         net (fo=16, unplaced)        0.115     8.246    u_requant/u_requant/clamped_c1_inferred__1/i__carry__2_n_0
+                         LUT6 (Prop_LUT6_I5_O)        0.040     8.286 r  u_requant/u_requant/out_data_o[3]_i_2/O
+                         net (fo=1, unplaced)         0.214     8.500    u_requant/u_requant/out_data_o[3]_i_2_n_0
+                         LUT6 (Prop_LUT6_I5_O)        0.040     8.540 r  u_requant/u_requant/out_data_o[3]_i_1/O
+                         net (fo=1, unplaced)         0.058     8.598    u_requant/u_requant/out_data_o[3]_i_1_n_0
+                         FDRE                                         r  u_requant/u_requant/out_data_o_reg[3]/D
+  -------------------------------------------------------------------    -------------------
+
+                         (clock npu_clk rise edge)   10.000    10.000 r
+                                                      0.000    10.000 r  clk_i (IN)
+                         net (fo=14910, unset)        0.026    10.026    u_requant/u_requant/clk_i
+                         FDRE                                         r  u_requant/u_requant/out_data_o_reg[3]/C
+                         clock pessimism              0.000    10.026
+                         clock uncertainty           -0.035     9.991
+                         FDRE (Setup_FDRE_C_D)        0.027    10.018    u_requant/u_requant/out_data_o_reg[3]
+  -------------------------------------------------------------------
+                         required time                         10.018
+                         arrival time                          -8.598
+  -------------------------------------------------------------------
+                         slack                                  1.420
+
+Slack (MET) :             1.420ns  (required time - arrival time)
+  Source:                 u_core/u_array/g_row[7].g_col[7].u_pe/sum_o_reg[8]/C
+                            (rising edge-triggered cell FDRE clocked by npu_clk  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Destination:            u_requant/u_requant/out_data_o_reg[4]/D
+                            (rising edge-triggered cell FDRE clocked by npu_clk  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Path Group:             npu_clk
+  Path Type:              Setup (Max at Slow Process Corner)
+  Requirement:            10.000ns  (npu_clk rise@10.000ns - npu_clk rise@0.000ns)
+  Data Path Delay:        8.561ns  (logic 5.140ns (60.040%)  route 3.421ns (39.960%))
+  Logic Levels:           32  (CARRY8=12 DSP_A_B_DATA=1 DSP_ALU=2 DSP_M_DATA=1 DSP_MULTIPLIER=1 DSP_OUTPUT=2 DSP_PREADD_DATA=1 LUT2=1 LUT3=2 LUT5=2 LUT6=7)
+  Clock Path Skew:        -0.011ns (DCD - SCD + CPR)
+    Destination Clock Delay (DCD):    0.026ns = ( 10.026 - 10.000 )
+    Source Clock Delay      (SCD):    0.037ns
+    Clock Pessimism Removal (CPR):    0.000ns
+  Clock Uncertainty:      0.035ns  ((TSJ^2 + TIJ^2)^1/2 + DJ) / 2 + PE
+    Total System Jitter     (TSJ):    0.071ns
+    Total Input Jitter      (TIJ):    0.000ns
+    Discrete Jitter          (DJ):    0.000ns
+    Phase Error              (PE):    0.000ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock npu_clk rise edge)    0.000     0.000 r
+                                                      0.000     0.000 r  clk_i (IN)
+                         net (fo=14910, unset)        0.037     0.037    u_core/u_array/g_row[7].g_col[7].u_pe/clk_i
+                         FDRE                                         r  u_core/u_array/g_row[7].g_col[7].u_pe/sum_o_reg[8]/C
+  -------------------------------------------------------------------    -------------------
+                         FDRE (Prop_FDRE_C_Q)         0.093     0.130 f  u_core/u_array/g_row[7].g_col[7].u_pe/sum_o_reg[8]/Q
+                         net (fo=4, unplaced)         0.189     0.319    u_core/u_array/g_row[7].g_col[7].u_pe/sums[7][7]_89[8]
+                         LUT6 (Prop_LUT6_I0_O)        0.179     0.498 f  u_core/u_array/g_row[7].g_col[7].u_pe/tflm_single_round_return1__1_i_206/O
+                         net (fo=1, unplaced)         0.161     0.659    u_core/u_array/g_row[7].g_col[7].u_pe/tflm_single_round_return1__1_i_206_n_0
+                         LUT6 (Prop_LUT6_I0_O)        0.116     0.775 r  u_core/u_array/g_row[7].g_col[7].u_pe/tflm_single_round_return1__1_i_50/O
+                         net (fo=1, unplaced)         0.161     0.936    u_core/u_array/g_row[7].g_col[7].u_pe/tflm_single_round_return1__1_i_50_n_0
+                         LUT6 (Prop_LUT6_I0_O)        0.116     1.052 f  u_core/u_array/g_row[7].g_col[7].u_pe/tflm_single_round_return1__1_i_9/O
+                         net (fo=1, unplaced)         0.262     1.314    u_requant/u_requant/tflm_single_round_return1__1/A[8]
+                         DSP_A_B_DATA (Prop_DSP_A_B_DATA_A[8]_A2_DATA[8])
+                                                      0.241     1.555 r  u_requant/u_requant/tflm_single_round_return1__1/DSP_A_B_DATA_INST/A2_DATA[8]
+                         net (fo=1, unplaced)         0.000     1.555    u_requant/u_requant/tflm_single_round_return1__1/DSP_A_B_DATA.A2_DATA<8>
+                         DSP_PREADD_DATA (Prop_DSP_PREADD_DATA_A2_DATA[8]_A2A1[8])
+                                                      0.098     1.653 r  u_requant/u_requant/tflm_single_round_return1__1/DSP_PREADD_DATA_INST/A2A1[8]
+                         net (fo=1, unplaced)         0.000     1.653    u_requant/u_requant/tflm_single_round_return1__1/DSP_PREADD_DATA.A2A1<8>
+                         DSP_MULTIPLIER (Prop_DSP_MULTIPLIER_A2A1[8]_U[29])
+                                                      0.647     2.300 f  u_requant/u_requant/tflm_single_round_return1__1/DSP_MULTIPLIER_INST/U[29]
+                         net (fo=1, unplaced)         0.000     2.300    u_requant/u_requant/tflm_single_round_return1__1/DSP_MULTIPLIER.U<29>
+                         DSP_M_DATA (Prop_DSP_M_DATA_U[29]_U_DATA[29])
+                                                      0.059     2.359 r  u_requant/u_requant/tflm_single_round_return1__1/DSP_M_DATA_INST/U_DATA[29]
+                         net (fo=1, unplaced)         0.000     2.359    u_requant/u_requant/tflm_single_round_return1__1/DSP_M_DATA.U_DATA<29>
+                         DSP_ALU (Prop_DSP_ALU_U_DATA[29]_ALU_OUT[47])
+                                                      0.699     3.058 f  u_requant/u_requant/tflm_single_round_return1__1/DSP_ALU_INST/ALU_OUT[47]
+                         net (fo=1, unplaced)         0.000     3.058    u_requant/u_requant/tflm_single_round_return1__1/DSP_ALU.ALU_OUT<47>
+                         DSP_OUTPUT (Prop_DSP_OUTPUT_ALU_OUT[47]_PCOUT[47])
+                                                      0.159     3.217 r  u_requant/u_requant/tflm_single_round_return1__1/DSP_OUTPUT_INST/PCOUT[47]
+                         net (fo=1, unplaced)         0.016     3.233    u_requant/u_requant/tflm_single_round_return1__2/PCIN[47]
+                         DSP_ALU (Prop_DSP_ALU_PCIN[47]_ALU_OUT[0])
+                                                      0.698     3.931 f  u_requant/u_requant/tflm_single_round_return1__2/DSP_ALU_INST/ALU_OUT[0]
+                         net (fo=1, unplaced)         0.000     3.931    u_requant/u_requant/tflm_single_round_return1__2/DSP_ALU.ALU_OUT<0>
+                         DSP_OUTPUT (Prop_DSP_OUTPUT_ALU_OUT[0]_P[0])
+                                                      0.141     4.072 r  u_requant/u_requant/tflm_single_round_return1__2/DSP_OUTPUT_INST/P[0]
+                         net (fo=2, unplaced)         0.241     4.313    u_requant/u_requant/tflm_single_round_return1__2_n_105
+                         LUT2 (Prop_LUT2_I0_O)        0.063     4.376 r  u_requant/u_requant/i__carry_i_7__1/O
+                         net (fo=1, unplaced)         0.025     4.401    u_requant/u_requant/i__carry_i_7__1_n_0
+                         CARRY8 (Prop_CARRY8_S[1]_O[4])
+                                                      0.255     4.656 r  u_requant/u_requant/tflm_single_round_return1_inferred__0/i__carry/O[4]
+                         net (fo=2, unplaced)         0.248     4.904    u_requant/u_requant/tflm_single_round_return1_inferred__0/i__carry_n_11
+                         LUT5 (Prop_LUT5_I0_O)        0.148     5.052 r  u_requant/u_requant/tflm_single_round_return0_carry__1_i_4/O
+                         net (fo=1, unplaced)         0.022     5.074    u_requant/u_requant/tflm_single_round_return0_carry__1_i_4_n_0
+                         CARRY8 (Prop_CARRY8_S[4]_CO[7])
+                                                      0.205     5.279 r  u_requant/u_requant/tflm_single_round_return0_carry__1/CO[7]
+                         net (fo=1, unplaced)         0.007     5.286    u_requant/u_requant/tflm_single_round_return0_carry__1_n_0
+                         CARRY8 (Prop_CARRY8_CI_CO[7])
+                                                      0.030     5.316 r  u_requant/u_requant/tflm_single_round_return0_carry__2/CO[7]
+                         net (fo=1, unplaced)         0.007     5.323    u_requant/u_requant/tflm_single_round_return0_carry__2_n_0
+                         CARRY8 (Prop_CARRY8_CI_CO[7])
+                                                      0.030     5.353 r  u_requant/u_requant/tflm_single_round_return0_carry__3/CO[7]
+                         net (fo=1, unplaced)         0.007     5.360    u_requant/u_requant/tflm_single_round_return0_carry__3_n_0
+                         CARRY8 (Prop_CARRY8_CI_CO[7])
+                                                      0.030     5.390 r  u_requant/u_requant/tflm_single_round_return0_carry__4/CO[7]
+                         net (fo=1, unplaced)         0.007     5.397    u_requant/u_requant/tflm_single_round_return0_carry__4_n_0
+                         CARRY8 (Prop_CARRY8_CI_CO[7])
+                                                      0.030     5.427 r  u_requant/u_requant/tflm_single_round_return0_carry__5/CO[7]
+                         net (fo=1, unplaced)         0.007     5.434    u_requant/u_requant/tflm_single_round_return0_carry__5_n_0
+                         CARRY8 (Prop_CARRY8_CI_O[7])
+                                                      0.146     5.580 r  u_requant/u_requant/tflm_single_round_return0_carry__6/O[7]
+                         net (fo=128, unplaced)       0.248     5.828    u_requant/u_requant/tflm_single_round_return0[63]
+                         LUT6 (Prop_LUT6_I3_O)        0.040     5.868 r  u_requant/u_requant/clamped_c2_carry__0_i_33/O
+                         net (fo=4, unplaced)         0.173     6.041    u_requant/u_requant/clamped_c2_carry__0_i_33_n_0
+                         LUT6 (Prop_LUT6_I0_O)        0.116     6.157 r  u_requant/u_requant/clamped_c2_carry__1_i_32/O
+                         net (fo=2, unplaced)         0.214     6.371    u_requant/u_requant/clamped_c2_carry__1_i_32_n_0
+                         LUT3 (Prop_LUT3_I2_O)        0.085     6.456 r  u_requant/u_requant/clamped_c2_carry__1_i_24/O
+                         net (fo=5, unplaced)         0.232     6.688    u_requant/u_requant/clamped_c2_carry__1_i_24_n_0
+                         LUT5 (Prop_LUT5_I2_O)        0.040     6.728 r  u_requant/u_requant/clamped_c2_carry__2_i_8/O
+                         net (fo=1, unplaced)         0.259     6.987    u_requant/u_requant/tflm_single_round_return[23]
+                         CARRY8 (Prop_CARRY8_DI[0]_CO[7])
+                                                      0.177     7.164 r  u_requant/u_requant/clamped_c2_carry__2/CO[7]
+                         net (fo=1, unplaced)         0.007     7.171    u_requant/u_requant/clamped_c2_carry__2_n_0
+                         CARRY8 (Prop_CARRY8_CI_CO[7])
+                                                      0.030     7.201 r  u_requant/u_requant/clamped_c2_carry__3/CO[7]
+                         net (fo=1, unplaced)         0.007     7.208    u_requant/u_requant/clamped_c2_carry__3_n_0
+                         CARRY8 (Prop_CARRY8_CI_CO[7])
+                                                      0.030     7.238 r  u_requant/u_requant/clamped_c2_carry__4/CO[7]
+                         net (fo=1, unplaced)         0.007     7.245    u_requant/u_requant/clamped_c2_carry__4_n_0
+                         CARRY8 (Prop_CARRY8_CI_O[1])
+                                                      0.097     7.342 r  u_requant/u_requant/clamped_c2_carry__5/O[1]
+                         net (fo=8, unplaced)         0.240     7.582    u_requant/u_requant/clamped_c2_carry__5_n_14
+                         LUT3 (Prop_LUT3_I2_O)        0.085     7.667 r  u_requant/u_requant/i__carry__2_i_8__0/O
+                         net (fo=1, unplaced)         0.287     7.954    u_requant/u_requant/i__carry__2_i_8__0_n_0
+                         CARRY8 (Prop_CARRY8_DI[0]_CO[7])
+                                                      0.177     8.131 r  u_requant/u_requant/clamped_c1_inferred__1/i__carry__2/CO[7]
+                         net (fo=16, unplaced)        0.115     8.246    u_requant/u_requant/clamped_c1_inferred__1/i__carry__2_n_0
+                         LUT6 (Prop_LUT6_I5_O)        0.040     8.286 r  u_requant/u_requant/out_data_o[4]_i_2/O
+                         net (fo=1, unplaced)         0.214     8.500    u_requant/u_requant/out_data_o[4]_i_2_n_0
+                         LUT6 (Prop_LUT6_I5_O)        0.040     8.540 r  u_requant/u_requant/out_data_o[4]_i_1/O
+                         net (fo=1, unplaced)         0.058     8.598    u_requant/u_requant/out_data_o[4]_i_1_n_0
+                         FDRE                                         r  u_requant/u_requant/out_data_o_reg[4]/D
+  -------------------------------------------------------------------    -------------------
+
+                         (clock npu_clk rise edge)   10.000    10.000 r
+                                                      0.000    10.000 r  clk_i (IN)
+                         net (fo=14910, unset)        0.026    10.026    u_requant/u_requant/clk_i
+                         FDRE                                         r  u_requant/u_requant/out_data_o_reg[4]/C
+                         clock pessimism              0.000    10.026
+                         clock uncertainty           -0.035     9.991
+                         FDRE (Setup_FDRE_C_D)        0.027    10.018    u_requant/u_requant/out_data_o_reg[4]
+  -------------------------------------------------------------------
+                         required time                         10.018
+                         arrival time                          -8.598
+  -------------------------------------------------------------------
+                         slack                                  1.420
+
+Slack (MET) :             1.420ns  (required time - arrival time)
+  Source:                 u_core/u_array/g_row[7].g_col[7].u_pe/sum_o_reg[8]/C
+                            (rising edge-triggered cell FDRE clocked by npu_clk  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Destination:            u_requant/u_requant/out_data_o_reg[5]/D
+                            (rising edge-triggered cell FDRE clocked by npu_clk  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Path Group:             npu_clk
+  Path Type:              Setup (Max at Slow Process Corner)
+  Requirement:            10.000ns  (npu_clk rise@10.000ns - npu_clk rise@0.000ns)
+  Data Path Delay:        8.561ns  (logic 5.140ns (60.040%)  route 3.421ns (39.960%))
+  Logic Levels:           32  (CARRY8=12 DSP_A_B_DATA=1 DSP_ALU=2 DSP_M_DATA=1 DSP_MULTIPLIER=1 DSP_OUTPUT=2 DSP_PREADD_DATA=1 LUT2=1 LUT3=2 LUT5=2 LUT6=7)
+  Clock Path Skew:        -0.011ns (DCD - SCD + CPR)
+    Destination Clock Delay (DCD):    0.026ns = ( 10.026 - 10.000 )
+    Source Clock Delay      (SCD):    0.037ns
+    Clock Pessimism Removal (CPR):    0.000ns
+  Clock Uncertainty:      0.035ns  ((TSJ^2 + TIJ^2)^1/2 + DJ) / 2 + PE
+    Total System Jitter     (TSJ):    0.071ns
+    Total Input Jitter      (TIJ):    0.000ns
+    Discrete Jitter          (DJ):    0.000ns
+    Phase Error              (PE):    0.000ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock npu_clk rise edge)    0.000     0.000 r
+                                                      0.000     0.000 r  clk_i (IN)
+                         net (fo=14910, unset)        0.037     0.037    u_core/u_array/g_row[7].g_col[7].u_pe/clk_i
+                         FDRE                                         r  u_core/u_array/g_row[7].g_col[7].u_pe/sum_o_reg[8]/C
+  -------------------------------------------------------------------    -------------------
+                         FDRE (Prop_FDRE_C_Q)         0.093     0.130 f  u_core/u_array/g_row[7].g_col[7].u_pe/sum_o_reg[8]/Q
+                         net (fo=4, unplaced)         0.189     0.319    u_core/u_array/g_row[7].g_col[7].u_pe/sums[7][7]_89[8]
+                         LUT6 (Prop_LUT6_I0_O)        0.179     0.498 f  u_core/u_array/g_row[7].g_col[7].u_pe/tflm_single_round_return1__1_i_206/O
+                         net (fo=1, unplaced)         0.161     0.659    u_core/u_array/g_row[7].g_col[7].u_pe/tflm_single_round_return1__1_i_206_n_0
+                         LUT6 (Prop_LUT6_I0_O)        0.116     0.775 r  u_core/u_array/g_row[7].g_col[7].u_pe/tflm_single_round_return1__1_i_50/O
+                         net (fo=1, unplaced)         0.161     0.936    u_core/u_array/g_row[7].g_col[7].u_pe/tflm_single_round_return1__1_i_50_n_0
+                         LUT6 (Prop_LUT6_I0_O)        0.116     1.052 f  u_core/u_array/g_row[7].g_col[7].u_pe/tflm_single_round_return1__1_i_9/O
+                         net (fo=1, unplaced)         0.262     1.314    u_requant/u_requant/tflm_single_round_return1__1/A[8]
+                         DSP_A_B_DATA (Prop_DSP_A_B_DATA_A[8]_A2_DATA[8])
+                                                      0.241     1.555 r  u_requant/u_requant/tflm_single_round_return1__1/DSP_A_B_DATA_INST/A2_DATA[8]
+                         net (fo=1, unplaced)         0.000     1.555    u_requant/u_requant/tflm_single_round_return1__1/DSP_A_B_DATA.A2_DATA<8>
+                         DSP_PREADD_DATA (Prop_DSP_PREADD_DATA_A2_DATA[8]_A2A1[8])
+                                                      0.098     1.653 r  u_requant/u_requant/tflm_single_round_return1__1/DSP_PREADD_DATA_INST/A2A1[8]
+                         net (fo=1, unplaced)         0.000     1.653    u_requant/u_requant/tflm_single_round_return1__1/DSP_PREADD_DATA.A2A1<8>
+                         DSP_MULTIPLIER (Prop_DSP_MULTIPLIER_A2A1[8]_U[29])
+                                                      0.647     2.300 f  u_requant/u_requant/tflm_single_round_return1__1/DSP_MULTIPLIER_INST/U[29]
+                         net (fo=1, unplaced)         0.000     2.300    u_requant/u_requant/tflm_single_round_return1__1/DSP_MULTIPLIER.U<29>
+                         DSP_M_DATA (Prop_DSP_M_DATA_U[29]_U_DATA[29])
+                                                      0.059     2.359 r  u_requant/u_requant/tflm_single_round_return1__1/DSP_M_DATA_INST/U_DATA[29]
+                         net (fo=1, unplaced)         0.000     2.359    u_requant/u_requant/tflm_single_round_return1__1/DSP_M_DATA.U_DATA<29>
+                         DSP_ALU (Prop_DSP_ALU_U_DATA[29]_ALU_OUT[47])
+                                                      0.699     3.058 f  u_requant/u_requant/tflm_single_round_return1__1/DSP_ALU_INST/ALU_OUT[47]
+                         net (fo=1, unplaced)         0.000     3.058    u_requant/u_requant/tflm_single_round_return1__1/DSP_ALU.ALU_OUT<47>
+                         DSP_OUTPUT (Prop_DSP_OUTPUT_ALU_OUT[47]_PCOUT[47])
+                                                      0.159     3.217 r  u_requant/u_requant/tflm_single_round_return1__1/DSP_OUTPUT_INST/PCOUT[47]
+                         net (fo=1, unplaced)         0.016     3.233    u_requant/u_requant/tflm_single_round_return1__2/PCIN[47]
+                         DSP_ALU (Prop_DSP_ALU_PCIN[47]_ALU_OUT[0])
+                                                      0.698     3.931 f  u_requant/u_requant/tflm_single_round_return1__2/DSP_ALU_INST/ALU_OUT[0]
+                         net (fo=1, unplaced)         0.000     3.931    u_requant/u_requant/tflm_single_round_return1__2/DSP_ALU.ALU_OUT<0>
+                         DSP_OUTPUT (Prop_DSP_OUTPUT_ALU_OUT[0]_P[0])
+                                                      0.141     4.072 r  u_requant/u_requant/tflm_single_round_return1__2/DSP_OUTPUT_INST/P[0]
+                         net (fo=2, unplaced)         0.241     4.313    u_requant/u_requant/tflm_single_round_return1__2_n_105
+                         LUT2 (Prop_LUT2_I0_O)        0.063     4.376 r  u_requant/u_requant/i__carry_i_7__1/O
+                         net (fo=1, unplaced)         0.025     4.401    u_requant/u_requant/i__carry_i_7__1_n_0
+                         CARRY8 (Prop_CARRY8_S[1]_O[4])
+                                                      0.255     4.656 r  u_requant/u_requant/tflm_single_round_return1_inferred__0/i__carry/O[4]
+                         net (fo=2, unplaced)         0.248     4.904    u_requant/u_requant/tflm_single_round_return1_inferred__0/i__carry_n_11
+                         LUT5 (Prop_LUT5_I0_O)        0.148     5.052 r  u_requant/u_requant/tflm_single_round_return0_carry__1_i_4/O
+                         net (fo=1, unplaced)         0.022     5.074    u_requant/u_requant/tflm_single_round_return0_carry__1_i_4_n_0
+                         CARRY8 (Prop_CARRY8_S[4]_CO[7])
+                                                      0.205     5.279 r  u_requant/u_requant/tflm_single_round_return0_carry__1/CO[7]
+                         net (fo=1, unplaced)         0.007     5.286    u_requant/u_requant/tflm_single_round_return0_carry__1_n_0
+                         CARRY8 (Prop_CARRY8_CI_CO[7])
+                                                      0.030     5.316 r  u_requant/u_requant/tflm_single_round_return0_carry__2/CO[7]
+                         net (fo=1, unplaced)         0.007     5.323    u_requant/u_requant/tflm_single_round_return0_carry__2_n_0
+                         CARRY8 (Prop_CARRY8_CI_CO[7])
+                                                      0.030     5.353 r  u_requant/u_requant/tflm_single_round_return0_carry__3/CO[7]
+                         net (fo=1, unplaced)         0.007     5.360    u_requant/u_requant/tflm_single_round_return0_carry__3_n_0
+                         CARRY8 (Prop_CARRY8_CI_CO[7])
+                                                      0.030     5.390 r  u_requant/u_requant/tflm_single_round_return0_carry__4/CO[7]
+                         net (fo=1, unplaced)         0.007     5.397    u_requant/u_requant/tflm_single_round_return0_carry__4_n_0
+                         CARRY8 (Prop_CARRY8_CI_CO[7])
+                                                      0.030     5.427 r  u_requant/u_requant/tflm_single_round_return0_carry__5/CO[7]
+                         net (fo=1, unplaced)         0.007     5.434    u_requant/u_requant/tflm_single_round_return0_carry__5_n_0
+                         CARRY8 (Prop_CARRY8_CI_O[7])
+                                                      0.146     5.580 r  u_requant/u_requant/tflm_single_round_return0_carry__6/O[7]
+                         net (fo=128, unplaced)       0.248     5.828    u_requant/u_requant/tflm_single_round_return0[63]
+                         LUT6 (Prop_LUT6_I3_O)        0.040     5.868 r  u_requant/u_requant/clamped_c2_carry__0_i_33/O
+                         net (fo=4, unplaced)         0.173     6.041    u_requant/u_requant/clamped_c2_carry__0_i_33_n_0
+                         LUT6 (Prop_LUT6_I0_O)        0.116     6.157 r  u_requant/u_requant/clamped_c2_carry__1_i_32/O
+                         net (fo=2, unplaced)         0.214     6.371    u_requant/u_requant/clamped_c2_carry__1_i_32_n_0
+                         LUT3 (Prop_LUT3_I2_O)        0.085     6.456 r  u_requant/u_requant/clamped_c2_carry__1_i_24/O
+                         net (fo=5, unplaced)         0.232     6.688    u_requant/u_requant/clamped_c2_carry__1_i_24_n_0
+                         LUT5 (Prop_LUT5_I2_O)        0.040     6.728 r  u_requant/u_requant/clamped_c2_carry__2_i_8/O
+                         net (fo=1, unplaced)         0.259     6.987    u_requant/u_requant/tflm_single_round_return[23]
+                         CARRY8 (Prop_CARRY8_DI[0]_CO[7])
+                                                      0.177     7.164 r  u_requant/u_requant/clamped_c2_carry__2/CO[7]
+                         net (fo=1, unplaced)         0.007     7.171    u_requant/u_requant/clamped_c2_carry__2_n_0
+                         CARRY8 (Prop_CARRY8_CI_CO[7])
+                                                      0.030     7.201 r  u_requant/u_requant/clamped_c2_carry__3/CO[7]
+                         net (fo=1, unplaced)         0.007     7.208    u_requant/u_requant/clamped_c2_carry__3_n_0
+                         CARRY8 (Prop_CARRY8_CI_CO[7])
+                                                      0.030     7.238 r  u_requant/u_requant/clamped_c2_carry__4/CO[7]
+                         net (fo=1, unplaced)         0.007     7.245    u_requant/u_requant/clamped_c2_carry__4_n_0
+                         CARRY8 (Prop_CARRY8_CI_O[1])
+                                                      0.097     7.342 r  u_requant/u_requant/clamped_c2_carry__5/O[1]
+                         net (fo=8, unplaced)         0.240     7.582    u_requant/u_requant/clamped_c2_carry__5_n_14
+                         LUT3 (Prop_LUT3_I2_O)        0.085     7.667 r  u_requant/u_requant/i__carry__2_i_8__0/O
+                         net (fo=1, unplaced)         0.287     7.954    u_requant/u_requant/i__carry__2_i_8__0_n_0
+                         CARRY8 (Prop_CARRY8_DI[0]_CO[7])
+                                                      0.177     8.131 r  u_requant/u_requant/clamped_c1_inferred__1/i__carry__2/CO[7]
+                         net (fo=16, unplaced)        0.115     8.246    u_requant/u_requant/clamped_c1_inferred__1/i__carry__2_n_0
+                         LUT6 (Prop_LUT6_I5_O)        0.040     8.286 r  u_requant/u_requant/out_data_o[5]_i_2/O
+                         net (fo=1, unplaced)         0.214     8.500    u_requant/u_requant/out_data_o[5]_i_2_n_0
+                         LUT6 (Prop_LUT6_I5_O)        0.040     8.540 r  u_requant/u_requant/out_data_o[5]_i_1/O
+                         net (fo=1, unplaced)         0.058     8.598    u_requant/u_requant/out_data_o[5]_i_1_n_0
+                         FDRE                                         r  u_requant/u_requant/out_data_o_reg[5]/D
+  -------------------------------------------------------------------    -------------------
+
+                         (clock npu_clk rise edge)   10.000    10.000 r
+                                                      0.000    10.000 r  clk_i (IN)
+                         net (fo=14910, unset)        0.026    10.026    u_requant/u_requant/clk_i
+                         FDRE                                         r  u_requant/u_requant/out_data_o_reg[5]/C
+                         clock pessimism              0.000    10.026
+                         clock uncertainty           -0.035     9.991
+                         FDRE (Setup_FDRE_C_D)        0.027    10.018    u_requant/u_requant/out_data_o_reg[5]
+  -------------------------------------------------------------------
+                         required time                         10.018
+                         arrival time                          -8.598
+  -------------------------------------------------------------------
+                         slack                                  1.420
+
+Slack (MET) :             1.420ns  (required time - arrival time)
+  Source:                 u_core/u_array/g_row[7].g_col[7].u_pe/sum_o_reg[8]/C
+                            (rising edge-triggered cell FDRE clocked by npu_clk  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Destination:            u_requant/u_requant/out_data_o_reg[6]/D
+                            (rising edge-triggered cell FDRE clocked by npu_clk  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Path Group:             npu_clk
+  Path Type:              Setup (Max at Slow Process Corner)
+  Requirement:            10.000ns  (npu_clk rise@10.000ns - npu_clk rise@0.000ns)
+  Data Path Delay:        8.561ns  (logic 5.140ns (60.040%)  route 3.421ns (39.960%))
+  Logic Levels:           32  (CARRY8=12 DSP_A_B_DATA=1 DSP_ALU=2 DSP_M_DATA=1 DSP_MULTIPLIER=1 DSP_OUTPUT=2 DSP_PREADD_DATA=1 LUT2=1 LUT3=2 LUT5=2 LUT6=7)
+  Clock Path Skew:        -0.011ns (DCD - SCD + CPR)
+    Destination Clock Delay (DCD):    0.026ns = ( 10.026 - 10.000 )
+    Source Clock Delay      (SCD):    0.037ns
+    Clock Pessimism Removal (CPR):    0.000ns
+  Clock Uncertainty:      0.035ns  ((TSJ^2 + TIJ^2)^1/2 + DJ) / 2 + PE
+    Total System Jitter     (TSJ):    0.071ns
+    Total Input Jitter      (TIJ):    0.000ns
+    Discrete Jitter          (DJ):    0.000ns
+    Phase Error              (PE):    0.000ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock npu_clk rise edge)    0.000     0.000 r
+                                                      0.000     0.000 r  clk_i (IN)
+                         net (fo=14910, unset)        0.037     0.037    u_core/u_array/g_row[7].g_col[7].u_pe/clk_i
+                         FDRE                                         r  u_core/u_array/g_row[7].g_col[7].u_pe/sum_o_reg[8]/C
+  -------------------------------------------------------------------    -------------------
+                         FDRE (Prop_FDRE_C_Q)         0.093     0.130 f  u_core/u_array/g_row[7].g_col[7].u_pe/sum_o_reg[8]/Q
+                         net (fo=4, unplaced)         0.189     0.319    u_core/u_array/g_row[7].g_col[7].u_pe/sums[7][7]_89[8]
+                         LUT6 (Prop_LUT6_I0_O)        0.179     0.498 f  u_core/u_array/g_row[7].g_col[7].u_pe/tflm_single_round_return1__1_i_206/O
+                         net (fo=1, unplaced)         0.161     0.659    u_core/u_array/g_row[7].g_col[7].u_pe/tflm_single_round_return1__1_i_206_n_0
+                         LUT6 (Prop_LUT6_I0_O)        0.116     0.775 r  u_core/u_array/g_row[7].g_col[7].u_pe/tflm_single_round_return1__1_i_50/O
+                         net (fo=1, unplaced)         0.161     0.936    u_core/u_array/g_row[7].g_col[7].u_pe/tflm_single_round_return1__1_i_50_n_0
+                         LUT6 (Prop_LUT6_I0_O)        0.116     1.052 f  u_core/u_array/g_row[7].g_col[7].u_pe/tflm_single_round_return1__1_i_9/O
+                         net (fo=1, unplaced)         0.262     1.314    u_requant/u_requant/tflm_single_round_return1__1/A[8]
+                         DSP_A_B_DATA (Prop_DSP_A_B_DATA_A[8]_A2_DATA[8])
+                                                      0.241     1.555 r  u_requant/u_requant/tflm_single_round_return1__1/DSP_A_B_DATA_INST/A2_DATA[8]
+                         net (fo=1, unplaced)         0.000     1.555    u_requant/u_requant/tflm_single_round_return1__1/DSP_A_B_DATA.A2_DATA<8>
+                         DSP_PREADD_DATA (Prop_DSP_PREADD_DATA_A2_DATA[8]_A2A1[8])
+                                                      0.098     1.653 r  u_requant/u_requant/tflm_single_round_return1__1/DSP_PREADD_DATA_INST/A2A1[8]
+                         net (fo=1, unplaced)         0.000     1.653    u_requant/u_requant/tflm_single_round_return1__1/DSP_PREADD_DATA.A2A1<8>
+                         DSP_MULTIPLIER (Prop_DSP_MULTIPLIER_A2A1[8]_U[29])
+                                                      0.647     2.300 f  u_requant/u_requant/tflm_single_round_return1__1/DSP_MULTIPLIER_INST/U[29]
+                         net (fo=1, unplaced)         0.000     2.300    u_requant/u_requant/tflm_single_round_return1__1/DSP_MULTIPLIER.U<29>
+                         DSP_M_DATA (Prop_DSP_M_DATA_U[29]_U_DATA[29])
+                                                      0.059     2.359 r  u_requant/u_requant/tflm_single_round_return1__1/DSP_M_DATA_INST/U_DATA[29]
+                         net (fo=1, unplaced)         0.000     2.359    u_requant/u_requant/tflm_single_round_return1__1/DSP_M_DATA.U_DATA<29>
+                         DSP_ALU (Prop_DSP_ALU_U_DATA[29]_ALU_OUT[47])
+                                                      0.699     3.058 f  u_requant/u_requant/tflm_single_round_return1__1/DSP_ALU_INST/ALU_OUT[47]
+                         net (fo=1, unplaced)         0.000     3.058    u_requant/u_requant/tflm_single_round_return1__1/DSP_ALU.ALU_OUT<47>
+                         DSP_OUTPUT (Prop_DSP_OUTPUT_ALU_OUT[47]_PCOUT[47])
+                                                      0.159     3.217 r  u_requant/u_requant/tflm_single_round_return1__1/DSP_OUTPUT_INST/PCOUT[47]
+                         net (fo=1, unplaced)         0.016     3.233    u_requant/u_requant/tflm_single_round_return1__2/PCIN[47]
+                         DSP_ALU (Prop_DSP_ALU_PCIN[47]_ALU_OUT[0])
+                                                      0.698     3.931 f  u_requant/u_requant/tflm_single_round_return1__2/DSP_ALU_INST/ALU_OUT[0]
+                         net (fo=1, unplaced)         0.000     3.931    u_requant/u_requant/tflm_single_round_return1__2/DSP_ALU.ALU_OUT<0>
+                         DSP_OUTPUT (Prop_DSP_OUTPUT_ALU_OUT[0]_P[0])
+                                                      0.141     4.072 r  u_requant/u_requant/tflm_single_round_return1__2/DSP_OUTPUT_INST/P[0]
+                         net (fo=2, unplaced)         0.241     4.313    u_requant/u_requant/tflm_single_round_return1__2_n_105
+                         LUT2 (Prop_LUT2_I0_O)        0.063     4.376 r  u_requant/u_requant/i__carry_i_7__1/O
+                         net (fo=1, unplaced)         0.025     4.401    u_requant/u_requant/i__carry_i_7__1_n_0
+                         CARRY8 (Prop_CARRY8_S[1]_O[4])
+                                                      0.255     4.656 r  u_requant/u_requant/tflm_single_round_return1_inferred__0/i__carry/O[4]
+                         net (fo=2, unplaced)         0.248     4.904    u_requant/u_requant/tflm_single_round_return1_inferred__0/i__carry_n_11
+                         LUT5 (Prop_LUT5_I0_O)        0.148     5.052 r  u_requant/u_requant/tflm_single_round_return0_carry__1_i_4/O
+                         net (fo=1, unplaced)         0.022     5.074    u_requant/u_requant/tflm_single_round_return0_carry__1_i_4_n_0
+                         CARRY8 (Prop_CARRY8_S[4]_CO[7])
+                                                      0.205     5.279 r  u_requant/u_requant/tflm_single_round_return0_carry__1/CO[7]
+                         net (fo=1, unplaced)         0.007     5.286    u_requant/u_requant/tflm_single_round_return0_carry__1_n_0
+                         CARRY8 (Prop_CARRY8_CI_CO[7])
+                                                      0.030     5.316 r  u_requant/u_requant/tflm_single_round_return0_carry__2/CO[7]
+                         net (fo=1, unplaced)         0.007     5.323    u_requant/u_requant/tflm_single_round_return0_carry__2_n_0
+                         CARRY8 (Prop_CARRY8_CI_CO[7])
+                                                      0.030     5.353 r  u_requant/u_requant/tflm_single_round_return0_carry__3/CO[7]
+                         net (fo=1, unplaced)         0.007     5.360    u_requant/u_requant/tflm_single_round_return0_carry__3_n_0
+                         CARRY8 (Prop_CARRY8_CI_CO[7])
+                                                      0.030     5.390 r  u_requant/u_requant/tflm_single_round_return0_carry__4/CO[7]
+                         net (fo=1, unplaced)         0.007     5.397    u_requant/u_requant/tflm_single_round_return0_carry__4_n_0
+                         CARRY8 (Prop_CARRY8_CI_CO[7])
+                                                      0.030     5.427 r  u_requant/u_requant/tflm_single_round_return0_carry__5/CO[7]
+                         net (fo=1, unplaced)         0.007     5.434    u_requant/u_requant/tflm_single_round_return0_carry__5_n_0
+                         CARRY8 (Prop_CARRY8_CI_O[7])
+                                                      0.146     5.580 r  u_requant/u_requant/tflm_single_round_return0_carry__6/O[7]
+                         net (fo=128, unplaced)       0.248     5.828    u_requant/u_requant/tflm_single_round_return0[63]
+                         LUT6 (Prop_LUT6_I3_O)        0.040     5.868 r  u_requant/u_requant/clamped_c2_carry__0_i_33/O
+                         net (fo=4, unplaced)         0.173     6.041    u_requant/u_requant/clamped_c2_carry__0_i_33_n_0
+                         LUT6 (Prop_LUT6_I0_O)        0.116     6.157 r  u_requant/u_requant/clamped_c2_carry__1_i_32/O
+                         net (fo=2, unplaced)         0.214     6.371    u_requant/u_requant/clamped_c2_carry__1_i_32_n_0
+                         LUT3 (Prop_LUT3_I2_O)        0.085     6.456 r  u_requant/u_requant/clamped_c2_carry__1_i_24/O
+                         net (fo=5, unplaced)         0.232     6.688    u_requant/u_requant/clamped_c2_carry__1_i_24_n_0
+                         LUT5 (Prop_LUT5_I2_O)        0.040     6.728 r  u_requant/u_requant/clamped_c2_carry__2_i_8/O
+                         net (fo=1, unplaced)         0.259     6.987    u_requant/u_requant/tflm_single_round_return[23]
+                         CARRY8 (Prop_CARRY8_DI[0]_CO[7])
+                                                      0.177     7.164 r  u_requant/u_requant/clamped_c2_carry__2/CO[7]
+                         net (fo=1, unplaced)         0.007     7.171    u_requant/u_requant/clamped_c2_carry__2_n_0
+                         CARRY8 (Prop_CARRY8_CI_CO[7])
+                                                      0.030     7.201 r  u_requant/u_requant/clamped_c2_carry__3/CO[7]
+                         net (fo=1, unplaced)         0.007     7.208    u_requant/u_requant/clamped_c2_carry__3_n_0
+                         CARRY8 (Prop_CARRY8_CI_CO[7])
+                                                      0.030     7.238 r  u_requant/u_requant/clamped_c2_carry__4/CO[7]
+                         net (fo=1, unplaced)         0.007     7.245    u_requant/u_requant/clamped_c2_carry__4_n_0
+                         CARRY8 (Prop_CARRY8_CI_O[1])
+                                                      0.097     7.342 r  u_requant/u_requant/clamped_c2_carry__5/O[1]
+                         net (fo=8, unplaced)         0.240     7.582    u_requant/u_requant/clamped_c2_carry__5_n_14
+                         LUT3 (Prop_LUT3_I2_O)        0.085     7.667 r  u_requant/u_requant/i__carry__2_i_8__0/O
+                         net (fo=1, unplaced)         0.287     7.954    u_requant/u_requant/i__carry__2_i_8__0_n_0
+                         CARRY8 (Prop_CARRY8_DI[0]_CO[7])
+                                                      0.177     8.131 r  u_requant/u_requant/clamped_c1_inferred__1/i__carry__2/CO[7]
+                         net (fo=16, unplaced)        0.115     8.246    u_requant/u_requant/clamped_c1_inferred__1/i__carry__2_n_0
+                         LUT6 (Prop_LUT6_I5_O)        0.040     8.286 r  u_requant/u_requant/out_data_o[6]_i_2/O
+                         net (fo=1, unplaced)         0.214     8.500    u_requant/u_requant/out_data_o[6]_i_2_n_0
+                         LUT6 (Prop_LUT6_I5_O)        0.040     8.540 r  u_requant/u_requant/out_data_o[6]_i_1/O
+                         net (fo=1, unplaced)         0.058     8.598    u_requant/u_requant/out_data_o[6]_i_1_n_0
+                         FDRE                                         r  u_requant/u_requant/out_data_o_reg[6]/D
+  -------------------------------------------------------------------    -------------------
+
+                         (clock npu_clk rise edge)   10.000    10.000 r
+                                                      0.000    10.000 r  clk_i (IN)
+                         net (fo=14910, unset)        0.026    10.026    u_requant/u_requant/clk_i
+                         FDRE                                         r  u_requant/u_requant/out_data_o_reg[6]/C
+                         clock pessimism              0.000    10.026
+                         clock uncertainty           -0.035     9.991
+                         FDRE (Setup_FDRE_C_D)        0.027    10.018    u_requant/u_requant/out_data_o_reg[6]
+  -------------------------------------------------------------------
+                         required time                         10.018
+                         arrival time                          -8.598
+  -------------------------------------------------------------------
+                         slack                                  1.420
+
+Slack (MET) :             2.099ns  (required time - arrival time)
+  Source:                 u_ctrl/cmd_q_reg[p0][4]/C
+                            (rising edge-triggered cell FDRE clocked by npu_clk  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Destination:            u_ctrl/err_code_q_reg[0]/R
+                            (rising edge-triggered cell FDRE clocked by npu_clk  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Path Group:             npu_clk
+  Path Type:              Setup (Max at Slow Process Corner)
+  Requirement:            10.000ns  (npu_clk rise@10.000ns - npu_clk rise@0.000ns)
+  Data Path Delay:        7.783ns  (logic 4.506ns (57.895%)  route 3.277ns (42.105%))
+  Logic Levels:           24  (CARRY8=5 DSP_A_B_DATA=1 DSP_ALU=2 DSP_M_DATA=1 DSP_MULTIPLIER=1 DSP_OUTPUT=2 DSP_PREADD_DATA=1 LUT2=4 LUT3=1 LUT5=2 LUT6=4)
+  Clock Path Skew:        -0.011ns (DCD - SCD + CPR)
+    Destination Clock Delay (DCD):    0.026ns = ( 10.026 - 10.000 )
+    Source Clock Delay      (SCD):    0.037ns
+    Clock Pessimism Removal (CPR):    0.000ns
+  Clock Uncertainty:      0.035ns  ((TSJ^2 + TIJ^2)^1/2 + DJ) / 2 + PE
+    Total System Jitter     (TSJ):    0.071ns
+    Total Input Jitter      (TIJ):    0.000ns
+    Discrete Jitter          (DJ):    0.000ns
+    Phase Error              (PE):    0.000ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock npu_clk rise edge)    0.000     0.000 r
+                                                      0.000     0.000 r  clk_i (IN)
+                         net (fo=14910, unset)        0.037     0.037    u_ctrl/clk_i
+                         FDRE                                         r  u_ctrl/cmd_q_reg[p0][4]/C
+  -------------------------------------------------------------------    -------------------
+                         FDRE (Prop_FDRE_C_Q)         0.093     0.130 f  u_ctrl/cmd_q_reg[p0][4]/Q
+                         net (fo=7, unplaced)         0.139     0.269    u_ctrl/cmd_q_reg[p0][31]_0[4]
+                         LUT5 (Prop_LUT5_I0_O)        0.200     0.469 f  u_ctrl/dst_end1__1_i_22/O
+                         net (fo=6, unplaced)         0.236     0.705    u_ctrl/dst_end1__1_i_22_n_0
+                         LUT6 (Prop_LUT6_I2_O)        0.040     0.745 f  u_ctrl/dst_end1__1_i_20/O
+                         net (fo=6, unplaced)         0.236     0.981    u_ctrl/dst_end1__1_i_20_n_0
+                         LUT6 (Prop_LUT6_I3_O)        0.040     1.021 r  u_ctrl/dst_end1__1_i_17/O
+                         net (fo=2, unplaced)         0.214     1.235    u_ctrl/dst_end1__1_i_17_n_0
+                         LUT2 (Prop_LUT2_I1_O)        0.085     1.320 f  u_ctrl/dst_end1__1_i_19/O
+                         net (fo=14, unplaced)        0.255     1.575    u_ctrl/dst_end1__1_i_19_n_0
+                         LUT2 (Prop_LUT2_I0_O)        0.085     1.660 f  u_ctrl/dst_end1__1_i_16/O
+                         net (fo=1, unplaced)         0.256     1.916    u_ctrl/dst_end1__1/A[0]
+                         DSP_A_B_DATA (Prop_DSP_A_B_DATA_A[0]_A2_DATA[0])
+                                                      0.241     2.157 r  u_ctrl/dst_end1__1/DSP_A_B_DATA_INST/A2_DATA[0]
+                         net (fo=1, unplaced)         0.000     2.157    u_ctrl/dst_end1__1/DSP_A_B_DATA.A2_DATA<0>
+                         DSP_PREADD_DATA (Prop_DSP_PREADD_DATA_A2_DATA[0]_A2A1[0])
+                                                      0.098     2.255 r  u_ctrl/dst_end1__1/DSP_PREADD_DATA_INST/A2A1[0]
+                         net (fo=1, unplaced)         0.000     2.255    u_ctrl/dst_end1__1/DSP_PREADD_DATA.A2A1<0>
+                         DSP_MULTIPLIER (Prop_DSP_MULTIPLIER_A2A1[0]_U[21])
+                                                      0.647     2.902 f  u_ctrl/dst_end1__1/DSP_MULTIPLIER_INST/U[21]
+                         net (fo=1, unplaced)         0.000     2.902    u_ctrl/dst_end1__1/DSP_MULTIPLIER.U<21>
+                         DSP_M_DATA (Prop_DSP_M_DATA_U[21]_U_DATA[21])
+                                                      0.059     2.961 r  u_ctrl/dst_end1__1/DSP_M_DATA_INST/U_DATA[21]
+                         net (fo=1, unplaced)         0.000     2.961    u_ctrl/dst_end1__1/DSP_M_DATA.U_DATA<21>
+                         DSP_ALU (Prop_DSP_ALU_U_DATA[21]_ALU_OUT[47])
+                                                      0.699     3.660 f  u_ctrl/dst_end1__1/DSP_ALU_INST/ALU_OUT[47]
+                         net (fo=1, unplaced)         0.000     3.660    u_ctrl/dst_end1__1/DSP_ALU.ALU_OUT<47>
+                         DSP_OUTPUT (Prop_DSP_OUTPUT_ALU_OUT[47]_PCOUT[47])
+                                                      0.159     3.819 r  u_ctrl/dst_end1__1/DSP_OUTPUT_INST/PCOUT[47]
+                         net (fo=1, unplaced)         0.016     3.835    u_ctrl/dst_end1__2/PCIN[47]
+                         DSP_ALU (Prop_DSP_ALU_PCIN[47]_ALU_OUT[21])
+                                                      0.698     4.533 f  u_ctrl/dst_end1__2/DSP_ALU_INST/ALU_OUT[21]
+                         net (fo=1, unplaced)         0.000     4.533    u_ctrl/dst_end1__2/DSP_ALU.ALU_OUT<21>
+                         DSP_OUTPUT (Prop_DSP_OUTPUT_ALU_OUT[21]_P[21])
+                                                      0.141     4.674 r  u_ctrl/dst_end1__2/DSP_OUTPUT_INST/P[21]
+                         net (fo=2, unplaced)         0.247     4.921    u_ctrl/dst_end1__2_n_84
+                         LUT2 (Prop_LUT2_I0_O)        0.062     4.983 r  u_ctrl/err_info_q[4]_i_138/O
+                         net (fo=1, unplaced)         0.031     5.014    u_ctrl/err_info_q[4]_i_138_n_0
+                         CARRY8 (Prop_CARRY8_S[5]_CO[7])
+                                                      0.209     5.223 r  u_ctrl/err_info_q_reg[4]_i_93/CO[7]
+                         net (fo=1, unplaced)         0.007     5.230    u_ctrl/err_info_q_reg[4]_i_93_n_0
+                         CARRY8 (Prop_CARRY8_CI_O[1])
+                                                      0.097     5.327 r  u_ctrl/err_info_q_reg[4]_i_74/O[1]
+                         net (fo=1, unplaced)         0.212     5.539    u_ctrl/err_info_q_reg[4]_i_74_n_14
+                         CARRY8 (Prop_CARRY8_S[2]_CO[7])
+                                                      0.210     5.749 r  u_ctrl/err_info_q_reg[4]_i_70/CO[7]
+                         net (fo=1, unplaced)         0.007     5.756    u_ctrl/err_info_q_reg[4]_i_70_n_0
+                         CARRY8 (Prop_CARRY8_CI_O[5])
+                                                      0.145     5.901 f  u_ctrl/err_info_q_reg[4]_i_52/O[5]
+                         net (fo=2, unplaced)         0.162     6.063    u_ctrl/dst_end[53]
+                         LUT2 (Prop_LUT2_I0_O)        0.121     6.184 f  u_ctrl/err_info_q[4]_i_19/O
+                         net (fo=1, unplaced)         0.280     6.464    u_ctrl/err_info_q[4]_i_19_n_0
+                         CARRY8 (Prop_CARRY8_DI[2]_CO[7])
+                                                      0.148     6.612 f  u_ctrl/err_info_q_reg[4]_i_6/CO[7]
+                         net (fo=4, unplaced)         0.083     6.695    u_ctrl/err_info_q_reg[4]_i_6_n_0
+                         LUT5 (Prop_LUT5_I1_O)        0.085     6.780 f  u_ctrl/halt_pending_q_i_8/O
+                         net (fo=2, unplaced)         0.214     6.994    u_ctrl/halt_pending_q_i_8_n_0
+                         LUT6 (Prop_LUT6_I2_O)        0.040     7.034 f  u_ctrl/halt_pending_q_i_5/O
+                         net (fo=6, unplaced)         0.178     7.212    u_ctrl/halt_pending_q_i_5_n_0
+                         LUT6 (Prop_LUT6_I2_O)        0.064     7.276 f  u_ctrl/halt_pending_q_i_2/O
+                         net (fo=24, unplaced)        0.267     7.543    u_regs/err_code_q_reg[3]
+                         LUT3 (Prop_LUT3_I2_O)        0.040     7.583 r  u_regs/err_code_q[3]_i_1/O
+                         net (fo=6, unplaced)         0.237     7.820    u_ctrl/SR[0]
+                         FDRE                                         r  u_ctrl/err_code_q_reg[0]/R
+  -------------------------------------------------------------------    -------------------
+
+                         (clock npu_clk rise edge)   10.000    10.000 r
+                                                      0.000    10.000 r  clk_i (IN)
+                         net (fo=14910, unset)        0.026    10.026    u_ctrl/clk_i
+                         FDRE                                         r  u_ctrl/err_code_q_reg[0]/C
+                         clock pessimism              0.000    10.026
+                         clock uncertainty           -0.035     9.991
+                         FDRE (Setup_FDRE_C_R)       -0.072     9.919    u_ctrl/err_code_q_reg[0]
+  -------------------------------------------------------------------
+                         required time                          9.919
+                         arrival time                          -7.820
+  -------------------------------------------------------------------
+                         slack                                  2.099
+
+Slack (MET) :             2.099ns  (required time - arrival time)
+  Source:                 u_ctrl/cmd_q_reg[p0][4]/C
+                            (rising edge-triggered cell FDRE clocked by npu_clk  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Destination:            u_ctrl/err_code_q_reg[3]/R
+                            (rising edge-triggered cell FDRE clocked by npu_clk  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Path Group:             npu_clk
+  Path Type:              Setup (Max at Slow Process Corner)
+  Requirement:            10.000ns  (npu_clk rise@10.000ns - npu_clk rise@0.000ns)
+  Data Path Delay:        7.783ns  (logic 4.506ns (57.895%)  route 3.277ns (42.105%))
+  Logic Levels:           24  (CARRY8=5 DSP_A_B_DATA=1 DSP_ALU=2 DSP_M_DATA=1 DSP_MULTIPLIER=1 DSP_OUTPUT=2 DSP_PREADD_DATA=1 LUT2=4 LUT3=1 LUT5=2 LUT6=4)
+  Clock Path Skew:        -0.011ns (DCD - SCD + CPR)
+    Destination Clock Delay (DCD):    0.026ns = ( 10.026 - 10.000 )
+    Source Clock Delay      (SCD):    0.037ns
+    Clock Pessimism Removal (CPR):    0.000ns
+  Clock Uncertainty:      0.035ns  ((TSJ^2 + TIJ^2)^1/2 + DJ) / 2 + PE
+    Total System Jitter     (TSJ):    0.071ns
+    Total Input Jitter      (TIJ):    0.000ns
+    Discrete Jitter          (DJ):    0.000ns
+    Phase Error              (PE):    0.000ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock npu_clk rise edge)    0.000     0.000 r
+                                                      0.000     0.000 r  clk_i (IN)
+                         net (fo=14910, unset)        0.037     0.037    u_ctrl/clk_i
+                         FDRE                                         r  u_ctrl/cmd_q_reg[p0][4]/C
+  -------------------------------------------------------------------    -------------------
+                         FDRE (Prop_FDRE_C_Q)         0.093     0.130 f  u_ctrl/cmd_q_reg[p0][4]/Q
+                         net (fo=7, unplaced)         0.139     0.269    u_ctrl/cmd_q_reg[p0][31]_0[4]
+                         LUT5 (Prop_LUT5_I0_O)        0.200     0.469 f  u_ctrl/dst_end1__1_i_22/O
+                         net (fo=6, unplaced)         0.236     0.705    u_ctrl/dst_end1__1_i_22_n_0
+                         LUT6 (Prop_LUT6_I2_O)        0.040     0.745 f  u_ctrl/dst_end1__1_i_20/O
+                         net (fo=6, unplaced)         0.236     0.981    u_ctrl/dst_end1__1_i_20_n_0
+                         LUT6 (Prop_LUT6_I3_O)        0.040     1.021 r  u_ctrl/dst_end1__1_i_17/O
+                         net (fo=2, unplaced)         0.214     1.235    u_ctrl/dst_end1__1_i_17_n_0
+                         LUT2 (Prop_LUT2_I1_O)        0.085     1.320 f  u_ctrl/dst_end1__1_i_19/O
+                         net (fo=14, unplaced)        0.255     1.575    u_ctrl/dst_end1__1_i_19_n_0
+                         LUT2 (Prop_LUT2_I0_O)        0.085     1.660 f  u_ctrl/dst_end1__1_i_16/O
+                         net (fo=1, unplaced)         0.256     1.916    u_ctrl/dst_end1__1/A[0]
+                         DSP_A_B_DATA (Prop_DSP_A_B_DATA_A[0]_A2_DATA[0])
+                                                      0.241     2.157 r  u_ctrl/dst_end1__1/DSP_A_B_DATA_INST/A2_DATA[0]
+                         net (fo=1, unplaced)         0.000     2.157    u_ctrl/dst_end1__1/DSP_A_B_DATA.A2_DATA<0>
+                         DSP_PREADD_DATA (Prop_DSP_PREADD_DATA_A2_DATA[0]_A2A1[0])
+                                                      0.098     2.255 r  u_ctrl/dst_end1__1/DSP_PREADD_DATA_INST/A2A1[0]
+                         net (fo=1, unplaced)         0.000     2.255    u_ctrl/dst_end1__1/DSP_PREADD_DATA.A2A1<0>
+                         DSP_MULTIPLIER (Prop_DSP_MULTIPLIER_A2A1[0]_U[21])
+                                                      0.647     2.902 f  u_ctrl/dst_end1__1/DSP_MULTIPLIER_INST/U[21]
+                         net (fo=1, unplaced)         0.000     2.902    u_ctrl/dst_end1__1/DSP_MULTIPLIER.U<21>
+                         DSP_M_DATA (Prop_DSP_M_DATA_U[21]_U_DATA[21])
+                                                      0.059     2.961 r  u_ctrl/dst_end1__1/DSP_M_DATA_INST/U_DATA[21]
+                         net (fo=1, unplaced)         0.000     2.961    u_ctrl/dst_end1__1/DSP_M_DATA.U_DATA<21>
+                         DSP_ALU (Prop_DSP_ALU_U_DATA[21]_ALU_OUT[47])
+                                                      0.699     3.660 f  u_ctrl/dst_end1__1/DSP_ALU_INST/ALU_OUT[47]
+                         net (fo=1, unplaced)         0.000     3.660    u_ctrl/dst_end1__1/DSP_ALU.ALU_OUT<47>
+                         DSP_OUTPUT (Prop_DSP_OUTPUT_ALU_OUT[47]_PCOUT[47])
+                                                      0.159     3.819 r  u_ctrl/dst_end1__1/DSP_OUTPUT_INST/PCOUT[47]
+                         net (fo=1, unplaced)         0.016     3.835    u_ctrl/dst_end1__2/PCIN[47]
+                         DSP_ALU (Prop_DSP_ALU_PCIN[47]_ALU_OUT[21])
+                                                      0.698     4.533 f  u_ctrl/dst_end1__2/DSP_ALU_INST/ALU_OUT[21]
+                         net (fo=1, unplaced)         0.000     4.533    u_ctrl/dst_end1__2/DSP_ALU.ALU_OUT<21>
+                         DSP_OUTPUT (Prop_DSP_OUTPUT_ALU_OUT[21]_P[21])
+                                                      0.141     4.674 r  u_ctrl/dst_end1__2/DSP_OUTPUT_INST/P[21]
+                         net (fo=2, unplaced)         0.247     4.921    u_ctrl/dst_end1__2_n_84
+                         LUT2 (Prop_LUT2_I0_O)        0.062     4.983 r  u_ctrl/err_info_q[4]_i_138/O
+                         net (fo=1, unplaced)         0.031     5.014    u_ctrl/err_info_q[4]_i_138_n_0
+                         CARRY8 (Prop_CARRY8_S[5]_CO[7])
+                                                      0.209     5.223 r  u_ctrl/err_info_q_reg[4]_i_93/CO[7]
+                         net (fo=1, unplaced)         0.007     5.230    u_ctrl/err_info_q_reg[4]_i_93_n_0
+                         CARRY8 (Prop_CARRY8_CI_O[1])
+                                                      0.097     5.327 r  u_ctrl/err_info_q_reg[4]_i_74/O[1]
+                         net (fo=1, unplaced)         0.212     5.539    u_ctrl/err_info_q_reg[4]_i_74_n_14
+                         CARRY8 (Prop_CARRY8_S[2]_CO[7])
+                                                      0.210     5.749 r  u_ctrl/err_info_q_reg[4]_i_70/CO[7]
+                         net (fo=1, unplaced)         0.007     5.756    u_ctrl/err_info_q_reg[4]_i_70_n_0
+                         CARRY8 (Prop_CARRY8_CI_O[5])
+                                                      0.145     5.901 f  u_ctrl/err_info_q_reg[4]_i_52/O[5]
+                         net (fo=2, unplaced)         0.162     6.063    u_ctrl/dst_end[53]
+                         LUT2 (Prop_LUT2_I0_O)        0.121     6.184 f  u_ctrl/err_info_q[4]_i_19/O
+                         net (fo=1, unplaced)         0.280     6.464    u_ctrl/err_info_q[4]_i_19_n_0
+                         CARRY8 (Prop_CARRY8_DI[2]_CO[7])
+                                                      0.148     6.612 f  u_ctrl/err_info_q_reg[4]_i_6/CO[7]
+                         net (fo=4, unplaced)         0.083     6.695    u_ctrl/err_info_q_reg[4]_i_6_n_0
+                         LUT5 (Prop_LUT5_I1_O)        0.085     6.780 f  u_ctrl/halt_pending_q_i_8/O
+                         net (fo=2, unplaced)         0.214     6.994    u_ctrl/halt_pending_q_i_8_n_0
+                         LUT6 (Prop_LUT6_I2_O)        0.040     7.034 f  u_ctrl/halt_pending_q_i_5/O
+                         net (fo=6, unplaced)         0.178     7.212    u_ctrl/halt_pending_q_i_5_n_0
+                         LUT6 (Prop_LUT6_I2_O)        0.064     7.276 f  u_ctrl/halt_pending_q_i_2/O
+                         net (fo=24, unplaced)        0.267     7.543    u_regs/err_code_q_reg[3]
+                         LUT3 (Prop_LUT3_I2_O)        0.040     7.583 r  u_regs/err_code_q[3]_i_1/O
+                         net (fo=6, unplaced)         0.237     7.820    u_ctrl/SR[0]
+                         FDRE                                         r  u_ctrl/err_code_q_reg[3]/R
+  -------------------------------------------------------------------    -------------------
+
+                         (clock npu_clk rise edge)   10.000    10.000 r
+                                                      0.000    10.000 r  clk_i (IN)
+                         net (fo=14910, unset)        0.026    10.026    u_ctrl/clk_i
+                         FDRE                                         r  u_ctrl/err_code_q_reg[3]/C
+                         clock pessimism              0.000    10.026
+                         clock uncertainty           -0.035     9.991
+                         FDRE (Setup_FDRE_C_R)       -0.072     9.919    u_ctrl/err_code_q_reg[3]
+  -------------------------------------------------------------------
+                         required time                          9.919
+                         arrival time                          -7.820
+  -------------------------------------------------------------------
+                         slack                                  2.099

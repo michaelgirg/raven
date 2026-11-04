@@ -28,6 +28,11 @@ are review snapshots; their interface and capacity descriptions may be supersede
 
 ## Current subsystem status and integration
 
+The [FPGA readiness review](docs/reviews/RAVEN_BOARD_READINESS_REVIEW.md) records
+synthesis estimates, memory-path cycle measurements and remaining board work for
+[the buffered integration in PR #4](https://github.com/michaelgirg/raven/pull/4).
+Its results apply to the pinned PR revision and do not establish a working board build.
+
 | Area | Implemented and tested | Connection still needed |
 |---|---|---|
 | Compute — Michael | Resident INT8 GEMM microtile, INT32 output, reset/backpressure/error tests | Production operand responders, command control and output storage |

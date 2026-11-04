@@ -1,0 +1,139 @@
+{
+  "revision": "bf944c1749310a615bb6b7924edeb3b453fc21f9",
+  "scope": "out-of-context synthesis of raven_npu_top, buffered configuration; not board sign-off",
+  "tool": "Vivado 2025.2",
+  "part": "xczu3eg-sbva484-1-e",
+  "clock_period_ns": 10,
+  "synthesis_status": "pass",
+  "resources": {
+    "lut": 15346,
+    "ff": 14839,
+    "dsp": 16,
+    "ramb36": 0,
+    "ramb18": 0
+  },
+  "post_synthesis_setup_slack_ns": 1.169,
+  "unconstrained_input_delays": 716,
+  "unconstrained_output_delays": 357,
+  "pipeline_cycles": {
+    "1": [
+      {
+        "case": "normal_8x16x8",
+        "busy_cycles": 786,
+        "input_stall_cycles": 365,
+        "output_stall_cycles": 256
+      },
+      {
+        "case": "signed_nonzero_zp_stalled",
+        "busy_cycles": 938,
+        "input_stall_cycles": 419,
+        "output_stall_cycles": 309
+      },
+      {
+        "case": "partial_tile_7x13x5",
+        "busy_cycles": 560,
+        "input_stall_cycles": 317,
+        "output_stall_cycles": 140
+      },
+      {
+        "case": "positive_negative_saturation",
+        "busy_cycles": 786,
+        "input_stall_cycles": 365,
+        "output_stall_cycles": 256
+      },
+      {
+        "case": "rounding_ties",
+        "busy_cycles": 163,
+        "input_stall_cycles": 77,
+        "output_stall_cycles": 32
+      },
+      {
+        "case": "channel_scales_relu_clamp",
+        "busy_cycles": 786,
+        "input_stall_cycles": 365,
+        "output_stall_cycles": 256
+      },
+      {
+        "case": "board_perf_1x640x8",
+        "busy_cycles": 3984,
+        "input_stall_cycles": 3219,
+        "output_stall_cycles": 32
+      },
+      {
+        "case": "t4_bank_edges_k33",
+        "busy_cycles": 1321,
+        "input_stall_cycles": 883,
+        "output_stall_cycles": 256
+      }
+    ],
+    "0": [
+      {
+        "case": "normal_8x16x8",
+        "busy_cycles": 146,
+        "input_stall_cycles": 37,
+        "output_stall_cycles": 0
+      },
+      {
+        "case": "signed_nonzero_zp_stalled",
+        "busy_cycles": 317,
+        "input_stall_cycles": 88,
+        "output_stall_cycles": 86
+      },
+      {
+        "case": "partial_tile_7x13x5",
+        "busy_cycles": 100,
+        "input_stall_cycles": 32,
+        "output_stall_cycles": 0
+      },
+      {
+        "case": "positive_negative_saturation",
+        "busy_cycles": 146,
+        "input_stall_cycles": 37,
+        "output_stall_cycles": 0
+      },
+      {
+        "case": "rounding_ties",
+        "busy_cycles": 33,
+        "input_stall_cycles": 7,
+        "output_stall_cycles": 0
+      },
+      {
+        "case": "channel_scales_relu_clamp",
+        "busy_cycles": 146,
+        "input_stall_cycles": 37,
+        "output_stall_cycles": 0
+      },
+      {
+        "case": "board_perf_1x640x8",
+        "busy_cycles": 1319,
+        "input_stall_cycles": 642,
+        "output_stall_cycles": 0
+      },
+      {
+        "case": "t4_bank_edges_k33",
+        "busy_cycles": 181,
+        "input_stall_cycles": 55,
+        "output_stall_cycles": 0
+      }
+    ]
+  },
+  "source_sha256": {
+    "rtl/compute/raven_gemm_core.sv": "a62277a61663804b8a8e60bdb0b81525d7c8a55d7a3e72807dbd5b4a1cde5562",
+    "rtl/compute/raven_gemm_frontend.sv": "fd285b7bfc29b0b80ec7ae0f84b85e59a5f47209e0f372d26efb89e616c92f9f",
+    "rtl/compute/raven_mac_array.sv": "9012c246244b0bff1e9ed752945f2bee89d4a81ba44cbead7cc3ea9928a3c60f",
+    "rtl/compute/raven_mac_pe.sv": "0b69cc03b120401f22bc2e39a1c126de4ad5ca5d3bc8af325c0e6627de3fc863",
+    "rtl/control/raven_ctrl.sv": "359569f6ce26d82c9e519c7004fb7c6fe5a5b092323a1c99ff8b96373fb5d6f8",
+    "rtl/control/raven_ctrl_pkg.sv": "a8f350a31af719453dd61c237ebcabc2c6c0c53952c3da44f0b69f765e7992c9",
+    "rtl/control/raven_ctrl_regs.sv": "49527bba476bee094b04270fb7b519597ede13f83a9dbebce28e0f1cd8a3babd",
+    "rtl/memory/activation_buffer.sv": "cbd6c0da180939a32794515037e865dc66c5aaaf74f35250d7725c1d67ddea21",
+    "rtl/memory/output_buffer.sv": "6cde03a417576e4bc672606dc28e43d76cf3df1a4a8d9dc5f6d9668328114f57",
+    "rtl/memory/parameter_buffer.sv": "19734cb7f7cbcdcf45385e75564efa3dacdb468b1ab739b7258e1913855cb75f",
+    "rtl/memory/raven_output_buffer_adapter.sv": "8eaaa212c82e53c1aad1ed9b97d447568ca1c0e3fe8a920d16c7070d6f43abe7",
+    "rtl/memory/raven_read_buffer_adapter.sv": "14a538125afce2264a98dfa7c59cc6836a0a3b2c0938d3bf805d3280243228cc",
+    "rtl/memory/weight_buffer.sv": "9dd2db9094cac58595c87c1e066f5ccf423b2a0f3de5386b310a3564b3ed5a55",
+    "rtl/operators/raven_requantize_clamp.sv": "4fea4519e152c51fac6fa8f1de181a6157c357f5933e3701683ae93c418fa8e0",
+    "rtl/top/raven_npu_top.sv": "b855b615d854ef326ef8b012c60c11b995865d4829305f684a4278336ac3dabf",
+    "rtl/top/raven_requant.sv": "1adbd6cd1309441ddf237643e9f2ee45c55748e7fd05db0b0c4f8d3f90823132",
+    "rtl/top/raven_result_writer.sv": "e1c6ab683f15668072cdf677af134935cfbd0c01b1c24d937b250247bb8fb99d"
+  }
+}
