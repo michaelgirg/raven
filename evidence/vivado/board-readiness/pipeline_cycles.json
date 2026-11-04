@@ -1,0 +1,102 @@
+{
+  "1": [
+    {
+      "case": "normal_8x16x8",
+      "busy_cycles": 786,
+      "input_stall_cycles": 365,
+      "output_stall_cycles": 256
+    },
+    {
+      "case": "signed_nonzero_zp_stalled",
+      "busy_cycles": 938,
+      "input_stall_cycles": 419,
+      "output_stall_cycles": 309
+    },
+    {
+      "case": "partial_tile_7x13x5",
+      "busy_cycles": 560,
+      "input_stall_cycles": 317,
+      "output_stall_cycles": 140
+    },
+    {
+      "case": "positive_negative_saturation",
+      "busy_cycles": 786,
+      "input_stall_cycles": 365,
+      "output_stall_cycles": 256
+    },
+    {
+      "case": "rounding_ties",
+      "busy_cycles": 163,
+      "input_stall_cycles": 77,
+      "output_stall_cycles": 32
+    },
+    {
+      "case": "channel_scales_relu_clamp",
+      "busy_cycles": 786,
+      "input_stall_cycles": 365,
+      "output_stall_cycles": 256
+    },
+    {
+      "case": "board_perf_1x640x8",
+      "busy_cycles": 3984,
+      "input_stall_cycles": 3219,
+      "output_stall_cycles": 32
+    },
+    {
+      "case": "t4_bank_edges_k33",
+      "busy_cycles": 1321,
+      "input_stall_cycles": 883,
+      "output_stall_cycles": 256
+    }
+  ],
+  "0": [
+    {
+      "case": "normal_8x16x8",
+      "busy_cycles": 146,
+      "input_stall_cycles": 37,
+      "output_stall_cycles": 0
+    },
+    {
+      "case": "signed_nonzero_zp_stalled",
+      "busy_cycles": 317,
+      "input_stall_cycles": 88,
+      "output_stall_cycles": 86
+    },
+    {
+      "case": "partial_tile_7x13x5",
+      "busy_cycles": 100,
+      "input_stall_cycles": 32,
+      "output_stall_cycles": 0
+    },
+    {
+      "case": "positive_negative_saturation",
+      "busy_cycles": 146,
+      "input_stall_cycles": 37,
+      "output_stall_cycles": 0
+    },
+    {
+      "case": "rounding_ties",
+      "busy_cycles": 33,
+      "input_stall_cycles": 7,
+      "output_stall_cycles": 0
+    },
+    {
+      "case": "channel_scales_relu_clamp",
+      "busy_cycles": 146,
+      "input_stall_cycles": 37,
+      "output_stall_cycles": 0
+    },
+    {
+      "case": "board_perf_1x640x8",
+      "busy_cycles": 1319,
+      "input_stall_cycles": 642,
+      "output_stall_cycles": 0
+    },
+    {
+      "case": "t4_bank_edges_k33",
+      "busy_cycles": 181,
+      "input_stall_cycles": 55,
+      "output_stall_cycles": 0
+    }
+  ]
+}
