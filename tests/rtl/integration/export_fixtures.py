@@ -240,6 +240,10 @@ def build_cases(vectors):
                             lambda g: g.update({P2: round_up(k, 16) - 16})))
     cases.append(error_case(normal_case, 't11_a_base_misaligned', 'T11', (ERR_BANK_RANGE, 0), True,
                             lambda g: g.update({SRC_A: ref(BANK_ACT0, 0x008)})))
+    cases.append(error_case(normal_case, 't11_param_base_misaligned', 'T11', (ERR_BANK_RANGE, 0), True,
+                            lambda g: g.update({PARAM: ref(BANK_PRM, 0x008)})))
+    cases.append(error_case(normal_case, 't11_param_span_overflow', 'T11', (ERR_BANK_RANGE, 0), True,
+                            lambda g: g.update({PARAM: ref(BANK_PRM, PRM_BYTES - 16)})))
     cases.append(overflow_case(normal))
     return cases
 

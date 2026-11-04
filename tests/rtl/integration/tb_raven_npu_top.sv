@@ -306,17 +306,24 @@ module tb_raven_npu_top;
         expect_reg({tag, ": STATUS after SOFT_RESET"}, REG_STATUS, 32'h0000_1010);
     endtask
 
+    function automatic int unsigned total_bank_reads();
+        int unsigned total;
+        total = 0;
+        foreach (reads[i]) total += reads[i];
+        return total;
+    endfunction
+
     // Run one fixture end to end and check everything the plan asks for it.
     task automatic run_case(input string name, input bit force_stall = 0);
         meta_t mt;
         logic [15:0] seq;
         logic [31:0] err;
         raven_status_t st;
-        int unsigned launch0, wr0;
+        int unsigned launch0, wr0, read0;
         string tag = name;
         if (force_stall) tag = {name, "_stalled"};
         prepare_case(name, force_stall, tag, mt);
-        launch0 = launches; wr0 = out_wr;
+        launch0 = launches; wr0 = out_wr; read0 = total_bank_reads();
         raven_start(seq, st);
         expect_eq({tag, ": raven_start"}, st, RAVEN_OK);
         raven_wait(seq, WAIT_CYCLES, err, st);
@@ -326,6 +333,9 @@ module tb_raven_npu_top;
             check_retired(name, tag, mt, seq, launches - launch0, out_wr - wr0);
         end else begin
             expect_eq({tag, ": raven_wait"}, st, RAVEN_E_HW);
+            // Command-validation failures must not start either parameter reader.
+            if (mt.err_code != ERR_ACC_RANGE)
+                expect_eq({tag, ": invalid command issued bank reads"}, total_bank_reads() - read0, 0);
             check_failed(name, tag, mt, seq, err, launches - launch0, out_wr - wr0);
         end
         raven_close_trace();

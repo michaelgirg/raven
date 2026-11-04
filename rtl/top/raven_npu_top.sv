@@ -83,6 +83,18 @@ module raven_npu_top
     wire [7:0] q_data;
     wire [15:0] q_row, q_col;
     wire cfg_load, stored_last, writer_stall;
+    logic requant_cfg_pending_q;
+    wire requant_cfg_load = requant_cfg_pending_q && prm_a_req_valid_o;
+    wire requant_in_ready;
+
+    // The core requests its first bias only after command validation succeeds.
+    // Wait for that phase before starting the independent PARAM loader.
+    always_ff @(posedge clk_i) begin
+        if (!local_rst_no) requant_cfg_pending_q <= 0;
+        else if (cfg_load) requant_cfg_pending_q <= 1;
+        else if (core_error || requant_cfg_load) requant_cfg_pending_q <= 0;
+    end
+    assign res_ready = requant_in_ready && !requant_cfg_pending_q;
 
     raven_ctrl_regs #(.ROWS(ROWS), .COLS(COLS)) u_regs (
         .clk_i, .rst_ni,
@@ -156,7 +168,7 @@ module raven_npu_top
 
     raven_requant #(.COLS(COLS), .ADDR_W(24)) u_requant (
         .clk_i, .rst_ni(local_rst_no),
-        .cfg_load_i(cfg_load),
+        .cfg_load_i(requant_cfg_load),
         .cfg_per_channel_i(cmd.op_flags[FLAG_PER_CHANNEL]),
         .cfg_n_i(cmd.p0[31:16]),
         .cfg_param_base_i(ref_offset(cmd.param)),
@@ -165,7 +177,7 @@ module raven_npu_top
         .cfg_out_zp_i(cmd.q_zp[23:16]),
         .cfg_clamp_min_i(cmd.q_clamp[7:0]), .cfg_clamp_max_i(cmd.q_clamp[15:8]),
         .cfg_relu_i(cmd.op_flags[FLAG_RELU_EN]),
-        .in_valid_i(res_valid), .in_ready_o(res_ready), .in_data_i(res_data),
+        .in_valid_i(res_valid && !requant_cfg_pending_q), .in_ready_o(requant_in_ready), .in_data_i(res_data),
         .in_row_i(res_row), .in_col_i(res_col), .in_last_i(res_last),
         .p_req_valid_o(prm_b_req_valid_o), .p_req_ready_i(prm_b_req_ready_i), .p_req_addr_o(prm_b_req_addr_o),
         .p_rsp_valid_i(prm_b_rsp_valid_i), .p_rsp_ready_o(prm_b_rsp_ready_o), .p_rsp_data_i(prm_b_rsp_data_i),
