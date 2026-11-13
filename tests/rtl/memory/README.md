@@ -6,7 +6,12 @@ This directory contains SystemVerilog testbenches for verifying the individual m
 
 The testbenches are designed to verify basic read/write functionality, data integrity, signed-value handling, valid/ready handshaking, and output backpressure.
 
-Each memory component is tested independently using Icarus Verilog.
+All four components passed independently with Questa Intel Starter FPGA Edition-64
+2021.2 on merged revision `3577d48d063182e0e2e9560623f58cf0804621ae`. The
+[full validation record](../../../evidence/questa/final-prealpha/results.json)
+also includes eight rejected reset/validity/mode faults and the six-case golden
+matrix. Connected pipeline coverage is described in the
+[main test README](../../README.md#verified-pre-alpha-results).
 
 ## Directory Contents
 
@@ -23,38 +28,6 @@ Each memory component is tested independently using Icarus Verilog.
 The testbenches use Icarus Verilog.
 
 Compile and run each test independently from the project root.
-
-### Banked Scratchpad
-
-The banked scratchpad test uses a small two bank configuration to keep the
-simulation and waveform easy to inspect:
-
-```powershell
-iverilog -g2012 `
-    -s tb_banked_scratchpad `
-    -o banked_scratchpad_test `
-    rtl\memory\banked_scratchpad.sv `
-    tests\rtl\memory\tb_banked_scratchpad.sv
-
-vvp banked_scratchpad_test
-```
-
-With Questa:
-
-```powershell
-vlib work
-vlog -sv `
-    rtl\memory\banked_scratchpad.sv `
-    tests\rtl\memory\tb_banked_scratchpad.sv
-
-vsim -c work.tb_banked_scratchpad -do "run -all; quit -f"
-```
-
-The expected result is:
-
-```text
-ALL BANKED SCRATCHPAD TESTS PASSED
-```
 
 ### Activation Buffer
 
@@ -146,7 +119,7 @@ The weight buffer testbench verifies:
 - Response-valid clearing after consumption.
 - Overwriting an existing weight bank.
 
-**Simulation result:** Testbench prepared; execution and verification pending.
+**Simulation result:** All weight buffer tests passed.
 
 ### 4. Parameter Buffer
 
@@ -206,12 +179,7 @@ initial bank management model in simulation.
 They do not yet verify:
 
 - Integration with the compute core.
-- Integration of the banked scratchpad with the compute core.
-- Physical BRAM inference or bank port conflicts.
-- AXI DMA or stream-to-scratchpad adapters.
 - Integration with the output operators.
-- Complete production bank ownership and recovery behavior.
-- INT32 partial-sum storage and continuation across K chunks.
 - Full-system memory ownership and bounds checking.
 - Complete GEMM execution.
 - Golden-reference comparison of the final GEMM output.
@@ -224,7 +192,4 @@ These items remain part of the broader RAVEN pre-alpha integration and verificat
 
 When modifying a buffer's interface or internal behavior, update its corresponding testbench to reflect the change.
 Run the relevant testbench after each modification to ensure that existing functionality remains intact.
-The individual memory tests and the banked scratchpad test are intended to
-provide a foundation for later system-level integration and verification.
-The banked scratchpad test should be expanded when the final compute memory
-adapter and DMA packet contract are approved.
+The individual memory tests are intended to provide a foundation for later system-level integration and verification.

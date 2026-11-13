@@ -1,0 +1,14 @@
+Reading pref.tcl
+
+# 2021.2
+
+# vsim -c -onfinish exit -t 1ps -sva -immedassert -l integration.log -wlf integration.wlf work.tb_raven_npu_top "+FIXTURES=fixtures" "+OUT=out" "+TESTS=T4,T8" -do "run_batch.do"
+# Start time: 14:30:23 on Nov 04,2026
+# ** Note: (vsim-3812) Design is being optimized...
+# ** Fatal: Unexpected signal: 11.
+# ../../raven-single-file-commit/rtl/memory/parameter_buffer.sv(1): Vopt Compiler exiting
+# ** Note: (vsim-12126) Error and warning message counts have been restored: Errors=1, Warnings=0.
+# Error loading design
+Error loading design
+# End time: 14:30:23 on Nov 04,2026, Elapsed time: 0:00:00
+# Errors: 1, Warnings: 0

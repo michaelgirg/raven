@@ -184,7 +184,7 @@ package raven_ctrl_pkg;
         logic [15:0] next_seq;      // NEXT_SEQ.
         logic [15:0] done_seq;      // DONE_SEQ.
         logic [31:0] err_code;      // ERR_CODE: {seq, 8'b0, code}.
-        logic [31:0] err_info;      // ERR_INFO: offending register offset, or 0.
+        logic [31:0] err_info;      // Register offset, core zero, or ERR_UNIT faulting bank/word reference.
         logic [63:0] cyc_total;     // CYC_TOTAL.
         logic [63:0] cyc_busy;      // CYC_BUSY.
         logic [31:0] cyc_stall_in;  // CYC_STALL_IN.

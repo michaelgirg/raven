@@ -738,9 +738,18 @@ The intermediate (OUT0) is **consumed** at step 5 and **released** at step 6, wh
 | `0x06` | `ERR_Q_OVERFLOW` | START while the queue was full |
 | `0x07` | `ERR_RSVD` | Non-zero reserved bits |
 | `0x08` | `ERR_ACC_RANGE` | Accumulator range violation, if Michael's datapath implements a detector |
-| `0x09` | `ERR_UNIT` | Compute or operator unit reported an internal error |
+| `0x09` | `ERR_UNIT` | A compute, operator or local memory-staging unit reported an internal error |
 | `0x0A` | `ERR_ABORTED` | Firmware ABORT |
 | `0x0B` | `ERR_BAD_FLAGS` | Inconsistent first/last/chunk/context flags, including incomplete or overlapping Conv channel coverage |
+
+The implemented pre-alpha staging-parity failure uses the existing `ERR_UNIT`
+code, the failed command's sequence, and a bank/word reference in `ERR_INFO`:
+`{BANK_ID[3:0], 4'b0, WORD_BYTE_OFFSET[23:0]}`. Traffic stops and control halts;
+CLEAR_ERR alone cannot resume the data path. SOFT_RESET followed by trusted
+reload/refill and a fresh command is the recovery path. See the
+[implemented integrity subset](interfaces/RAVEN_STAGING_INTEGRITY.md) for the
+capture/commit boundary and parity limitations. This does not change the broader
+queue/abort proposal or provide end-to-end backing-memory protection.
 
 ### 6.9 Single source of truth: SystemRDL
 

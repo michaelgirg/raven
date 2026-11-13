@@ -51,12 +51,19 @@ This runs the existing compute regression, including the MAC processing element,
 
 Screenshots: `evidence/prealpha/compute/`
 
-Standalone INT32 GEMM verification passed for the tests above. A separate
-[requantization/clamp implementation and bench](../../../rtl/operators/README.md)
-now provide standalone INT8-tail coverage. These GEMM fixtures still check only
-the compute INT32 outputs; they do not pass through that tail or the
-[activation buffer](../../../rtl/memory/README.md). Integration with memory,
-per-channel parameters, command control and output storage still needs a
-connected testbench and end-to-end checking.
+These supplementary fixtures verify standalone INT32 compute outputs. They were
+rechecked on merged revision `3577d48d063182e0e2e9560623f58cf0804621ae` using the
+Python exporter and assertion-enabled Questa commands directly. The full compute
+regression also passed 168 fixtures across four array sizes and 12 reset/restart phases.
+
+The [connected integration suite](../../../README.md#run-the-integration-tests)
+now covers command control, the actual activation/weight/parameter/output buffers,
+per-channel parameter delivery, requantization/clamp and committed INT8 output.
+T1–T15 pass in both buffered and direct configurations with 22 independently
+compared INT8 dumps each. See the
+[complete validation record](../../questa/final-prealpha/results.json) and
+[test coverage](../../../tests/README.md#verified-pre-alpha-results).
+Physical backing banks, processor/DMA, complete board implementation and full-model
+execution remain future work.
 
 -MD and Verification done by Jackie
