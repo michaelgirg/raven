@@ -2,9 +2,9 @@
 
 ## Overview
 
-This directory contains the initial memory components for the RAVEN FPGA Neural Processing Unit (NPU).
+This directory contains the initial memory components and managed scratchpad model for the RAVEN FPGA Neural Processing Unit (NPU).
 
-The memory subsystem is responsible for storing activation data, weight data, quantization parameters, and computed output values. These buffers provide the storage and interfaces needed to transfer data between the compute core, output operators, and system integration logic.
+The memory subsystem is responsible for storing activation data, weight data, quantization parameters, and computed output values. These buffers provide the storage and interfaces needed to transfer data between the compute core, output operators, and system integration logic. The banked scratchpad adds explicit ownership and lifecycle management around generic byte addressable storage.
 
 The initial implementation targets the pre-alpha demonstration of an 8×16 activation matrix multiplied by a 16×8 weight matrix, producing an 8×8 output matrix.
 
@@ -16,8 +16,69 @@ The initial implementation targets the pre-alpha demonstration of an 8×16 activ
 | `weight_buffer.sv` | Stores the weight matrix. |
 | `parameter_buffer.sv` | Stores bias and quantization parameters. |
 | `output_buffer.sv` | Stores the final INT8 output matrix. |
+| `banked_scratchpad.sv` | Managed scratchpad model with bank ownership, lifecycle states, generation IDs, and generic read/write interfaces. |
 
-## 1. Activation Buffer
+## 1. Banked Scratchpad
+
+**File:** `banked_scratchpad.sv`
+
+The banked scratchpad is the first managed-memory model for the proposed RAVEN
+scratchpad architecture. It is intentionally independent from the current
+compute-memory interface while the adapter contract is being reviewed.
+
+The default model contains six logical banks:
+
+| Bank | Role |
+|---|---|
+| `ACT0`, `ACT1` | Activation ping-pong banks |
+| `WGT0`, `WGT1` | Weight ping-pong banks |
+| `OUT0` | Output or future partial-sum bank |
+| `PRM` | Parameter bank |
+
+The module is parameterized by bank count, bank capacity, transfer width, and
+generation width. Its default storage model is six 256-byte banks with
+16-byte transfers; tests may use smaller configurations.
+
+### Bank lifecycle
+
+Each bank exposes one of these states:
+
+```text
+FREE -> DMA_FILLING -> READY -> COMPUTING -> FREE
+                         |
+                         +-> NPU_WRITING -> FULL -> DRAINING -> FREE
+```
+
+`ERROR` is available for failed or aborted ownership. A fill does not become
+`READY` until an explicit `CMD_COMMIT` command is accepted. Bank ownership,
+generation ID, and requested length are visible through the status outputs.
+
+### Management commands
+
+The command interface supports:
+
+- `CMD_ACQUIRE_FILL`: acquire a `FREE` bank for DMA or host filling.
+- `CMD_COMMIT`: publish a completed fill as `READY`.
+- `CMD_ACQUIRE_READ`: acquire a `READY` bank for compute reads.
+- `CMD_ACQUIRE_WRITE`: acquire a `FREE` bank for NPU writes.
+- `CMD_RELEASE`: return an owned bank to `FREE`.
+- `CMD_ABORT`: move an owned bank to `ERROR`.
+
+Commands return a response status such as `RESP_OK`, `RESP_BAD_STATE`,
+`RESP_NOT_OWNER`, or `RESP_BAD_RANGE`.
+
+### Generic data interfaces
+
+Writes use a bank ID, owner, generation ID, byte address, data, and byte
+strobe. Writes are valid only for an owned `DMA_FILLING` or `NPU_WRITING`
+bank. Reads use a request/response valid/ready pair and are valid only for an
+owned `COMPUTING` bank. Read data remains stable while the response is stalled.
+
+Generation IDs distinguish a current bank allocation from a previous use of the
+same bank. This provides a basis for rejecting stale requests after release,
+reuse, or reset.
+
+## 2. Activation Buffer
 
 **File:** `activation_buffer.sv`
 
@@ -44,7 +105,7 @@ The read interface allows the compute core to retrieve eight activation values c
 
 The buffer uses valid/ready handshaking and synchronous read behavior.
 
-## 2. Weight Buffer
+## 3. Weight Buffer
 
 **File:** `weight_buffer.sv`
 
@@ -71,7 +132,7 @@ The organization allows the compute core to retrieve the eight weight values ass
 
 The buffer uses valid/ready handshaking and synchronous read behavior.
 
-## 3. Parameter Buffer
+## 4. Parameter Buffer
 
 **File:** `parameter_buffer.sv`
 
@@ -113,7 +174,7 @@ The read interface accepts a 3-bit output-channel selection and returns the corr
 
 The parameter buffer uses valid/ready handshaking and synchronous read behavior.
 
-## 4. Output Buffer
+## 5. Output Buffer
 
 **File:** `output_buffer.sv`
 
@@ -156,6 +217,7 @@ The integration logic must ensure that required data has been written before it 
 
 | Component | Status |
 |---|---|
+| Banked scratchpad | RTL model implemented; directed testbench covers lifecycle, ownership, bounds, generation, read backpressure, release, and reset. |
 | Activation buffer | RTL implemented; simulation tests passed. |
 | Weight buffer | RTL implemented; testbench passed. |
 | Parameter buffer | RTL implemented; simulation tests passed. |
@@ -177,6 +239,12 @@ The integration logic must ensure that required data has been written before it 
 - Parameter buffer does not currently track whether all required
   parameters have been loaded.
 - Weight buffer verification is pending.
+- The banked scratchpad is a simulation model and is not connected to the
+  compute top, physical BRAM, DMA, or the existing specialized buffers.
+- Invalid generic writes are currently suppressed by the storage path rather
+  than returned through a dedicated write-error response.
+- The scratchpad lifecycle does not yet implement the complete production
+  `FULL`, `DRAINING`, partial-sum, or DMA commit protocol.
 
 ## Integration Considerations
 
@@ -188,7 +256,12 @@ The integration logic must ensure that required data has been written before it 
 
 ## Future Work
 
-- Define and verify memory ownership and bounds checks.
+- Add a dedicated adapter between this generic interface and the compute
+  frontend's 128-bit operand ports.
+- Add DMA stream-to-scratchpad and scratchpad-to-stream adapters.
+- Extend bank metadata for tensor shape, pitch, data format, and partial-sum
+  context.
+- Define and verify complete memory ownership, bounds checks, and recovery.
 - Coordinate memory interfaces with the compute core and output operators.
 - Integrate the buffers with the control and integration harness (in progress)
 - Verify the complete GEMM operation against the golden reference (in progress)

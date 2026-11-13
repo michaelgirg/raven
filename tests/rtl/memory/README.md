@@ -2,7 +2,7 @@
 
 ## Overview
 
-This directory contains SystemVerilog testbenches for verifying the individual memory components used in the RAVEN FPGA NPU.
+This directory contains SystemVerilog testbenches for verifying the individual memory components and managed scratchpad model used in the RAVEN FPGA NPU.
 
 The testbenches are designed to verify basic read/write functionality, data integrity, signed-value handling, valid/ready handshaking, and output backpressure.
 
@@ -16,12 +16,45 @@ Each memory component is tested independently using Icarus Verilog.
 | `tb_weight_buffer.sv` | Tests weight matrix storage and retrieval. |
 | `tb_parameter_buffer.sv` | Tests bias and quantization parameter storage and retrieval. |
 | `tb_output_buffer.sv` | Tests output matrix storage and retrieval. |
+| `tb_banked_scratchpad.sv` | Tests managed bank lifecycle, ownership, generic storage, and handshake behavior. |
 
 ## Running the Tests
 
 The testbenches use Icarus Verilog.
 
 Compile and run each test independently from the project root.
+
+### Banked Scratchpad
+
+The banked scratchpad test uses a small two bank configuration to keep the
+simulation and waveform easy to inspect:
+
+```powershell
+iverilog -g2012 `
+    -s tb_banked_scratchpad `
+    -o banked_scratchpad_test `
+    rtl\memory\banked_scratchpad.sv `
+    tests\rtl\memory\tb_banked_scratchpad.sv
+
+vvp banked_scratchpad_test
+```
+
+With Questa:
+
+```powershell
+vlib work
+vlog -sv `
+    rtl\memory\banked_scratchpad.sv `
+    tests\rtl\memory\tb_banked_scratchpad.sv
+
+vsim -c work.tb_banked_scratchpad -do "run -all; quit -f"
+```
+
+The expected result is:
+
+```text
+ALL BANKED SCRATCHPAD TESTS PASSED
+```
 
 ### Activation Buffer
 
@@ -69,7 +102,24 @@ vvp output_test
 
 ## Test Coverage
 
-### 1. Activation Buffer
+### 1. Banked Scratchpad
+
+The banked scratchpad testbench verifies:
+
+- Reset initializes banks as `FREE` with no owner.
+- A `FREE` bank can be acquired for DMA filling.
+- A fill records ownership, length, and a new generation ID.
+- Generic data can be written to an owned filling bank.
+- `CMD_COMMIT` changes the bank from `DMA_FILLING` to `READY`.
+- A second fill attempt on a non-`FREE` bank is rejected.
+- A committed bank can be acquired for compute reads.
+- Read response data remains stable while `rd_rsp_ready` is low.
+- A read response clears after valid/ready acceptance.
+- A bank can be released back to `FREE`.
+- An old generation cannot commit after the bank is released.
+- Reset clears bank ownership and outstanding responses.
+
+### 2. Activation Buffer
 
 The activation buffer testbench verifies:
 
@@ -83,7 +133,7 @@ The activation buffer testbench verifies:
 
 **Simulation result:** All activation buffer tests passed.
 
-### 2. Weight Buffer
+### 3. Weight Buffer
 
 The weight buffer testbench verifies:
 
@@ -98,7 +148,7 @@ The weight buffer testbench verifies:
 
 **Simulation result:** Testbench prepared; execution and verification pending.
 
-### 3. Parameter Buffer
+### 4. Parameter Buffer
 
 The parameter buffer testbench verifies:
 
@@ -118,7 +168,7 @@ The parameter buffer testbench verifies:
 
 **Simulation result:** All parameter buffer tests passed.
 
-### 4. Output Buffer
+### 5. Output Buffer
 
 The output buffer testbench verifies:
 
@@ -150,12 +200,18 @@ A successful simulation ends with an `ALL ... BUFFER TESTS PASSED` message.
 
 ## Verification Limitations
 
-These testbenches verify the individual buffer RTL implementations in simulation.
+These testbenches verify the individual buffer RTL implementations and the
+initial bank management model in simulation.
 
 They do not yet verify:
 
 - Integration with the compute core.
+- Integration of the banked scratchpad with the compute core.
+- Physical BRAM inference or bank port conflicts.
+- AXI DMA or stream-to-scratchpad adapters.
 - Integration with the output operators.
+- Complete production bank ownership and recovery behavior.
+- INT32 partial-sum storage and continuation across K chunks.
 - Full-system memory ownership and bounds checking.
 - Complete GEMM execution.
 - Golden-reference comparison of the final GEMM output.
@@ -168,4 +224,7 @@ These items remain part of the broader RAVEN pre-alpha integration and verificat
 
 When modifying a buffer's interface or internal behavior, update its corresponding testbench to reflect the change.
 Run the relevant testbench after each modification to ensure that existing functionality remains intact.
-The individual memory tests are intended to provide a foundation for later system-level integration and verification.
+The individual memory tests and the banked scratchpad test are intended to
+provide a foundation for later system-level integration and verification.
+The banked scratchpad test should be expanded when the final compute memory
+adapter and DMA packet contract are approved.
