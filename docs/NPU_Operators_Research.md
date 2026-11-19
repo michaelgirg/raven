@@ -1,8 +1,9 @@
 # RAVEN NPU Operators and Datapath Support
 
-**Status:** A standalone one-lane requantization/clamp block and testbench are
-implemented. The broader operator architecture and system integration remain
-proposed. See the [implementation and test instructions](../rtl/operators/README.md).
+**Status:** The one-lane requantization/clamp block is implemented and verified
+both independently and in the Pre-Alpha GEMM-to-INT8-output simulation path.
+The broader operator architecture remains proposed. See the
+[implementation and test instructions](../rtl/operators/README.md).
 
 **Owner:** Quan — NPU Operators + Datapath Support.
 
@@ -17,9 +18,10 @@ RAVEN's proposed compute core produces signed INT32 completed dot-product result
 The first compatibility path should be Deep Autoencoder (AD01): GEMM plus completed-output requantization and fused ReLU. DS-CNN and MobileNetV1 then make depthwise convolution and average pooling important. ResNet-8 adds element-wise ADD, but it is not in Jackie's recommended first three models. Max pooling is retained as an extension because it is not reported in the current five-model inventories.
 
 This document describes the broader design proposal. The implementation link
-above identifies the tested standalone subset; FPGA performance, resources and
-model execution have not been measured. The shared command fields and scratchpad
-interfaces cited below still require integration and verification.
+above identifies the tested requantization path, including the Pre-Alpha GEMM,
+parameter, output-writer, and simulated-storage integration. FPGA performance,
+resources, model execution, synthesizable backing memory, and board readback
+have not been measured.
 
 ## 2. Scope and Architecture Context
 
@@ -154,6 +156,24 @@ Standalone REQUANT, POOL, RELU, and EWADD read/write completed scratchpad tensor
 Evaluate whether four lanes' reduced drain time justifies extra multiplier/rounding pipelines, parameter delivery/cache bandwidth, tags/address paths, and scratchpad writes. No resource or timing fit is assumed. Instrument CYC_STALL_OUT, FIFO occupancy, accepted results, and drain cycles on the same workloads. Hold each lane's data/tag/mask stable under backpressure; the beat-level acceptance contract must match the compute interface. Select the built lane count from those measurements rather than treating the four-lane alternative as already adopted.
 
 Recommended staged work is: (1) define and verify one common requantize/clamp arithmetic helper and fuse it behind GEMM for AD01; (2) add average-pool scratchpad flow for DS-CNN; (3) measure/choose depthwise path; (4) add EWADD when ResNet-8 enters scope; and (5) retain max pool as an optional shared-pool-mode extension. This is a planning order, not a change to the team's opcode map.
+
+### Prototype output-memory responsibilities
+
+The completed Pre-Alpha path carries GEMM results through the requantization
+wrapper and result writer to simulated, byte-strobed OUT0 storage. Prototype
+work is to retain that address, data, strobe, and completion behavior while
+connecting it to synthesizable memory and verifying it on the Ultra96-V2.
+
+Taylor's `rtl/memory/banked_scratchpad.sv` is an initial separate managed-memory
+model: it has six logical banks, ownership and generation checks, 16-byte
+generic write/read transfers by default, and valid/ready read responses. It is
+not yet connected to the NPU top, physical BRAM, or the existing specialized
+buffers. The output writer still needs to be connected to the new memory interface, along with a way to read back the stored results.
+
+Prototype verification should check every output address and stored INT8 byte,
+then read back all 64 values of the 8-by-8 output tile on the Ultra96-V2 against
+the golden result. This is pending hardware integration; no new prototype pass
+is claimed.
 
 ## 8. Verification Considerations
 

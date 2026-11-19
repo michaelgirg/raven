@@ -28,8 +28,11 @@ when the one-entry output register is empty or its current result is accepted.
 While `out_valid_o` is high and `out_ready_i` is low, data and all tags remain
 stable.
 
-The current GEMM core supplies data, row, column, index, and last, but not a
-channel tag. Channel mapping, parameter delivery, and output memory connections still need to be finalized with Michael and Taylor.
+The integrated path uses the column tag as the output-channel index.
+`rtl/top/raven_requant.sv` supplies shared or per-channel PARAM values, and
+`rtl/top/raven_result_writer.sv` converts accepted INT8 results to byte-strobed
+OUT0 writes. The connected Pre-Alpha GEMM-to-output path is verified in
+simulation; this leaf module remains independently reusable.
 
 ## Verification
 
@@ -63,9 +66,24 @@ local library mappings, transcripts and a source-hash/result report. `latest.jso
 points to that report relative to its own directory. Tools are discovered through
 PATH, QUESTA_BIN or `--questa-bin`; `--timeout` bounds each tool invocation.
 
+## Prototype memory work
+
+The Pre-Alpha result path is complete through simulated OUT0 storage. For the
+board prototype, the remaining work is to connect the writer's aligned 128-bit
+data and byte strobe to synthesizable output memory, then verify each output
+address and byte against the expected INT8 result. Taylor's
+`rtl/memory/banked_scratchpad.sv` currently provides a separate managed-memory
+model with bank ownership, generation IDs, 16-byte generic transfers, and
+valid/ready reads; it is not yet connected to the NPU top or physical BRAM.
+
+The prototype readback goal is all 64 INT8 values of the 8-by-8 output tile.
+It requires an agreed output-bank adapter/readback interface and an Ultra96-V2
+test that compares the stored bytes and addresses with the golden result. No
+synthesizable-memory or board readback result is claimed here.
+
 ## Limits
 
-This is one lane only. It does not fetch per-channel parameters, write a
-scratchpad destination, or connect directly to the GEMM core. It assumes valid
-TFLM-prepared multiplier and shift inputs and does not implement a parameter
-range-error response.
+This is one lane only. The leaf module does not fetch parameters or address a
+scratchpad itself; the integrated wrapper and writer provide those functions.
+It assumes valid TFLM-prepared multiplier and shift inputs and does not
+implement a parameter range-error response.
