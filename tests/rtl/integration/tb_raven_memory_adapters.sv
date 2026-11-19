@@ -102,8 +102,10 @@ module tb_raven_read_buffer_adapter #(parameter int KIND = 0);
         // The parity circuit, not a golden scoreboard, must block the response.
         for (int b = 0; b < 128; b++) begin
             reset_adapter(); start_read(24'h000670); fetch_word(pattern(b+51)); wait_response();
-            dut.word_q[b] = !dut.word_q[b];
+            fault_value = dut.word_q ^ (128'h1 << b);
+            force dut.word_q = fault_value;
             tick();
+            release dut.word_q;
             check(integrity_error && !rsp_valid && !req_ready && integrity_addr == 24'h000670,
                   "single-bit corruption detected before response acceptance");
             tick(3); check(integrity_error && !rsp_valid, "fault stays latched until reset");
@@ -126,6 +128,7 @@ module tb_raven_read_buffer_adapter #(parameter int KIND = 0);
 endmodule
 
 module tb_raven_output_buffer_adapter;
+    logic [127:0] fault_value;
     logic clk = 0, rst_n = 0;
     always #5 clk = ~clk;
     logic valid = 0, mem_ready = 0;
@@ -214,8 +217,10 @@ module tb_raven_output_buffer_adapter;
         check(accepted == 21 && committed == 21, "reset attempts did not commit");
         for (int b = 0; b < 128; b++) begin
             reset_adapter(); start_write(24'h000330, 16'b1 << (b/8), b+51); wait_commit();
-            dut.staged_q[b] = !dut.staged_q[b];
+            fault_value = dut.staged_q ^ (128'h1 << b);
+            force dut.staged_q = fault_value;
             tick();
+            release dut.staged_q;
             check(integrity_error && !ready && !mem_valid && integrity_addr == 24'h000330,
                   "each strobed-bit corruption blocks both write and acknowledgement");
             tick(3); check(integrity_error && committed == 21, "no bad write while fault is latched");
