@@ -3,11 +3,11 @@
 
 module tb_banked_scratchpad;
 
-    localparam int BANK_COUNT = 2;
+    localparam int BANK_COUNT = 6;
     localparam int BANK_BYTES = 64;
     localparam int DATA_BYTES = 16;
     localparam int GEN_WIDTH  = 8;
-    localparam int BANK_W     = $clog2(BANK_COUNT);
+    localparam int BANK_W     = 4;
     localparam int ADDR_W     = $clog2(BANK_BYTES);
 
     import raven_scratchpad_pkg::*;
@@ -167,6 +167,7 @@ module tb_banked_scratchpad;
             wr_data       = data;
             wr_strb       = '1;
             wr_valid      = 1'b1;
+            #1;
 
             while (!wr_ready)
                 @(negedge clk);
@@ -236,7 +237,14 @@ module tb_banked_scratchpad;
     endtask
 
     logic [GEN_WIDTH-1:0] act0_generation;
+    logic [GEN_WIDTH-1:0] out0_generation, prior_out0_generation, prm_generation;
+    logic [GEN_WIDTH-1:0] response_generation;
     logic [DATA_BYTES*8-1:0] test_data;
+
+    initial begin
+        #10000;
+        $fatal(1, "Scratchpad test timed out");
+    end
 
     initial begin
         cmd_valid       = 1'b0;
@@ -260,7 +268,7 @@ module tb_banked_scratchpad;
         test_data = 128'h0011_2233_4455_6677_8899_AABB_CCDD_EEFF;
 
         repeat (2)
-            @(posedge clk);
+            @(negedge clk);
 
         rst = 1'b0;
 
@@ -366,16 +374,72 @@ module tb_banked_scratchpad;
             act0_generation
         );
 
-        //reset has to clear all ownership and responses
+        // OUT0 acquires a new owner and generation from FREE.
+        expect_command(CMD_ACQUIRE_WRITE, BANK_OUT0, OWNER_NONE, '0, 32'd16,
+                       RESP_NOT_OWNER, response_generation);
+        expect_command(CMD_ACQUIRE_WRITE, BANK_OUT0, OWNER_NPU, '0, BANK_BYTES+1,
+                       RESP_BAD_RANGE, response_generation);
+        if (bank_state[BANK_OUT0] !== BANK_FREE || bank_generation[BANK_OUT0] !== '0)
+            $fatal(1, "Rejected OUT0 acquisition changed bank state or generation");
+        expect_command(CMD_ACQUIRE_WRITE, BANK_OUT0, OWNER_NPU, '0, 32'd16,
+                       RESP_OK, out0_generation);
+        if (bank_state[BANK_OUT0] !== BANK_NPU_WRITING ||
+            bank_owner[BANK_OUT0] !== OWNER_NPU || bank_length[BANK_OUT0] !== 32'd16 ||
+            out0_generation !== GEN_WIDTH'(1) || bank_generation[BANK_OUT0] !== out0_generation)
+            $fatal(1, "OUT0 did not record its write allocation");
+        write_word(BANK_OUT0, OWNER_NPU, out0_generation, '0, ~test_data);
+        // The standalone model does not have a host drain port yet.
+        for (int lane = 0; lane < DATA_BYTES; lane++) begin
+            if (dut.storage[BANK_OUT0][lane] !== ~test_data[8*lane +: 8])
+                $fatal(1, "OUT0 write did not store byte %0d", lane);
+        end
+        expect_command(CMD_ACQUIRE_WRITE, BANK_OUT0, OWNER_HOST, '0, 32'd16,
+                       RESP_BAD_STATE, response_generation);
+        expect_command(CMD_RELEASE, BANK_OUT0, OWNER_NPU, out0_generation, '0,
+                       RESP_OK, prior_out0_generation);
+        expect_command(CMD_ACQUIRE_WRITE, BANK_OUT0, OWNER_NPU, '0, 32'd16,
+                       RESP_OK, out0_generation);
+        if (out0_generation !== prior_out0_generation + 1'b1)
+            $fatal(1, "Reused OUT0 did not get the next generation");
+        expect_command(CMD_RELEASE, BANK_OUT0, OWNER_NPU, prior_out0_generation, '0,
+                       RESP_NOT_OWNER, response_generation);
+        if (bank_state[BANK_OUT0] !== BANK_NPU_WRITING)
+            $fatal(1, "Stale release changed the new OUT0 allocation");
+
+        // Use literals to check the external control ABI, including the ID gap.
+        if (BANK_PRM != 4'd6 || BANK_OUT1 != 4'd5)
+            $fatal(1, "Unexpected PRM or optional OUT1 logical ID");
+        expect_command(CMD_ACQUIRE_FILL, 4'd6, OWNER_HOST, '0, BANK_BYTES,
+                       RESP_OK, prm_generation);
+        expect_command(CMD_ACQUIRE_FILL, 4'd5, OWNER_HOST, '0, BANK_BYTES,
+                       RESP_BAD_BANK, response_generation);
+        write_word(4'd6, OWNER_HOST, prm_generation, ADDR_W'(BANK_BYTES-DATA_BYTES), test_data);
+        expect_command(CMD_COMMIT, 4'd6, OWNER_HOST, prm_generation, '0,
+                       RESP_OK, response_generation);
+        expect_command(CMD_ACQUIRE_READ, 4'd6, OWNER_HOST, prm_generation, '0,
+                       RESP_OK, response_generation);
+        read_word_with_backpressure(4'd6, OWNER_HOST, prm_generation,
+                                    ADDR_W'(BANK_BYTES-DATA_BYTES), test_data);
+
+        // Reset flushes a pending response and clears both kinds of slots.
+        @(negedge clk);
+        rd_req_valid = 1'b1;
+        @(posedge clk);
+        #1;
+        if (!rd_rsp_valid)
+            $fatal(1, "Expected a pending PRM response before reset");
+        @(negedge clk);
+        rd_req_valid = 1'b0;
         rst = 1'b1;
         @(posedge clk);
         #1;
+        if (rd_rsp_valid || cmd_rsp_valid)
+            $fatal(1, "Reset did not flush pending responses");
 
-        if (bank_state[0] !== BANK_FREE ||
-            bank_owner[0] !== OWNER_NONE ||
-            bank_state[1] !== BANK_FREE ||
-            bank_owner[1] !== OWNER_NONE) begin
-            $fatal(1, "Reset did not clear bank ownership");
+        for (int slot = 0; slot < BANK_COUNT; slot++) begin
+            if (bank_state[slot] !== BANK_FREE || bank_owner[slot] !== OWNER_NONE ||
+                bank_generation[slot] !== '0 || bank_length[slot] !== '0)
+                $fatal(1, "Reset did not clear allocation in slot %0d", slot);
         end
 
         $display("ALL BANKED SCRATCHPAD TESTS PASSED");
