@@ -57,7 +57,13 @@ module raven_banked_scratchpad #(
     parameter int BANK_COUNT = 6,
     parameter int BANK_BYTES = 256,
     parameter int DATA_BYTES = 16,
-    parameter int GEN_WIDTH  = 8
+    parameter int GEN_WIDTH  = 8,
+    parameter string ACT0_INIT_FILE = "",
+    parameter string ACT1_INIT_FILE = "",
+    parameter string WGT0_INIT_FILE = "",
+    parameter string WGT1_INIT_FILE = "",
+    parameter string OUT0_INIT_FILE = "",
+    parameter string PRM_INIT_FILE = ""
 ) (
     input wire clk,
     input wire rst,
@@ -109,8 +115,10 @@ module raven_banked_scratchpad #(
     import raven_scratchpad_pkg::*;
 
     localparam int ADDR_W     = $clog2(BANK_BYTES);
+    localparam int WORDS_PER_BANK = BANK_BYTES / DATA_BYTES;
 
     logic [7:0] storage [BANK_COUNT][BANK_BYTES];
+    logic [DATA_BYTES*8-1:0] init_words [WORDS_PER_BANK];
 
     bank_state_e bank_state [BANK_COUNT];
     bank_owner_e bank_owner [BANK_COUNT];
@@ -135,13 +143,30 @@ module raven_banked_scratchpad #(
     assign cmd_ready_o = !cmd_rsp_valid_o || cmd_rsp_ready_i;
 
     assign wr_ready_o =
-        wr_valid_i &&
         valid_bank(wr_bank_i) &&
-        (wr_addr_i + DATA_BYTES <= BANK_BYTES);
+        wr_addr_i <= ADDR_W'(BANK_BYTES-DATA_BYTES) &&
+        (wr_addr_i % DATA_BYTES) == 0 &&
+        valid_access(
+            wr_bank_i,
+            wr_owner_i,
+            wr_generation_i,
+            wr_addr_i
+        ) &&
+        ((bank_state[wr_slot] == BANK_DMA_FILLING) ||
+         (bank_state[wr_slot] == BANK_NPU_WRITING));
 
     assign rd_req_ready_o =
-        !rd_rsp_valid_o ||
-        rd_rsp_ready_i;
+        !rd_rsp_valid_o &&
+        valid_bank(rd_bank_i) &&
+        rd_addr_i <= ADDR_W'(BANK_BYTES-DATA_BYTES) &&
+        (rd_addr_i % DATA_BYTES) == 0 &&
+        valid_access(
+            rd_bank_i,
+            rd_owner_i,
+            rd_generation_i,
+            rd_addr_i
+        ) &&
+        bank_state[rd_slot] == BANK_COMPUTING;
 
     genvar g;
     generate
@@ -176,7 +201,7 @@ module raven_banked_scratchpad #(
         input logic [ADDR_W-1:0] address
     );
         return owns_bank(bank, owner, generation) &&
-               (address + DATA_BYTES <= BANK_BYTES);
+               address <= ADDR_W'(BANK_BYTES-DATA_BYTES);
     endfunction
 
     task automatic respond(
@@ -189,6 +214,58 @@ module raven_banked_scratchpad #(
             cmd_rsp_generation_o <= generation;
         end
     endtask
+
+    // Fixed-fixture preload.  .hex files use one 128-bit little-endian word
+    // per line, in byte-address order: bit [7:0] is byte address 0.
+    // This is a static initializer; runtime fills and DMA writes still use
+    // the generic strobed write interface.
+    initial begin
+        if (BANK_BYTES % DATA_BYTES != 0)
+            $fatal(1, "BANK_BYTES must be a multiple of DATA_BYTES");
+
+        if (ACT0_INIT_FILE != "") begin
+            init_words = '{default: '0};
+            $readmemh(ACT0_INIT_FILE, init_words);
+            for (int word = 0; word < WORDS_PER_BANK; word++)
+                for (int b = 0; b < DATA_BYTES; b++)
+                    storage[0][word*DATA_BYTES+b] = init_words[word][b*8+:8];
+        end
+        if (ACT1_INIT_FILE != "") begin
+            init_words = '{default: '0};
+            $readmemh(ACT1_INIT_FILE, init_words);
+            for (int word = 0; word < WORDS_PER_BANK; word++)
+                for (int b = 0; b < DATA_BYTES; b++)
+                    storage[1][word*DATA_BYTES+b] = init_words[word][b*8+:8];
+        end
+        if (WGT0_INIT_FILE != "") begin
+            init_words = '{default: '0};
+            $readmemh(WGT0_INIT_FILE, init_words);
+            for (int word = 0; word < WORDS_PER_BANK; word++)
+                for (int b = 0; b < DATA_BYTES; b++)
+                    storage[2][word*DATA_BYTES+b] = init_words[word][b*8+:8];
+        end
+        if (WGT1_INIT_FILE != "") begin
+            init_words = '{default: '0};
+            $readmemh(WGT1_INIT_FILE, init_words);
+            for (int word = 0; word < WORDS_PER_BANK; word++)
+                for (int b = 0; b < DATA_BYTES; b++)
+                    storage[3][word*DATA_BYTES+b] = init_words[word][b*8+:8];
+        end
+        if (OUT0_INIT_FILE != "") begin
+            init_words = '{default: '0};
+            $readmemh(OUT0_INIT_FILE, init_words);
+            for (int word = 0; word < WORDS_PER_BANK; word++)
+                for (int b = 0; b < DATA_BYTES; b++)
+                    storage[4][word*DATA_BYTES+b] = init_words[word][b*8+:8];
+        end
+        if (PRM_INIT_FILE != "") begin
+            init_words = '{default: '0};
+            $readmemh(PRM_INIT_FILE, init_words);
+            for (int word = 0; word < WORDS_PER_BANK; word++)
+                for (int b = 0; b < DATA_BYTES; b++)
+                    storage[5][word*DATA_BYTES+b] = init_words[word][b*8+:8];
+        end
+    end
 
     always_ff @(posedge clk or posedge rst) begin
         if (rst) begin
@@ -203,6 +280,43 @@ module raven_banked_scratchpad #(
                 bank_owner[i]      <= OWNER_NONE;
                 bank_generation[i] <= '0;
                 bank_length[i]     <= '0;
+            end
+
+            if (ACT0_INIT_FILE != "") begin
+                bank_state[0] <= BANK_READY;
+                bank_owner[0] <= OWNER_DMA;
+                bank_generation[0] <= GEN_WIDTH'(1);
+                bank_length[0] <= BANK_BYTES;
+            end
+            if (ACT1_INIT_FILE != "") begin
+                bank_state[1] <= BANK_READY;
+                bank_owner[1] <= OWNER_DMA;
+                bank_generation[1] <= GEN_WIDTH'(1);
+                bank_length[1] <= BANK_BYTES;
+            end
+            if (WGT0_INIT_FILE != "") begin
+                bank_state[2] <= BANK_READY;
+                bank_owner[2] <= OWNER_DMA;
+                bank_generation[2] <= GEN_WIDTH'(1);
+                bank_length[2] <= BANK_BYTES;
+            end
+            if (WGT1_INIT_FILE != "") begin
+                bank_state[3] <= BANK_READY;
+                bank_owner[3] <= OWNER_DMA;
+                bank_generation[3] <= GEN_WIDTH'(1);
+                bank_length[3] <= BANK_BYTES;
+            end
+            if (OUT0_INIT_FILE != "") begin
+                bank_state[4] <= BANK_READY;
+                bank_owner[4] <= OWNER_DMA;
+                bank_generation[4] <= GEN_WIDTH'(1);
+                bank_length[4] <= BANK_BYTES;
+            end
+            if (PRM_INIT_FILE != "") begin
+                bank_state[5] <= BANK_READY;
+                bank_owner[5] <= OWNER_DMA;
+                bank_generation[5] <= GEN_WIDTH'(1);
+                bank_length[5] <= BANK_BYTES;
             end
         end else begin
 

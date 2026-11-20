@@ -22,6 +22,7 @@ matrix. Connected pipeline coverage is described in the
 | `tb_parameter_buffer.sv` | Tests bias and quantization parameter storage and retrieval. |
 | `tb_output_buffer.sv` | Tests output matrix storage and retrieval. |
 | `tb_banked_scratchpad.sv` | Tests managed bank lifecycle, ownership, generic storage, and handshake behavior. |
+| `tb_banked_scratchpad_preload.sv` | Tests fixed 128-bit `.hex` preload and reset-to-ready behavior. |
 
 ## Running the Tests
 
@@ -37,11 +38,13 @@ vlog -sv ../../../../rtl/memory/weight_buffer.sv ../../../../tests/rtl/memory/tb
 vlog -sv ../../../../rtl/memory/parameter_buffer.sv ../../../../tests/rtl/memory/tb_parameter_buffer.sv
 vlog -sv ../../../../rtl/memory/output_buffer.sv ../../../../tests/rtl/memory/tb_output_buffer.sv
 vlog -sv ../../../../rtl/memory/banked_scratchpad.sv ../../../../tests/rtl/memory/tb_banked_scratchpad.sv
+vlog -sv ../../../../rtl/memory/banked_scratchpad.sv ../../../../tests/rtl/memory/tb_banked_scratchpad_preload.sv
 vsim -c -onfinish exit -sva -immedassert work.tb_activation_buffer -do "run -all; quit -f"
 vsim -c -onfinish exit -sva -immedassert work.tb_weight_buffer -do "run -all; quit -f"
 vsim -c -onfinish exit -sva -immedassert work.tb_parameter_buffer -do "run -all; quit -f"
 vsim -c -onfinish exit -sva -immedassert work.tb_output_buffer -do "run -all; quit -f"
 vsim -c -onfinish exit -sva -immedassert work.tb_banked_scratchpad -do "run -all; quit -f"
+vsim -c -onfinish exit -sva -immedassert work.tb_banked_scratchpad_preload -do "run -all; quit -f"
 ```
 
 Run simulations sequentially. Check for each `ALL ... TESTS PASSED` marker and
