@@ -26,14 +26,18 @@ The banked scratchpad is the first managed-memory model for the proposed RAVEN
 scratchpad architecture. It is intentionally independent from the current
 compute-memory interface while the adapter contract is being reviewed.
 
-The default model contains six logical banks:
+The default model contains six logical banks. Commands and data requests use
+four-bit logical IDs matching the control interface. Status arrays still use
+dense storage slots.
 
-| Bank | Role |
-|---|---|
-| `ACT0`, `ACT1` | Activation ping-pong banks |
-| `WGT0`, `WGT1` | Weight ping-pong banks |
-| `OUT0` | Output or future partial-sum bank |
-| `PRM` | Parameter bank |
+| Bank | Logical ID | Status slot | Role |
+|---|---|---|---|
+| `ACT0`, `ACT1` | 0, 1 | 0, 1 | Activation ping-pong banks |
+| `WGT0`, `WGT1` | 2, 3 | 2, 3 | Weight ping-pong banks |
+| `OUT0` | 4 | 4 | Output or future partial-sum bank |
+| `PRM` | 6 | 5 | Parameter bank |
+
+ID 5 is reserved for optional OUT1. This model rejects it because OUT1 is absent.
 
 The module is parameterized by bank count, bank capacity, transfer width, and
 generation width. Its default storage model is six 256-byte banks with
@@ -41,17 +45,17 @@ generation width. Its default storage model is six 256-byte banks with
 
 ### Bank lifecycle
 
-Each bank exposes one of these states:
+The current model supports these normal allocation paths:
 
 ```text
 FREE -> DMA_FILLING -> READY -> COMPUTING -> FREE
-                         |
-                         +-> NPU_WRITING -> FULL -> DRAINING -> FREE
+FREE -> NPU_WRITING -> FREE
 ```
 
 `ERROR` is available for failed or aborted ownership. A fill does not become
 `READY` until an explicit `CMD_COMMIT` command is accepted. Bank ownership,
 generation ID, and requested length are visible through the status outputs.
+`FULL` and `DRAINING` are reserved for the future output-drain lifecycle.
 
 ### Management commands
 
@@ -60,7 +64,9 @@ The command interface supports:
 - `CMD_ACQUIRE_FILL`: acquire a `FREE` bank for DMA or host filling.
 - `CMD_COMMIT`: publish a completed fill as `READY`.
 - `CMD_ACQUIRE_READ`: acquire a `READY` bank for compute reads.
-- `CMD_ACQUIRE_WRITE`: acquire a `FREE` bank for NPU writes.
+- `CMD_ACQUIRE_WRITE`: acquire a `FREE` bank for NPU writes. Supply the new
+  owner and requested length. The command returns the new generation for
+  subsequent writes and release.
 - `CMD_RELEASE`: return an owned bank to `FREE`.
 - `CMD_ABORT`: move an owned bank to `ERROR`.
 
@@ -75,8 +81,8 @@ bank. Reads use a request/response valid/ready pair and are valid only for an
 owned `COMPUTING` bank. Read data remains stable while the response is stalled.
 
 Generation IDs distinguish a current bank allocation from a previous use of the
-same bank. This provides a basis for rejecting stale requests after release,
-reuse, or reset.
+same bank. Reset clears generations, so requesters must discard outstanding
+transactions and old allocation handles when they reset together.
 
 ## 2. Activation Buffer
 
@@ -238,7 +244,6 @@ The integration logic must ensure that required data has been written before it 
   requests or responses are pending.
 - Parameter buffer does not currently track whether all required
   parameters have been loaded.
-- Weight buffer verification is pending.
 - The banked scratchpad is a simulation model and is not connected to the
   compute top, physical BRAM, DMA, or the existing specialized buffers.
 - Invalid generic writes are currently suppressed by the storage path rather

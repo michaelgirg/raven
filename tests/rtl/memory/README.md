@@ -25,53 +25,27 @@ matrix. Connected pipeline coverage is described in the
 
 ## Running the Tests
 
-The testbenches use Icarus Verilog.
+Add Questa's commands to PATH. Create and enter `build/tests/memory/standalone`
+under the repository, then run:
 
-Compile and run each test independently from the project root.
-
-### Activation Buffer
-
-```bash
-iverilog -g2012 -s tb_activation_buffer \
-    -o activation_test \
-    rtl/memory/activation_buffer.sv \
-    test/rtl/memory/tb_activation_buffer.sv
-
-vvp activation_test
+```sh
+vmap -c
+vlib work
+vmap work work
+vlog -sv ../../../../rtl/memory/activation_buffer.sv ../../../../tests/rtl/memory/tb_activation_buffer.sv
+vlog -sv ../../../../rtl/memory/weight_buffer.sv ../../../../tests/rtl/memory/tb_weight_buffer.sv
+vlog -sv ../../../../rtl/memory/parameter_buffer.sv ../../../../tests/rtl/memory/tb_parameter_buffer.sv
+vlog -sv ../../../../rtl/memory/output_buffer.sv ../../../../tests/rtl/memory/tb_output_buffer.sv
+vlog -sv ../../../../rtl/memory/banked_scratchpad.sv ../../../../tests/rtl/memory/tb_banked_scratchpad.sv
+vsim -c -onfinish exit -sva -immedassert work.tb_activation_buffer -do "run -all; quit -f"
+vsim -c -onfinish exit -sva -immedassert work.tb_weight_buffer -do "run -all; quit -f"
+vsim -c -onfinish exit -sva -immedassert work.tb_parameter_buffer -do "run -all; quit -f"
+vsim -c -onfinish exit -sva -immedassert work.tb_output_buffer -do "run -all; quit -f"
+vsim -c -onfinish exit -sva -immedassert work.tb_banked_scratchpad -do "run -all; quit -f"
 ```
 
-### Weight Buffer
-
-```bash
-iverilog -g2012 -s tb_weight_buffer \
-    -o weight_test \
-    rtl/memory/weight_buffer.sv \
-    test/rtl/memory/tb_weight_buffer.sv
-
-vvp weight_test
-```
-
-### Parameter Buffer
-
-```bash
-iverilog -g2012 -s tb_parameter_buffer \
-    -o parameter_test \
-    rtl/memory/parameter_buffer.sv \
-    test/rtl/memory/tb_parameter_buffer.sv
-
-vvp parameter_test
-```
-
-### Output Buffer
-
-```bash
-iverilog -g2012 -s tb_output_buffer \
-    -o output_test \
-    rtl/memory/output_buffer.sv \
-    test/rtl/memory/tb_output_buffer.sv
-
-vvp output_test
-```
+Run simulations sequentially. Check for each `ALL ... TESTS PASSED` marker and
+zero simulator errors because Questa can exit successfully after `$fatal`.
 
 ## Test Coverage
 
@@ -90,6 +64,11 @@ The banked scratchpad testbench verifies:
 - A read response clears after valid/ready acceptance.
 - A bank can be released back to `FREE`.
 - An old generation cannot commit after the bank is released.
+- OUT0 accepts a write acquisition from `FREE`, records the owner and length,
+  and stores the authorized write. Invalid owners, oversized allocations,
+  duplicate acquisitions, and stale release requests are rejected.
+- PRM supports fill, write, and read through logical ID 6. The absent OUT1 at
+  ID 5 is rejected.
 - Reset clears bank ownership and outstanding responses.
 
 ### 2. Activation Buffer
