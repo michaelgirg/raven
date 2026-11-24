@@ -2,8 +2,9 @@
 """Run the board-prototype AXI bridge testbench in Questa; Python 3.9+, standard library only.
 
 Steps: assertion guards, compile (NPU RTL + board RTL + bridge TB), simulate
-tb_raven_axil_bridge with the default OUT0 latency and again with zero latency and a
-different seed, scan each transcript, then compile the board RTL with SYNTHESIS defined.
+tb_raven_axil_bridge with the default OUT0 latency, again with zero latency and a
+different seed, and once against raven_board_top_v in PATTERN mode with the board's
+default latency; scan each transcript, then compile the board RTL with SYNTHESIS defined.
 The report goes to build/tests/board/questa/run_*/results.json and latest.json.
 
 --no-sva-guard is for simulators that cannot run concurrent assertions (for example
@@ -26,7 +27,8 @@ import time
 
 ROOT = Path(__file__).resolve().parents[3]
 TEST = ROOT / 'tests/rtl/board'
-BOARD_RTL = [ROOT / p for p in ('rtl/board/raven_axil_bridge.sv', 'rtl/board/raven_out0_pattern.sv')]
+BOARD_RTL = [ROOT / p for p in ('rtl/board/raven_axil_bridge.sv', 'rtl/board/raven_out0_pattern.sv',
+                                 'rtl/board/raven_board_top.sv', 'rtl/board/raven_board_top_v.v')]
 SOURCES = [ROOT / p for p in (
     'rtl/control/raven_ctrl_pkg.sv', 'rtl/control/raven_ctrl_regs.sv', 'rtl/control/raven_ctrl.sv',
     'rtl/compute/raven_mac_pe.sv', 'rtl/compute/raven_mac_array.sv',
@@ -45,8 +47,8 @@ SOURCES = [ROOT / p for p in (
 SCRIPTS = [TEST / 'run_questa.py', TEST / 'run_batch.do']
 # Tests the testbench must report, each by a "TEST Wn PASS" line.
 TESTS = [f'W{i}' for i in range(1, 13)]
-# Simulation configurations: (label, OUT0 latency, seed).
-CONFIGS = [('bridge', 4, 1), ('bridge-latency0', 0, 2)]
+# Simulation configurations: (label, OUT0 latency, seed, test the board wrapper).
+CONFIGS = [('bridge', 4, 1, 0), ('bridge-latency0', 0, 2, 0), ('board-top', 1, 3, 1)]
 ERROR = re.compile(r'\*\*\s+(?:Warning|Error|Fatal)\b|^\s*#?\s*Errors:\s*[1-9]', re.M)
 BENIGN_WARNING = re.compile(r'^.*\*\*\s+Warning:\s+\(vopt-10587\).*$', re.M)
 # ModelSim-only: SVA is parsed but not simulated. Allowed only with --no-sva-guard.
@@ -190,17 +192,18 @@ def main():
             simulate('guard-sva', 'tb_assertion_probe', ['+SVA'], marker='ASSERT_PROBE_SVA_ACTIVE', rejection=True)
 
         configurations = {}
-        for label, latency, seed in CONFIGS:
+        for label, latency, seed, board_top in CONFIGS:
             transcript = simulate(label, 'tb_raven_axil_bridge',
                                   ['+TESTS=' + ','.join(wanted), f'+SEED={seed}'],
-                                  generics=[f'-gOUT0_LATENCY={latency}'], marker='ALL TESTS PASSED')
+                                  generics=[f'-gOUT0_LATENCY={latency}', f'-gBOARD_TOP={board_top}'],
+                                  marker='ALL TESTS PASSED')
             seen = set(re.findall(r'^#\s*TEST (W\d+) PASS\s*$', transcript, re.M))
             missing = [t for t in wanted if t not in seen]
             summary = SUMMARY.search(transcript)
             if missing or not summary or int(summary.group(2)) != 0:
                 raise RuntimeError(f'{label}: missing PASS records {missing} or bad summary')
             configurations[label] = {
-                'out0_latency': latency, 'seed': seed,
+                'out0_latency': latency, 'seed': seed, 'board_top': bool(board_top),
                 'tests': sorted(seen, key=lambda t: int(t[1:])),
                 'pass_records': int(summary.group(1)), 'checks': int(summary.group(3)),
                 'axi_writes': int(summary.group(4)), 'axi_reads': int(summary.group(5))}

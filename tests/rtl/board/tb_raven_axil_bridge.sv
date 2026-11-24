@@ -13,9 +13,15 @@
 //   - forbid native accesses while a response is held, and both native ports at once;
 //   - forbid any B or R response without a matching outstanding request (stale responses).
 //
+// With BOARD_TOP=1 the same tests run against raven_board_top_v in "PATTERN" mode instead:
+// the Verilog shell, wrapper, bridge, NPU and pattern responder exactly as the block design
+// instantiates them, with tied-idle bank ports. The monitors observe the wrapper's internal
+// nets hierarchically, and fault_inject forces the wrapper's datapath reset net low.
+//
 // Plusargs: +TESTS=<list> (e.g. "W1,W4"; default all), +SEED=<n> (default 1).
 module tb_raven_axil_bridge #(
-    parameter int OUT0_LATENCY = 4 // Pattern responder latency; the runner also uses 0.
+    parameter int OUT0_LATENCY = 4, // Pattern responder latency; the runner also uses 0.
+    parameter bit BOARD_TOP = 0 // 1: test raven_board_top_v instead of the separate parts.
 );
     import raven_ctrl_pkg::*;
     import axil_master_pkg::*;
@@ -40,6 +46,7 @@ module tb_raven_axil_bridge #(
     wire lrst_n; // NPU local_rst_no.
     wire dp_rst_n = lrst_n && !fault_inject;
 
+    if (!BOARD_TOP) begin : g_parts
     raven_axil_bridge dut (
         .s_axi_aclk(clk), .s_axi_aresetn(rst_n),
         .s_axi_awaddr(axi.awaddr), .s_axi_awprot(3'd0), .s_axi_awvalid(axi.awvalid), .s_axi_awready(axi.awready),
@@ -99,6 +106,32 @@ module tb_raven_axil_bridge #(
     sim_write_memory #(.BYTES(OUT0_BYTES), .SEED(27)) m_out0 (.clk_i(clk), .rst_ni(lrst_n), .stalls_i(1'b0),
         .w_valid_i(ow_valid), .w_ready_o(ow_ready), .w_addr_i(ow_addr), .w_data_i(ow_data),
         .w_strb_i(ow_strb), .writes_o(out_writes), .last_write_cycle_o(out_last_cycle));
+    end else begin : g_board
+        raven_board_top_v #(.OUT0_SOURCE("PATTERN"), .OUT0_LATENCY(OUT0_LATENCY)) u_board (
+            .aclk(clk), .aresetn(rst_n),
+            .s_axi_awaddr(axi.awaddr), .s_axi_awprot(3'd0), .s_axi_awvalid(axi.awvalid), .s_axi_awready(axi.awready),
+            .s_axi_wdata(axi.wdata), .s_axi_wstrb(axi.wstrb), .s_axi_wvalid(axi.wvalid), .s_axi_wready(axi.wready),
+            .s_axi_bresp(axi.bresp), .s_axi_bvalid(axi.bvalid), .s_axi_bready(axi.bready),
+            .s_axi_araddr(axi.araddr), .s_axi_arprot(3'd0), .s_axi_arvalid(axi.arvalid), .s_axi_arready(axi.arready),
+            .s_axi_rdata(axi.rdata), .s_axi_rresp(axi.rresp), .s_axi_rvalid(axi.rvalid), .s_axi_rready(axi.rready));
+        // Observe the wrapper's internal nets for the monitors.
+        assign reg_valid = u_board.u_top.reg_valid;
+        assign reg_ready = u_board.u_top.reg_ready;
+        assign reg_write = u_board.u_top.reg_write;
+        assign reg_addr = u_board.u_top.reg_addr;
+        assign o_rq_valid = u_board.u_top.out0_rq_valid;
+        assign o_rq_ready = u_board.u_top.out0_rq_ready;
+        assign o_rq_addr = u_board.u_top.out0_rq_addr;
+        assign lrst_n = u_board.u_top.local_rst_n;
+        // A latched fault holds the datapath reset low inside the wrapper.
+        always @(fault_inject)
+            if (fault_inject) force u_board.u_top.local_rst_n = 1'b0;
+            else release u_board.u_top.local_rst_n;
+        // The pattern source never lets the NPU touch a bank.
+        always @(posedge clk)
+            if (rst_n && (u_board.u_top.out0_w_valid && u_board.u_top.out0_w_ready))
+                $fatal(1, "CHECK FAILED: OUT0 write accepted in PATTERN mode");
+    end
 
     // ---------------------------------------------------------------- monitors
     longint unsigned cycle;
