@@ -1,6 +1,8 @@
 # Board prototype plan: control bridge and board wrapper (Nahjay)
 
-**Status:** planned. Nothing below is implemented yet.
+**Status:** Phases 1–2 implemented. W1–W12 pass under ModelSim ASE 18.1 with
+`--no-sva-guard` (immediate checks only); a licensed Questa run with SVA is still
+needed for acceptance evidence. Phases 3–6 not started.
 **Owner:** Nahjay (control/board bring-up). **Working branch:** `nahjay_control_prototype`.
 **Goal:** one resident `M=8, K=16, N=8` GEMM on the Ultra96-V2. A live START
 reaches DONE, and all 64 OUT0 bytes read back over JTAG match the golden.

@@ -162,9 +162,7 @@ module raven_axil_bridge (
                         end else if (s_axi_araddr[13:12] == REGION_CSR) state_q <= S_REG_REQ;
                         else if (s_axi_araddr[13:12] == REGION_UNMAP) begin
                             resp_q <= RESP_DECERR; state_q <= S_R;
-                        end else if (!local_rst_ni) begin
-                            resp_q <= RESP_SLVERR; state_q <= S_R;
-                        end else state_q <= S_OUT_REQ;
+                        end else state_q <= S_OUT_REQ; // S_OUT_REQ handles a datapath reset (B5).
                     end
                 end
                 S_REG_REQ: if (reg_ready_i) state_q <= S_REG_RSP;
