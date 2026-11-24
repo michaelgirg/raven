@@ -1,0 +1,76 @@
+<mxfile host="app.diagrams.net" version="24.0.0">
+  <diagram id="ctrl-fsm" name="Control FSM">
+    <mxGraphModel dx="1400" dy="600" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1500" pageHeight="520" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <mxCell id="s_idle" value="IDLE" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=20;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="120" width="140" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="s_check" value="CHECK" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=20;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="280" y="120" width="140" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="s_issue" value="ISSUE" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=20;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="520" y="120" width="140" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="s_run" value="RUN" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=20;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="760" y="120" width="140" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="s_drain" value="DRAIN" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=20;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1000" y="120" width="140" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="s_retire" value="RETIRE" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=20;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1240" y="120" width="140" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="s_error" value="ERROR" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=20;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="880" y="300" width="140" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="s_halt" value="HALTED" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=20;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1240" y="300" width="140" height="70" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="e1" value="START" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;strokeWidth=2;fontSize=14;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="s_idle" target="s_check">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e2" value="valid" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;strokeWidth=2;fontSize=14;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="s_check" target="s_issue">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e3" value="accepted" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;strokeWidth=2;fontSize=14;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="s_issue" target="s_run">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e4" value="compute done" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;strokeWidth=2;fontSize=14;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="s_run" target="s_drain">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e5" value="results stored" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;strokeWidth=2;fontSize=14;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="s_drain" target="s_retire">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_done" value="done" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;strokeWidth=2;fontSize=14;labelBackgroundColor=#ffffff;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="s_retire" target="s_idle">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points"><mxPoint x="1310" y="50"/><mxPoint x="110" y="50"/></Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="e_chk_err" value="invalid" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;strokeWidth=2;fontSize=14;strokeColor=#b85450;fontColor=#b85450;labelBackgroundColor=#ffffff;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="s_check" target="s_error">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points"><mxPoint x="350" y="335"/></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_run_err" value="error" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;strokeWidth=2;fontSize=14;strokeColor=#b85450;fontColor=#b85450;labelBackgroundColor=#ffffff;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.25;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="s_run" target="s_error">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_drain_err" value="error" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;strokeWidth=2;fontSize=14;strokeColor=#b85450;fontColor=#b85450;labelBackgroundColor=#ffffff;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.75;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="s_drain" target="s_error">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_err_halt" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;strokeWidth=2;" edge="1" parent="1" source="s_error" target="s_halt">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_halt_idle" value="SOFT_RESET" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;strokeWidth=2;fontSize=14;dashed=1;labelBackgroundColor=#ffffff;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="s_halt" target="s_idle">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points"><mxPoint x="1310" y="430"/><mxPoint x="110" y="430"/></Array>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
