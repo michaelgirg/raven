@@ -56,6 +56,11 @@ Always use the `.bit` and `psu_init.tcl` from the same build.
 
 ## Bring up the board
 
+A prebuilt package is committed in [handoff/](handoff/README.md):
+`raven_board_pattern.zip` holds the PATTERN build's files and short bring-up steps, so
+the board can be brought up without rebuilding. The commands below use a local build;
+with the zip, use the folder you unzipped it to instead of `build/hw/board/handoff`.
+
 Hardware: Ultra96-V2 with a JTAG pod on the J3 header (for example Avnet
 `AES-ACC-U96-JTAG`). Set boot mode switch SW3 to JTAG, or power up with no SD card, so
 no SD image takes over the PS.

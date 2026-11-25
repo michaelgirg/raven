@@ -8,8 +8,10 @@ out-of-context synthesis passes (0 critical warnings, +11.2 ns at 20 ns), and
 `hw/build.tcl` builds the PATTERN bitstream with pl_clk0 at 50.000 MHz, WNS +7.667 ns,
 WHS +0.012 ns, 0 critical warnings, and the RAVEN slave at 0xA4000000/16K. Not yet run on
 the board (xsdb bring-up and `run_fixture.tcl -smoke`). Phase 4 is blocked on O1–O3.
-Phase 6: Vivado evidence (`evidence/vivado/board-prototype/`) and the `hw/README.md` build
-and bring-up guide are done; Questa evidence and the board run are pending.
+Phase 6: Vivado evidence (`evidence/vivado/board-prototype/`), the `hw/README.md` build
+and bring-up guide, and the PATTERN handoff package (`hw/handoff/raven_board_pattern.zip`,
+rebuilt from `3cba04a`) are done; Questa evidence and the board run are pending. The last
+step of the prototype is in §13.
 **Owner:** Nahjay (control/board bring-up). **Working branch:** `nahjay_control_prototype`.
 **Goal:** one resident `M=8, K=16, N=8` GEMM on the Ultra96-V2. A live START
 reaches DONE, and all 64 OUT0 bytes read back over JTAG match the golden.
@@ -315,6 +317,49 @@ One commit per row, in order, on `nahjay_control_prototype`, after that row's ch
 | P8 | 5 | `hw/debug/board_bringup_xsdb.tcl`, `hw/debug/run_fixture.tcl` | `-smoke` mode passes on the board | `Add Hardware Manager fixture script` |
 | P9 | 4 | `rtl/board/raven_board_top.sv`, `tests/rtl/board/tb_raven_board_top.sv`, runner | W13 passes | `Run the GEMM fixture end to end over AXI` |
 | P10 | 6 | `evidence/questa/board/*`, `evidence/vivado/board-prototype/*`, `hw/README.md` | files come from passing runs | `Add board prototype evidence and bring-up guide` |
+| P11 | 6 | `hw/handoff/raven_board_pattern.zip`, `hw/handoff/README.md` | built from the committed scripts, 50 MHz and timing met | `Add PATTERN board handoff package` |
+| P12 | 4, 6 | memory adapter connection, `tb_raven_board_top.sv`, `hw/handoff/raven_board_memory.zip`, evidence | W13 passes; MEMORY build meets 50 MHz; 64/64 on the board | `Add MEMORY board build and GEMM demo handoff` |
 
 P7 and P8 can land before P9: the Tcl is built and smoke-tested with the pattern
 source while the memory adapter is finished.
+
+## 13. Remaining work
+
+Phases 1–3 and 5 are done and committed, as are the Vivado evidence and the
+`hw/README.md` build and bring-up guide. Michael has the PATTERN bring-up package in
+`hw/handoff/raven_board_pattern.zip` for README steps 1–2 (JTAG, PS initialization,
+clock, address map, bridge, and a live NOP START → DONE).
+
+### Final step: connect Taylor's memory interface and ship the demo bitstream
+
+This is the last step of the prototype. It starts when Taylor shares the memory port
+list ("the Phase 4 names"). Needed from Taylor (O1–O3):
+
+- the adapter module name and its source files
+- the signal names for each logical port: ACT0, ACT1, WGT0, WGT1, PRM port A, PRM
+  port B (read request/response), the OUT0 write port, and the OUT0 read port that
+  `raven_axil_bridge` uses (`out0_rd`, 13-bit offset, 128-bit response)
+- the reset input and its polarity; it must follow the NPU's `local_rst_no`
+- how the `act.hex`, `wgt.hex` and `prm.hex` fixture images are loaded, and what
+  happens to them after SOFT_RESET (O3)
+- the answer for ACT1/WGT1 storage (O2)
+
+Then:
+
+1. In `rtl/board/raven_board_top.sv`, replace the `g_unsupported` branch with a
+   `"MEMORY"` branch that instantiates the adapter on the NPU bank ports, the `out0_rd`
+   port and `local_rst_n`, and passes the fixture init files.
+2. Add the adapter sources to `raven::rtl_sources` in `hw/board_settings.tcl`, and the
+   fixture `.hex` files to the project in `hw/create_project.tcl`.
+3. Write `tests/rtl/board/tb_raven_board_top.sv` (W13, Phase 4) and add it to
+   `tests/rtl/board/run_questa.py`. Hand it to Quan for the integrated golden check.
+4. Rebuild with `hw/build.tcl -tclargs -out0_memory 1`. Confirm 50 MHz and timing,
+   package `hw/handoff/raven_board_memory.zip`, and update
+   `evidence/vivado/board-prototype/`.
+5. Michael runs README step 3 on the board and sends Quan `out0.bin`. Quan's 64/64 log
+   goes into the evidence. Commit as P12.
+
+Still open but not blocking this step: Michael's results from the PATTERN smoke test
+(they may need small fixes to `board_bringup_xsdb.tcl` or `run_fixture.tcl`), and a
+licensed Questa run of `tests/rtl/board/run_questa.py` with SVA for
+`evidence/questa/board/`.

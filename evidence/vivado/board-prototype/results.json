@@ -1,7 +1,7 @@
 {
   "scope": "Ultra96-V2 board prototype, OUT0_SOURCE PATTERN (bridge/JTAG bring-up build); not yet run on the board",
-  "base_revision": "4be60346923617a01de000c85ba3f6248c38d502",
-  "revision_note": "Built from the base revision plus the then-uncommitted Phase 5 scripts and the integer OUT0_MEMORY shell parameter. After this build the scripts changed only in how build_info.txt finds the git revision and in naming the -1-i part explicitly, which the board part had already selected.",
+  "base_revision": "3cba04a1d25104af216fc91c0060edb6b53efaed",
+  "revision_note": "Reports were curated from the first passing build (base 4be6034 plus the then-uncommitted Phase 5 scripts). The handoff package was rebuilt from 3cba04a with identical clock, timing and critical-warning results; handoff_sha256 refers to that rebuild.",
   "tool": "Vivado 2025.2 (win64)",
   "board_part": "avnet.com:ultra96v2:part0:1.2",
   "part": "xczu3eg-sbva484-1-i",
@@ -50,8 +50,8 @@
     "note": "Bank ports are tied idle in PATTERN mode, so logic reachable only through bank data is trimmed; hw/check_npu_synthesis.tcl remains the NPU estimate."
   },
   "handoff_sha256": {
-    "raven_board.bit": "d7a3fb5affe9041b2e0f555891912083fcb86e19fe3a5cd69a4909e8db93486f",
-    "raven_board.xsa": "c06895fc664349d04ffa24a9d4ba3f6697dd83f3cc393c19cfcf700ce62f73c8",
+    "raven_board.bit": "134879a5f1af2a315842260bd589d37f35967d0d094a49d856f4c3e870988c3c",
+    "raven_board.xsa": "d43a8f0c5f64ddadd929c2f007786260860bbd583b7b933dbc992ffe8da5d41f",
     "psu_init.tcl": "34015b22fdc4138f17cab44a6502668bd1120694e0cddf378d3a2bf96945af0f"
   },
   "source_sha256": {
@@ -83,5 +83,9 @@
     "On-board bring-up (board_bringup_xsdb.tcl) and run_fixture.tcl -smoke",
     "MEMORY build and the 64-byte GEMM readback (Phase 4, waiting on the bank adapter)",
     "Licensed Questa run of tests/rtl/board with concurrent SVA"
-  ]
+  ],
+  "handoff_package": {
+    "path": "hw/handoff/raven_board_pattern.zip",
+    "sha256": "ce7f2ff95be47675749d31335c7dd61716298126953c2c2a38efd5c6175b0838"
+  }
 }
