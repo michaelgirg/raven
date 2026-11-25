@@ -13,7 +13,7 @@ if {![file isfile [file join $root rtl board raven_board_top_v.v]]} {
     error "Source checkout must contain rtl/board/raven_board_top_v.v"
 }
 file mkdir $out
-set part xczu3eg-sbva484-1-e
+set part xczu3eg-sbva484-1-i ;# Ultra96-V2 board part
 set_param general.maxThreads 4
 create_project -in_memory -part $part
 foreach source {

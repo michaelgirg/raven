@@ -3,12 +3,13 @@
 // docs/plans/nahjay_board_prototype.md).
 //
 // Block design module references have historically required a Verilog or VHDL top file,
-// so the SystemVerilog wrapper sits behind this shell. The X_INTERFACE attributes make the
+// so the SystemVerilog wrapper sits behind this shell. Parameters are integers so they can
+// be set as plain CONFIG values on the block design cell. The X_INTERFACE attributes make the
 // block design infer one AXI4-Lite slave (s_axi) clocked by aclk and reset by aresetn.
 // If a SystemVerilog module reference works in the Vivado version in use, this shell can
 // be dropped without changing raven_board_top.
 module raven_board_top_v #(
-    parameter OUT0_SOURCE = "PATTERN", // "PATTERN" (bring-up) or "MEMORY" (bank adapter, not yet available).
+    parameter integer OUT0_MEMORY = 0, // 0: pattern OUT0 source (bring-up). 1: bank adapter (not yet available).
     parameter integer OUT0_LATENCY = 1, // Pattern responder latency, in extra clocks.
     parameter integer USE_TILE_BUFFERS = 1 // Passed to raven_npu_top.
 ) (
@@ -59,7 +60,7 @@ module raven_board_top_v #(
     input wire s_axi_rready
 );
     raven_board_top #(
-        .OUT0_SOURCE(OUT0_SOURCE),
+        .OUT0_SOURCE(OUT0_MEMORY ? "MEMORY" : "PATTERN"),
         .OUT0_LATENCY(OUT0_LATENCY),
         .USE_TILE_BUFFERS(USE_TILE_BUFFERS)
     ) u_top (
