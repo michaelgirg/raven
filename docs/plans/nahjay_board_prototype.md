@@ -1,10 +1,15 @@
 # Board prototype plan: control bridge and board wrapper (Nahjay)
 
-**Status:** Phases 1–3 implemented. W1–W12 pass under ModelSim ASE 18.1 with
+**Status:** Phases 1–3 and 5 implemented. W1–W12 pass under ModelSim ASE 18.1 with
 `--no-sva-guard` (immediate checks only) for the separate parts at OUT0 latency 4 and 0,
-and for `raven_board_top_v` in PATTERN mode. A licensed Questa run with SVA is still
-needed for acceptance evidence, and `hw/check_board_synthesis.tcl` has not been run yet
-(no Vivado on the development machine). Phases 4–6 not started.
+and for `raven_board_top_v` in PATTERN mode; a licensed Questa run with SVA is still
+needed for acceptance evidence. Vivado 2025.2 on the development machine: the wrapper's
+out-of-context synthesis passes (0 critical warnings, +11.2 ns at 20 ns), and
+`hw/build.tcl` builds the PATTERN bitstream with pl_clk0 at 50.000 MHz, WNS +7.667 ns,
+WHS +0.012 ns, 0 critical warnings, and the RAVEN slave at 0xA4000000/16K. Not yet run on
+the board (xsdb bring-up and `run_fixture.tcl -smoke`). Phase 4 is blocked on O1–O3.
+Phase 6: Vivado evidence (`evidence/vivado/board-prototype/`) and the `hw/README.md` build
+and bring-up guide are done; Questa evidence and the board run are pending.
 **Owner:** Nahjay (control/board bring-up). **Working branch:** `nahjay_control_prototype`.
 **Goal:** one resident `M=8, K=16, N=8` GEMM on the Ultra96-V2. A live START
 reaches DONE, and all 64 OUT0 bytes read back over JTAG match the golden.
@@ -159,10 +164,12 @@ tests/rtl/board/tb_raven_axil_bridge.sv
 tests/rtl/board/tb_raven_board_top.sv # end-to-end fixture over AXI (Phase 4)
 tests/rtl/board/run_questa.py
 hw/check_board_synthesis.tcl          # Phase 3 out-of-context check of the wrapper
-hw/create_project.tcl                 # Phase 5
+hw/board_settings.tcl                 # Phase 5 shared options, paths and source list
+hw/create_project.tcl
 hw/bd.tcl
 hw/build.tcl
 hw/constraints/raven_board.xdc
+hw/debug/board_bringup_xsdb.tcl       # xsdb: reset, program PL, psu_init, release PL reset
 hw/debug/run_fixture.tcl              # Hardware Manager host script
 ```
 
@@ -304,8 +311,8 @@ One commit per row, in order, on `nahjay_control_prototype`, after that row's ch
 | P4 | 2 | `rtl/board/raven_out0_pattern.sv` | compiles | `Add OUT0 readback pattern responder` |
 | P5 | 2 | `tests/rtl/board/tb_raven_axil_bridge.sv`, `tests/rtl/board/run_questa.py` | W1–W12 pass | `Add AXI bridge testbench and runner` |
 | P6 | 3 | `rtl/board/raven_board_top.sv`, `rtl/board/raven_board_top_v.v`, `hw/check_board_synthesis.tcl`, bridge TB/runner (`BOARD_TOP` config) | W1–W4 pass on the wrapper; OOC synthesis clean | `Add board wrapper with pattern OUT0 source` |
-| P7 | 5 | `hw/create_project.tcl`, `hw/bd.tcl`, `hw/build.tcl`, `hw/constraints/raven_board.xdc` | pattern bitstream builds, 50 MHz met | `Add Vivado project and block design scripts` |
-| P8 | 5 | `hw/debug/run_fixture.tcl` | `-smoke` mode passes on the board | `Add Hardware Manager fixture script` |
+| P7 | 5 | `hw/board_settings.tcl`, `hw/create_project.tcl`, `hw/bd.tcl`, `hw/build.tcl`, `hw/constraints/raven_board.xdc`, `rtl/board/raven_board_top_v.v` (integer `OUT0_MEMORY`), bridge TB | pattern bitstream builds, 50 MHz met | `Add Vivado project and block design scripts` |
+| P8 | 5 | `hw/debug/board_bringup_xsdb.tcl`, `hw/debug/run_fixture.tcl` | `-smoke` mode passes on the board | `Add Hardware Manager fixture script` |
 | P9 | 4 | `rtl/board/raven_board_top.sv`, `tests/rtl/board/tb_raven_board_top.sv`, runner | W13 passes | `Run the GEMM fixture end to end over AXI` |
 | P10 | 6 | `evidence/questa/board/*`, `evidence/vivado/board-prototype/*`, `hw/README.md` | files come from passing runs | `Add board prototype evidence and bring-up guide` |
 
