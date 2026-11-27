@@ -1,0 +1,108 @@
+Copyright 1986-2022 Xilinx, Inc. All Rights Reserved. Copyright 2022-2025 Advanced Micro Devices, Inc. All Rights Reserved.
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+| Tool Version : Vivado v.2025.2 (win64) Build 6299465 Fri Nov 14 19:35:11 GMT 2025
+| Command      : report_utilization -hierarchical -file <workspace>/build/scratch/vivado/ooc/utilization_synth.rpt
+| Design       : raven_board_top_v
+| Device       : xczu3eg-sbva484-1-e
+| Speed File   : -1
+| Design State : Synthesized
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+Utilization Design Information
+
+Table of Contents
+-----------------
+1. Utilization by Hierarchy
+
+1. Utilization by Hierarchy
+---------------------------
+
++--------------------------------------------+---------------------------------------------+------------+------------+---------+------+------+--------+--------+------+------------+
+|                  Instance                  |                    Module                   | Total LUTs | Logic LUTs | LUTRAMs | SRLs |  FFs | RAMB36 | RAMB18 | URAM | DSP Blocks |
++--------------------------------------------+---------------------------------------------+------------+------------+---------+------+------+--------+--------+------+------------+
+| raven_board_top_v                          |                                       (top) |       8397 |       8397 |       0 |    0 | 5960 |      0 |      0 |    0 |         14 |
+|   (raven_board_top_v)                      |                                       (top) |        704 |        704 |       0 |    0 |    0 |      0 |      0 |    0 |          0 |
+|   u_top                                    |                             raven_board_top |       7693 |       7693 |       0 |    0 | 5960 |      0 |      0 |    0 |         14 |
+|     u_bridge                               |                           raven_axil_bridge |        215 |        215 |       0 |    0 |  116 |      0 |      0 |    0 |          0 |
+|     u_npu                                  |                               raven_npu_top |       7463 |       7463 |       0 |    0 | 5825 |      0 |      0 |    0 |         14 |
+|       u_requant                            |                               raven_requant |        666 |        666 |       0 |    0 |  165 |      0 |      0 |    0 |          4 |
+|         (u_requant)                        |                               raven_requant |         48 |         48 |       0 |    0 |  156 |      0 |      0 |    0 |          0 |
+|         u_requant                          |                      raven_requantize_clamp |        618 |        618 |       0 |    0 |    9 |      0 |      0 |    0 |          4 |
+|       g_output_buffer.u_adapter            |                 raven_output_buffer_adapter |        173 |        173 |       0 |    0 |  374 |      0 |      0 |    0 |          0 |
+|         (g_output_buffer.u_adapter)        |                 raven_output_buffer_adapter |         37 |         37 |       0 |    0 |  133 |      0 |      0 |    0 |          0 |
+|         u_buffer                           |                                outputBuffer |        136 |        136 |       0 |    0 |  241 |      0 |      0 |    0 |          0 |
+|       g_read_ports[4].g_buffered.u_adapter |   raven_read_buffer_adapter__parameterized1 |         87 |         87 |       0 |    0 |   69 |      0 |      0 |    0 |          0 |
+|       g_read_ports[5].g_buffered.u_adapter | raven_read_buffer_adapter__parameterized1_2 |         60 |         60 |       0 |    0 |   69 |      0 |      0 |    0 |          0 |
+|       u_core                               |                             raven_gemm_core |       5683 |       5683 |       0 |    0 | 3720 |      0 |      0 |    0 |          4 |
+|         (u_core)                           |                             raven_gemm_core |        264 |        264 |       0 |    0 |  226 |      0 |      0 |    0 |          4 |
+|         u_array                            |                             raven_mac_array |       5254 |       5254 |       0 |    0 | 3328 |      0 |      0 |    0 |          0 |
+|           g_row[7].g_col[7].u_pe           |                             raven_mac_pe_65 |        117 |        117 |       0 |    0 |   52 |      0 |      0 |    0 |          0 |
+|           g_row[0].g_col[0].u_pe           |                                raven_mac_pe |         71 |         71 |       0 |    0 |   52 |      0 |      0 |    0 |          0 |
+|           g_row[0].g_col[1].u_pe           |                              raven_mac_pe_3 |         71 |         71 |       0 |    0 |   52 |      0 |      0 |    0 |          0 |
+|           g_row[0].g_col[2].u_pe           |                              raven_mac_pe_4 |         78 |         78 |       0 |    0 |   52 |      0 |      0 |    0 |          0 |
+|           g_row[0].g_col[3].u_pe           |                              raven_mac_pe_5 |         71 |         71 |       0 |    0 |   52 |      0 |      0 |    0 |          0 |
+|           g_row[0].g_col[4].u_pe           |                              raven_mac_pe_6 |         71 |         71 |       0 |    0 |   52 |      0 |      0 |    0 |          0 |
+|           g_row[0].g_col[5].u_pe           |                              raven_mac_pe_7 |         71 |         71 |       0 |    0 |   52 |      0 |      0 |    0 |          0 |
+|           g_row[0].g_col[6].u_pe           |                              raven_mac_pe_8 |         71 |         71 |       0 |    0 |   52 |      0 |      0 |    0 |          0 |
+|           g_row[0].g_col[7].u_pe           |                              raven_mac_pe_9 |         80 |         80 |       0 |    0 |   52 |      0 |      0 |    0 |          0 |
+|           g_row[1].g_col[0].u_pe           |                             raven_mac_pe_10 |         71 |         71 |       0 |    0 |   52 |      0 |      0 |    0 |          0 |
+|           g_row[1].g_col[1].u_pe           |                             raven_mac_pe_11 |         72 |         72 |       0 |    0 |   52 |      0 |      0 |    0 |          0 |
+|           g_row[1].g_col[2].u_pe           |                             raven_mac_pe_12 |         71 |         71 |       0 |    0 |   52 |      0 |      0 |    0 |          0 |
+|           g_row[1].g_col[3].u_pe           |                             raven_mac_pe_13 |         71 |         71 |       0 |    0 |   52 |      0 |      0 |    0 |          0 |
+|           g_row[1].g_col[4].u_pe           |                             raven_mac_pe_14 |         71 |         71 |       0 |    0 |   52 |      0 |      0 |    0 |          0 |
+|           g_row[1].g_col[5].u_pe           |                             raven_mac_pe_15 |         71 |         71 |       0 |    0 |   52 |      0 |      0 |    0 |          0 |
+|           g_row[1].g_col[6].u_pe           |                             raven_mac_pe_16 |         71 |         71 |       0 |    0 |   52 |      0 |      0 |    0 |          0 |
+|           g_row[1].g_col[7].u_pe           |                             raven_mac_pe_17 |         79 |         79 |       0 |    0 |   52 |      0 |      0 |    0 |          0 |
+|           g_row[2].g_col[0].u_pe           |                             raven_mac_pe_18 |         71 |         71 |       0 |    0 |   52 |      0 |      0 |    0 |          0 |
+|           g_row[2].g_col[1].u_pe           |                             raven_mac_pe_19 |         71 |         71 |       0 |    0 |   52 |      0 |      0 |    0 |          0 |
+|           g_row[2].g_col[2].u_pe           |                             raven_mac_pe_20 |         71 |         71 |       0 |    0 |   52 |      0 |      0 |    0 |          0 |
+|           g_row[2].g_col[3].u_pe           |                             raven_mac_pe_21 |         71 |         71 |       0 |    0 |   52 |      0 |      0 |    0 |          0 |
+|           g_row[2].g_col[4].u_pe           |                             raven_mac_pe_22 |         71 |         71 |       0 |    0 |   52 |      0 |      0 |    0 |          0 |
+|           g_row[2].g_col[5].u_pe           |                             raven_mac_pe_23 |         71 |         71 |       0 |    0 |   52 |      0 |      0 |    0 |          0 |
+|           g_row[2].g_col[6].u_pe           |                             raven_mac_pe_24 |         71 |         71 |       0 |    0 |   52 |      0 |      0 |    0 |          0 |
+|           g_row[2].g_col[7].u_pe           |                             raven_mac_pe_25 |         80 |         80 |       0 |    0 |   52 |      0 |      0 |    0 |          0 |
+|           g_row[3].g_col[0].u_pe           |                             raven_mac_pe_26 |        103 |        103 |       0 |    0 |   52 |      0 |      0 |    0 |          0 |
+|           g_row[3].g_col[1].u_pe           |                             raven_mac_pe_27 |        103 |        103 |       0 |    0 |   52 |      0 |      0 |    0 |          0 |
+|           g_row[3].g_col[2].u_pe           |                             raven_mac_pe_28 |        103 |        103 |       0 |    0 |   52 |      0 |      0 |    0 |          0 |
+|           g_row[3].g_col[3].u_pe           |                             raven_mac_pe_29 |        103 |        103 |       0 |    0 |   52 |      0 |      0 |    0 |          0 |
+|           g_row[3].g_col[4].u_pe           |                             raven_mac_pe_30 |        103 |        103 |       0 |    0 |   52 |      0 |      0 |    0 |          0 |
+|           g_row[3].g_col[5].u_pe           |                             raven_mac_pe_31 |        103 |        103 |       0 |    0 |   52 |      0 |      0 |    0 |          0 |
+|           g_row[3].g_col[6].u_pe           |                             raven_mac_pe_32 |        134 |        134 |       0 |    0 |   52 |      0 |      0 |    0 |          0 |
+|           g_row[3].g_col[7].u_pe           |                             raven_mac_pe_33 |        112 |        112 |       0 |    0 |   52 |      0 |      0 |    0 |          0 |
+|           g_row[4].g_col[0].u_pe           |                             raven_mac_pe_34 |         71 |         71 |       0 |    0 |   52 |      0 |      0 |    0 |          0 |
+|           g_row[4].g_col[1].u_pe           |                             raven_mac_pe_35 |         71 |         71 |       0 |    0 |   52 |      0 |      0 |    0 |          0 |
+|           g_row[4].g_col[2].u_pe           |                             raven_mac_pe_36 |         71 |         71 |       0 |    0 |   52 |      0 |      0 |    0 |          0 |
+|           g_row[4].g_col[3].u_pe           |                             raven_mac_pe_37 |         71 |         71 |       0 |    0 |   52 |      0 |      0 |    0 |          0 |
+|           g_row[4].g_col[4].u_pe           |                             raven_mac_pe_38 |         71 |         71 |       0 |    0 |   52 |      0 |      0 |    0 |          0 |
+|           g_row[4].g_col[5].u_pe           |                             raven_mac_pe_39 |         71 |         71 |       0 |    0 |   52 |      0 |      0 |    0 |          0 |
+|           g_row[4].g_col[6].u_pe           |                             raven_mac_pe_40 |         71 |         71 |       0 |    0 |   52 |      0 |      0 |    0 |          0 |
+|           g_row[4].g_col[7].u_pe           |                             raven_mac_pe_41 |         79 |         79 |       0 |    0 |   52 |      0 |      0 |    0 |          0 |
+|           g_row[5].g_col[0].u_pe           |                             raven_mac_pe_42 |         71 |         71 |       0 |    0 |   52 |      0 |      0 |    0 |          0 |
+|           g_row[5].g_col[1].u_pe           |                             raven_mac_pe_43 |         71 |         71 |       0 |    0 |   52 |      0 |      0 |    0 |          0 |
+|           g_row[5].g_col[2].u_pe           |                             raven_mac_pe_44 |         71 |         71 |       0 |    0 |   52 |      0 |      0 |    0 |          0 |
+|           g_row[5].g_col[3].u_pe           |                             raven_mac_pe_45 |         71 |         71 |       0 |    0 |   52 |      0 |      0 |    0 |          0 |
+|           g_row[5].g_col[4].u_pe           |                             raven_mac_pe_46 |         71 |         71 |       0 |    0 |   52 |      0 |      0 |    0 |          0 |
+|           g_row[5].g_col[5].u_pe           |                             raven_mac_pe_47 |         71 |         71 |       0 |    0 |   52 |      0 |      0 |    0 |          0 |
+|           g_row[5].g_col[6].u_pe           |                             raven_mac_pe_48 |         71 |         71 |       0 |    0 |   52 |      0 |      0 |    0 |          0 |
+|           g_row[5].g_col[7].u_pe           |                             raven_mac_pe_49 |         79 |         79 |       0 |    0 |   52 |      0 |      0 |    0 |          0 |
+|           g_row[6].g_col[0].u_pe           |                             raven_mac_pe_50 |         71 |         71 |       0 |    0 |   52 |      0 |      0 |    0 |          0 |
+|           g_row[6].g_col[1].u_pe           |                             raven_mac_pe_51 |         71 |         71 |       0 |    0 |   52 |      0 |      0 |    0 |          0 |
+|           g_row[6].g_col[2].u_pe           |                             raven_mac_pe_52 |         71 |         71 |       0 |    0 |   52 |      0 |      0 |    0 |          0 |
+|           g_row[6].g_col[3].u_pe           |                             raven_mac_pe_53 |         71 |         71 |       0 |    0 |   52 |      0 |      0 |    0 |          0 |
+|           g_row[6].g_col[4].u_pe           |                             raven_mac_pe_54 |         71 |         71 |       0 |    0 |   52 |      0 |      0 |    0 |          0 |
+|           g_row[6].g_col[5].u_pe           |                             raven_mac_pe_55 |         71 |         71 |       0 |    0 |   52 |      0 |      0 |    0 |          0 |
+|           g_row[6].g_col[6].u_pe           |                             raven_mac_pe_56 |         71 |         71 |       0 |    0 |   52 |      0 |      0 |    0 |          0 |
+|           g_row[6].g_col[7].u_pe           |                             raven_mac_pe_57 |         79 |         79 |       0 |    0 |   52 |      0 |      0 |    0 |          0 |
+|           g_row[7].g_col[0].u_pe           |                             raven_mac_pe_58 |        111 |        111 |       0 |    0 |   52 |      0 |      0 |    0 |          0 |
+|           g_row[7].g_col[1].u_pe           |                             raven_mac_pe_59 |        113 |        113 |       0 |    0 |   52 |      0 |      0 |    0 |          0 |
+|           g_row[7].g_col[2].u_pe           |                             raven_mac_pe_60 |        111 |        111 |       0 |    0 |   52 |      0 |      0 |    0 |          0 |
+|           g_row[7].g_col[3].u_pe           |                             raven_mac_pe_61 |        111 |        111 |       0 |    0 |   52 |      0 |      0 |    0 |          0 |
+|           g_row[7].g_col[4].u_pe           |                             raven_mac_pe_62 |        111 |        111 |       0 |    0 |   52 |      0 |      0 |    0 |          0 |
+|           g_row[7].g_col[5].u_pe           |                             raven_mac_pe_63 |        112 |        112 |       0 |    0 |   52 |      0 |      0 |    0 |          0 |
+|           g_row[7].g_col[6].u_pe           |                             raven_mac_pe_64 |        112 |        112 |       0 |    0 |   52 |      0 |      0 |    0 |          0 |
+|         u_frontend                         |                         raven_gemm_frontend |        165 |        165 |       0 |    0 |  166 |      0 |      0 |    0 |          0 |
+|       u_ctrl                               |                                  raven_ctrl |        543 |        543 |       0 |    0 |  739 |      0 |      0 |    0 |          4 |
+|       u_regs                               |                             raven_ctrl_regs |        168 |        168 |       0 |    0 |  554 |      0 |      0 |    0 |          0 |
++--------------------------------------------+---------------------------------------------+------------+------------+---------+------+------+--------+--------+------+------------+
+
+

@@ -1,0 +1,91 @@
+{
+  "scope": "Ultra96-V2 board prototype, OUT0_SOURCE PATTERN (bridge/JTAG bring-up build); not yet run on the board",
+  "base_revision": "3cba04a1d25104af216fc91c0060edb6b53efaed",
+  "revision_note": "Reports were curated from the first passing build (base 4be6034 plus the then-uncommitted Phase 5 scripts). The handoff package was rebuilt from 3cba04a with identical clock, timing and critical-warning results; handoff_sha256 refers to that rebuild.",
+  "tool": "Vivado 2025.2 (win64)",
+  "board_part": "avnet.com:ultra96v2:part0:1.2",
+  "part": "xczu3eg-sbva484-1-i",
+  "commands": {
+    "build": "vivado -mode batch -source hw/build.tcl -tclargs -jobs 6",
+    "wrapper_synthesis": "vivado -mode batch -source hw/check_board_synthesis.tcl -tclargs <repo> <output>"
+  },
+  "implementation": {
+    "status": "pass",
+    "errors": 0,
+    "critical_warnings": 0,
+    "pl_clk0_mhz": 50.0,
+    "pl_clk0_divisors": "IOPLL 1500 MHz / 30 / 1",
+    "clk_pl_0_period_ns": 20.0,
+    "wns_ns": 7.667,
+    "tns_failing_endpoints": 0,
+    "whs_ns": 0.012,
+    "ths_failing_endpoints": 0,
+    "resources": {
+      "lut": 8067,
+      "ff": 8163,
+      "bram_tiles": 2.5,
+      "dsp": 14
+    },
+    "drc": "advisories only (DSP pipelining, RAMB write-first collision, LUT equation, one unroutable load)",
+    "methodology": "6 LUTAR-1 warnings inside the Vivado debug hub",
+    "address_map": {
+      "master": "jtag_axi_0/Data",
+      "segment": "/raven_board_0/s_axi/reg0",
+      "offset": "0xA4000000",
+      "range": "16K"
+    }
+  },
+  "wrapper_out_of_context_synthesis": {
+    "status": "pass",
+    "top": "raven_board_top_v",
+    "clock_period_ns": 20.0,
+    "critical_warnings": 0,
+    "internal_setup_slack_ns": 11.242,
+    "resources": {
+      "lut": 8397,
+      "ff": 5960,
+      "dsp": 14
+    },
+    "part_used": "xczu3eg-sbva484-1-e (script now uses -1-i)",
+    "note": "Bank ports are tied idle in PATTERN mode, so logic reachable only through bank data is trimmed; hw/check_npu_synthesis.tcl remains the NPU estimate."
+  },
+  "handoff_sha256": {
+    "raven_board.bit": "134879a5f1af2a315842260bd589d37f35967d0d094a49d856f4c3e870988c3c",
+    "raven_board.xsa": "d43a8f0c5f64ddadd929c2f007786260860bbd583b7b933dbc992ffe8da5d41f",
+    "psu_init.tcl": "34015b22fdc4138f17cab44a6502668bd1120694e0cddf378d3a2bf96945af0f"
+  },
+  "source_sha256": {
+    "rtl/control/raven_ctrl_pkg.sv": "2cf1ed2ef508ff7c3ca2b8d20d31b886be09c1f4e2097fb844911409427a9b51",
+    "rtl/control/raven_ctrl_regs.sv": "ee13b0f56cfb03ce0421dec23d0cb555e106ae4cbf9374049a9d575fedbf0b84",
+    "rtl/control/raven_ctrl.sv": "e7337bedcade59e6cc6375397370ec586e34d85f202d14ca4a58484158b8f1f5",
+    "rtl/compute/raven_mac_pe.sv": "0b69cc03b120401f22bc2e39a1c126de4ad5ca5d3bc8af325c0e6627de3fc863",
+    "rtl/compute/raven_mac_array.sv": "9012c246244b0bff1e9ed752945f2bee89d4a81ba44cbead7cc3ea9928a3c60f",
+    "rtl/compute/raven_gemm_frontend.sv": "fd285b7bfc29b0b80ec7ae0f84b85e59a5f47209e0f372d26efb89e616c92f9f",
+    "rtl/compute/raven_gemm_core.sv": "a62277a61663804b8a8e60bdb0b81525d7c8a55d7a3e72807dbd5b4a1cde5562",
+    "rtl/operators/raven_requantize_clamp.sv": "2138cc243e7d23651bda9f398013ed5531fd80ae789ba6de9ad22a9ecfdfaf2e",
+    "rtl/memory/activation_buffer.sv": "b8a2eaaff623f7c91bf6a34de6fa4f7f3e88f94816a208f2abca73031d752040",
+    "rtl/memory/weight_buffer.sv": "c5bf67afc986322cb91afc87b567b4c66e6a3ab95560ed85eb9aa043d2ca5b44",
+    "rtl/memory/parameter_buffer.sv": "ae5739a285fcda0f555af09297c9ed884be4805b983c05b78c6a6bb21f866f63",
+    "rtl/memory/output_buffer.sv": "f214272ee04aa75195c14a536d1139c88ded200a1d917a7772175bfc0af100d3",
+    "rtl/memory/raven_integrity_pkg.sv": "d17a6815deb6f2b607a2b0c768db8bdfa1ad527930dc8f8bf338b8acbc6b8741",
+    "rtl/memory/raven_read_buffer_adapter.sv": "36961e7555558afd786e2f17335e260f8b911eaab44e3763b895e5f1815f5ef0",
+    "rtl/memory/raven_output_buffer_adapter.sv": "4524a412b0761524f034078bd91fa536ec9fc2dec0da6a577090189128d57c40",
+    "rtl/top/raven_requant.sv": "21bb18c04aaa763cc3c7a751dbe29d83c6452159fdeb28db32b12d91c5efea96",
+    "rtl/top/raven_result_writer.sv": "08ab9987c7981583cd4319d1640688f33d6ad642720826d744999f62fc824a03",
+    "rtl/top/raven_npu_top.sv": "3a898196f670e0ff9ebb2079474a02f17f60a13845d2c3b876ae3b00817dfa68",
+    "rtl/board/raven_axil_bridge.sv": "f1fffd0366360894eb99d4c024fce1c102d49c294973f1802768ba791dacc449",
+    "rtl/board/raven_out0_pattern.sv": "ef60b9c02c93634fd370e28a8e13a91727c22a8cf970c5ca2f25cf2fa4ebeef8",
+    "rtl/board/raven_board_top.sv": "b02e90e9aa1df864ee0ae7cbe9ee561228283d65967195915a13d8edf9825edd",
+    "rtl/board/raven_board_top_v.v": "67aa4cbe4cc4fdaefa77a3bdf5e48fd08276dd2b9df7752e0236d0079e65dfa0",
+    "hw/constraints/raven_board.xdc": "ae9ef76f6da0c9bf2c2750167c16bb08df0e29013872688a94271e3fdfc42d25"
+  },
+  "not_covered": [
+    "On-board bring-up (board_bringup_xsdb.tcl) and run_fixture.tcl -smoke",
+    "MEMORY build and the 64-byte GEMM readback (Phase 4, waiting on the bank adapter)",
+    "Licensed Questa run of tests/rtl/board with concurrent SVA"
+  ],
+  "handoff_package": {
+    "path": "hw/handoff/raven_board_pattern.zip",
+    "sha256": "ce7f2ff95be47675749d31335c7dd61716298126953c2c2a38efd5c6175b0838"
+  }
+}
