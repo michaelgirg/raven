@@ -41,6 +41,8 @@ Thumbs.db
 !/evidence/vivado/board-readiness/pipeline_buffered.log
 !/evidence/vivado/board-readiness/pipeline_direct.log
 !/evidence/vivado/staging-integrity/synthesis.log
+!/evidence/vivado/board-prototype/live-gemm/board_test.log
+!/evidence/vivado/board-prototype/live-gemm/golden.log
 
 # Reviewed compute evidence; generated simulator logs remain under /build/.
 !/evidence/questa/final-prealpha/verification.log

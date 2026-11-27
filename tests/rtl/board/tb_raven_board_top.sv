@@ -22,18 +22,21 @@ module tb_raven_board_top;
     localparam int POLL_LIMIT = 20_000; // STATUS polls per command.
     localparam logic [13:0] OUT0_BASE = 14'h2000;
     localparam logic [31:0] NPU_ID_VALUE = 32'h5241564E; // "RAVN"
+    localparam logic [31:0] BOARD_BASE = 32'hA4000000;
 
     logic clk = 0, rst_n = 0;
     always #5 clk = ~clk;
 
     raven_axil_if axi(clk);
+    bit outside_window;
+    wire [31:0] mapped_base = outside_window ? BOARD_BASE + 32'h4000 : BOARD_BASE;
 
-    raven_board_top_v #(.OUT0_MEMORY(1)) u_board (
+    raven_board_top_v #(.OUT0_MEMORY(1), .AXI_BASE_ADDR(BOARD_BASE)) u_board (
         .aclk(clk), .aresetn(rst_n),
-        .s_axi_awaddr(axi.awaddr), .s_axi_awprot(3'd0), .s_axi_awvalid(axi.awvalid), .s_axi_awready(axi.awready),
+        .s_axi_awaddr(mapped_base | 32'(axi.awaddr)), .s_axi_awprot(3'd0), .s_axi_awvalid(axi.awvalid), .s_axi_awready(axi.awready),
         .s_axi_wdata(axi.wdata), .s_axi_wstrb(axi.wstrb), .s_axi_wvalid(axi.wvalid), .s_axi_wready(axi.wready),
         .s_axi_bresp(axi.bresp), .s_axi_bvalid(axi.bvalid), .s_axi_bready(axi.bready),
-        .s_axi_araddr(axi.araddr), .s_axi_arprot(3'd0), .s_axi_arvalid(axi.arvalid), .s_axi_arready(axi.arready),
+        .s_axi_araddr(mapped_base | 32'(axi.araddr)), .s_axi_arprot(3'd0), .s_axi_arvalid(axi.arvalid), .s_axi_arready(axi.arready),
         .s_axi_rdata(axi.rdata), .s_axi_rresp(axi.rresp), .s_axi_rvalid(axi.rvalid), .s_axi_rready(axi.rready));
 
     // ---------------------------------------------------------------- monitors
@@ -131,6 +134,7 @@ module tb_raven_board_top;
     // ---------------------------------------------------------------- main
     initial begin
         logic [31:0] d;
+        logic [1:0] resp;
         if (!$value$plusargs("FIXTURE=%s", fixture)) $fatal(1, "+FIXTURE=<dir> is required");
         if (!$value$plusargs("CMD_ALT=%s", cmd_alt)) cmd_alt = "";
         if (!$value$plusargs("OUT=%s", out_dir)) out_dir = ".";
@@ -145,6 +149,14 @@ module tb_raven_board_top;
         axil_read32(14'(REG_ID), d);
         expect_eq("ID", d, NPU_ID_VALUE);
         require_idle("reset");
+
+        outside_window = 1;
+        axil_read(14'(REG_ID), d, resp);
+        expect_eq("Outside-window read response", 32'(resp), 32'(AXI_DECERR));
+        axil_write(14'(REG_CTRL), 32'h1, 4'hF, ORDER_SAME, resp);
+        expect_eq("Outside-window write response", 32'(resp), 32'(AXI_DECERR));
+        outside_window = 0;
+        require_idle("outside-window write");
 
         // Run 1: ACT0/WGT0.
         axil_write32(14'(REG_IRQ_STATUS), 32'h1);

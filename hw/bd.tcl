@@ -8,7 +8,7 @@
 #                     | interconnect_aresetn ---------------------------^          (raven_board_top_v)
 #
 # The JTAG-to-AXI master (AXI4-Lite) reaches the RAVEN slave at 0xA4000000-0xA4003FFF;
-# SmartConnect answers any other address with DECERR. Every PS-PL AXI port is disabled:
+# The RAVEN bridge rejects addresses outside that window. Every PS-PL AXI port is disabled:
 # the host reaches the design only over JTAG for this demo.
 
 # Setting PL0_REF_CTRL__FREQMHZ from Tcl does not make the PS IP recompute its clock
@@ -63,13 +63,15 @@ proc raven::create_bd {} {
     set jtag [create_bd_cell -type ip -vlnv xilinx.com:ip:jtag_axi jtag_axi_0]
     set_property -dict [list CONFIG.PROTOCOL {2} CONFIG.M_AXI_DATA_WIDTH {32} CONFIG.M_AXI_ADDR_WIDTH {32}] $jtag
 
-    # One-to-one interconnect: decodes the 16 KiB window and returns DECERR elsewhere.
+    # Preserve the entire address through SmartConnect so the board bridge can
+    # reject accesses outside of its 16 KiB window.
     set sc [create_bd_cell -type ip -vlnv xilinx.com:ip:smartconnect smartconnect_0]
     set_property -dict [list CONFIG.NUM_SI {1} CONFIG.NUM_MI {1}] $sc
 
     # RAVEN wrapper through the Verilog shell (B8).
     set raven [create_bd_cell -type module -reference raven_board_top_v raven_board_0]
     set_property CONFIG.OUT0_MEMORY $out0_memory $raven
+    set_property CONFIG.AXI_BASE_ADDR [expr {$base_addr + 0}] $raven
 
     # Clock: one free-running pl_clk0 for everything (B9).
     set clk [get_bd_pins $ps/pl_clk0]

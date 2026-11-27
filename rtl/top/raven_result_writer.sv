@@ -38,7 +38,10 @@ module raven_result_writer #(
     logic w_valid_q, last_q; // Write register state.
 
     // Byte address of the incoming element, computed wide so the range assertion can see overflow.
-    wire [31:0] byte_addr = 32'(dst_offset_q) + 32'(in_row_i) * 32'(out_pitch_q) + 32'(in_col_i);
+    // Keep the address additions outside the DSP multiplier. The inferred cascade
+    // produced an out-of-range OUT0 address in the Vivado 2025.2 MEMORY netlist.
+    (* use_dsp = "no" *) wire [31:0] byte_addr =
+        32'(dst_offset_q) + 32'(in_row_i) * 32'(out_pitch_q) + 32'(in_col_i);
 
     assign in_ready_o = rst_ni && (!w_valid_q || w_ready_i);
     assign w_valid_o = w_valid_q;

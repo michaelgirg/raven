@@ -10,7 +10,7 @@
 #   <out>/handoff/raven_board.ltx      debug probes file (if Vivado wrote one)
 #   <out>/handoff/raven_board.xsa      hardware platform (includes the bitstream)
 #   <out>/handoff/psu_init.tcl         PS initialization matching this build
-#   <out>/handoff/board_bringup_xsdb.tcl, run_fixture.tcl   board-side scripts
+#   <out>/handoff/board_bringup_xsdb.tcl, run_fixture.tcl, run_board_test.tcl
 #   <out>/handoff/normal_8x16x8/       MEMORY builds: the preloaded fixture (cmd.txt etc.)
 #   <out>/handoff/build_info.txt       revision, options, clock and timing summary
 #   <out>/reports/*.rpt
@@ -94,6 +94,7 @@ proc raven::build {} {
     if {$out0_memory} {
         # The preloaded fixture, so run_fixture.tcl -fixture <name> works from the handoff.
         variable fixture_dir
+        file copy -force [file join $root hw debug run_board_test.tcl] $handoff
         file copy -force [file join $root $fixture_dir] $handoff
     }
 
@@ -109,6 +110,7 @@ proc raven::build {} {
     puts $fd "pl_clk0: $actual_mhz MHz (clk_pl_0 period $period ns)"
     puts $fd "timing: WNS $wns ns, WHS $whs ns"
     puts $fd "bring-up: see the header of board_bringup_xsdb.tcl, then run_fixture.tcl -smoke"
+    if {$out0_memory} { puts $fd "full board test: vivado -mode batch -source run_board_test.tcl" }
     close $fd
 
     puts "RAVEN_BUILD_COMPLETE pl_clk0=${actual_mhz}MHz WNS=$wns WHS=$whs handoff=$handoff"

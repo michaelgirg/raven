@@ -40,7 +40,7 @@ module raven_gemm_frontend #(
     read_state_t a_state_q, b_state_q; // Current read state for each independent memory port.
     logic active_q; // Is there an unfinished reduction to feed?
     logic [15:0] m_q, k_q, pitch_q; // Saved command dimensions and A row pitch.
-    logic [ADDR_W-1:0] a_base_q, b_base_q; // Saved operand starting offsets.
+    logic [ADDR_W-1:0] a_row_addr_q, a_block_addr_q, b_base_q;
     logic [31:0] issue_k_q, a_block_q, a_row_q, b_word_q; // Current K position and memory-fill positions.
     logic [127:0] a_cache_q [2][ROWS]; // Two buffers, each holding one 16-byte word per array row.
     logic [127:0] b_cache_q [2]; // Two words, each holding two eight-byte weight vectors.
@@ -57,9 +57,9 @@ module raven_gemm_frontend #(
     wire take = vec_valid_o && vec_ready_i; // Did the array actually accept this pair?
 
     // Hold each request address until memory accepts it.
-    // A address = base + row * pitch + block * 16 bytes.
+    // Start each block 16 bytes after the previous one, and add the pitch per row.
     assign a_req_valid_o = rst_ni && active_q && a_state_q == REQUEST;
-    assign a_req_addr_o = ADDR_W'(32'(a_base_q) + a_row_q * 32'(pitch_q) + (a_block_q << 4));
+    assign a_req_addr_o = a_row_addr_q;
     assign a_rsp_ready_o = rst_ni && active_q && a_state_q == RESPONSE;
     // B address = base + word * 16 bytes. Each word contains two K vectors.
     assign b_req_valid_o = rst_ni && active_q && b_state_q == REQUEST;
@@ -87,7 +87,7 @@ module raven_gemm_frontend #(
             active_q <= 1'b0;
             a_state_q <= IDLE; b_state_q <= IDLE;
             m_q <= '0; k_q <= '0; pitch_q <= '0;
-            a_base_q <= '0; b_base_q <= '0;
+            a_row_addr_q <= '0; a_block_addr_q <= '0; b_base_q <= '0;
             issue_k_q <= '0; a_block_q <= '0; a_row_q <= '0; b_word_q <= '0;
             a_full_q <= '0; b_full_q <= '0;
             for (int s = 0; s < 2; s++) begin
@@ -97,7 +97,7 @@ module raven_gemm_frontend #(
         end else if (start_i) begin // Save a new reduction and mark both sides empty.
             active_q <= 1'b1;
             m_q <= m_i; k_q <= k_i; pitch_q <= a_pitch_i;
-            a_base_q <= a_base_i; b_base_q <= b_base_i;
+            a_row_addr_q <= a_base_i; a_block_addr_q <= a_base_i; b_base_q <= b_base_i;
             issue_k_q <= '0; a_block_q <= '0; a_row_q <= '0; b_word_q <= '0;
             a_full_q <= '0; b_full_q <= '0;
             a_state_q <= IDLE; b_state_q <= IDLE;
@@ -107,6 +107,7 @@ module raven_gemm_frontend #(
                 // Do not overwrite a full slot, and do not fetch past the logical K range.
                 IDLE: if ((a_block_q << 4) < 32'(k_q) && !a_full_q[a_block_q[0]]) begin
                     a_row_q <= 0; a_state_q <= REQUEST; // Start with the first active row.
+                    a_row_addr_q <= a_block_addr_q;
                 end
                 REQUEST: if (a_req_ready_i) a_state_q <= RESPONSE; // Request accepted; wait for its returned word.
                 RESPONSE: if (a_rsp_valid_i) begin
@@ -115,8 +116,10 @@ module raven_gemm_frontend #(
                         // Last active row: the whole block can now feed the array.
                         a_full_q[a_block_q[0]] <= 1'b1;
                         a_block_q <= a_block_q + 1; a_state_q <= IDLE;
+                        a_block_addr_q <= a_block_addr_q + ADDR_W'(16);
                     end else begin
                         a_row_q <= a_row_q + 1; a_state_q <= REQUEST; // This block still needs another row.
+                        a_row_addr_q <= a_row_addr_q + ADDR_W'(pitch_q);
                     end
                 end
                 default: a_state_q <= IDLE;

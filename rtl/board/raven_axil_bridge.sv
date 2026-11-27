@@ -22,11 +22,14 @@
 //
 // The bridge and the NPU register block share the board reset (B6), so the host can
 // still read diagnostics and issue SOFT_RESET while local_rst_ni holds the datapath.
-module raven_axil_bridge (
+module raven_axil_bridge #(
+    parameter int ADDR_W = 14,
+    parameter logic [ADDR_W-1:0] BASE_ADDR = '0
+) (
     input wire s_axi_aclk, // Single board clock (pl_clk0).
     input wire s_axi_aresetn, // Board reset, active low, synchronous to s_axi_aclk.
     // AXI4-Lite write address channel.
-    input wire [13:0] s_axi_awaddr, // Byte offset inside the 16 KiB window.
+    input wire [ADDR_W-1:0] s_axi_awaddr,
     input wire [2:0] s_axi_awprot, // Ignored.
     input wire s_axi_awvalid, // Write address presented.
     output wire s_axi_awready, // Write address captured.
@@ -40,7 +43,7 @@ module raven_axil_bridge (
     output wire s_axi_bvalid, // Write response presented.
     input wire s_axi_bready, // Write response accepted.
     // AXI4-Lite read address channel.
-    input wire [13:0] s_axi_araddr, // Byte offset inside the 16 KiB window.
+    input wire [ADDR_W-1:0] s_axi_araddr,
     input wire [2:0] s_axi_arprot, // Ignored.
     input wire s_axi_arvalid, // Read address presented.
     output wire s_axi_arready, // Read address accepted.
@@ -87,7 +90,7 @@ module raven_axil_bridge (
 
     state_e state_q;
     logic aw_held_q, w_held_q; // Write address / data captured, write not yet started.
-    logic [13:0] aw_addr_q;
+    logic [ADDR_W-1:0] aw_addr_q;
     logic [31:0] w_data_q;
     logic [3:0] w_strb_q;
     logic op_write_q; // The native register access is a write.
@@ -146,7 +149,9 @@ module raven_axil_bridge (
                         aw_held_q <= 0; w_held_q <= 0;
                         op_write_q <= 1; op_addr_q <= aw_addr_q[11:0];
                         rdata_q <= '0;
-                        if (|aw_addr_q[1:0]) begin
+                        if ((aw_addr_q >> 14) != (BASE_ADDR >> 14)) begin
+                            resp_q <= RESP_DECERR; state_q <= S_B;
+                        end else if (|aw_addr_q[1:0]) begin
                             resp_q <= RESP_SLVERR; state_q <= S_B;
                         end else if (aw_addr_q[13:12] == REGION_UNMAP) begin
                             resp_q <= RESP_DECERR; state_q <= S_B;
@@ -157,7 +162,9 @@ module raven_axil_bridge (
                         op_write_q <= 0; op_addr_q <= s_axi_araddr[11:0];
                         out_addr_q <= s_axi_araddr[12:0];
                         rdata_q <= '0;
-                        if (|s_axi_araddr[1:0]) begin
+                        if ((s_axi_araddr >> 14) != (BASE_ADDR >> 14)) begin
+                            resp_q <= RESP_DECERR; state_q <= S_R;
+                        end else if (|s_axi_araddr[1:0]) begin
                             resp_q <= RESP_SLVERR; state_q <= S_R;
                         end else if (s_axi_araddr[13:12] == REGION_CSR) state_q <= S_REG_REQ;
                         else if (s_axi_araddr[13:12] == REGION_UNMAP) begin
