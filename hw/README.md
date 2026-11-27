@@ -6,9 +6,15 @@ OUT0 readback at `0xA4002000`, on a 50 MHz PL clock. The design and its decision
 the [board prototype plan](../docs/plans/nahjay_board_prototype.md); the register and
 host procedure are in the [board prototype interface](../docs/interfaces/RAVEN_BOARD_PROTOTYPE_INTERFACE.md).
 
-The current bitstream is the **PATTERN** bring-up build: OUT0 readback returns a fixed
-test pattern and the NPU has no backing memory, so a NOP START completes but a GEMM
-does not. The GEMM demo build (`-out0_memory 1`) waits on the memory bank adapter.
+There are two builds. The **PATTERN** bring-up build (`-out0_memory 0`, the default)
+returns a fixed test pattern on OUT0 readback and the NPU has no backing memory, so a NOP
+START completes but a GEMM does not. The **MEMORY** GEMM demo build (`-out0_memory 1`)
+connects `rtl/memory/raven_memory_banks` to every NPU bank port and to OUT0 readback. Its
+ACT/WGT/PRM BRAMs are preloaded at configuration from `hw/fixtures/normal_8x16x8`
+(`act.hex`, `wgt.hex`, `prm.hex`, loaded into ACT0/ACT1 and WGT0/WGT1 alike). Nothing
+writes those banks on the board, so the preload survives SOFT_RESET; reprogramming the
+bitstream restores it. To change the fixture, regenerate that directory with
+`export_fixtures.py`; `tests/rtl/board/run_questa.py` fails if it is stale.
 
 ## Build the board prototype
 
@@ -86,11 +92,11 @@ no SD image takes over the PS.
    START → DONE. It must end with `RAVEN_SMOKE_PASS`. From the Hardware Manager Tcl
    console with the target already open, use `set argv {-smoke -no_connect}` and then
    `source run_fixture.tcl`. Add `-soft_reset` if the NPU was left busy or halted.
-3. **GEMM fixture** (MEMORY build only). Export the fixture and run it:
+3. **GEMM fixture** (MEMORY build only). The handoff includes the preloaded fixture
+   directory; run it and compare:
 
    ```sh
-   python tests/rtl/integration/export_fixtures.py --output build/prototype/fixtures
-   vivado -mode batch -source build/hw/board/handoff/run_fixture.tcl -tclargs -fixture build/prototype/fixtures/normal_8x16x8 -out build/prototype/out0.bin
+   vivado -mode batch -source build/hw/board/handoff/run_fixture.tcl -tclargs -fixture build/hw/board/handoff/normal_8x16x8 -out build/prototype/out0.bin
    python tools/goldens/compare_prealpha.py --case tests/vectors/prealpha/normal_8x16x8 --kind int8 --actual build/prototype/out0.bin
    ```
 

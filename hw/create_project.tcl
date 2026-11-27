@@ -12,11 +12,7 @@ raven::parse_args $argv
 proc raven::create_board_project {} {
     variable root; variable part; variable project_name; variable bd_name
     variable rtl_sources; variable xdc_sources; variable out0_memory
-
-    if {$out0_memory} {
-        # raven_board_top elaborates OUT0_SOURCE "MEMORY" only once the bank adapter exists.
-        puts "WARNING: -out0_memory 1 needs the Phase 4 bank adapter; elaboration fails until it is added."
-    }
+    variable fixture_dir; variable fixture_images
     check_path_length
     set board [find_board_part]
     set dir [project_dir]
@@ -34,6 +30,17 @@ proc raven::create_board_project {} {
         if {[file extension $f] eq ".sv"} {
             set_property file_type SystemVerilog [get_files $path]
         }
+    }
+    if {$out0_memory} {
+        # raven_board_top's MEMORY mode names these images by bare file name in $readmemh;
+        # synthesis finds them because they are project memory files.
+        foreach f $fixture_images {
+            set path [file join $root $fixture_dir $f]
+            if {![file isfile $path]} { error "Missing fixture image $fixture_dir/$f" }
+            add_files -norecurse -fileset sources_1 $path
+            set_property file_type {Memory Initialization Files} [get_files $path]
+        }
+        puts "RAVEN: MEMORY build, fixture $fixture_dir"
     }
     foreach f $xdc_sources {
         add_files -norecurse -fileset constrs_1 [file join $root $f]
