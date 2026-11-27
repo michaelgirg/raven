@@ -33,11 +33,10 @@ SOURCES = [ROOT / p for p in (
     'rtl/operators/raven_requantize_clamp.sv',
     'rtl/memory/activation_buffer.sv', 'rtl/memory/weight_buffer.sv',
     'rtl/memory/parameter_buffer.sv', 'rtl/memory/output_buffer.sv',
+    'rtl/memory/raven_bram_bank.sv', 'rtl/memory/raven_memory_banks.sv',
     'rtl/memory/raven_integrity_pkg.sv',
     'rtl/memory/raven_read_buffer_adapter.sv', 'rtl/memory/raven_output_buffer_adapter.sv',
     'rtl/top/raven_requant.sv', 'rtl/top/raven_result_writer.sv', 'rtl/top/raven_npu_top.sv',
-    'tests/rtl/compute/sim_read_memory.sv',
-    'tests/rtl/integration/sim_write_memory.sv',
     'tests/rtl/integration/raven_tb_driver_pkg.sv',
     'tests/rtl/integration/tb_raven_npu_top.sv',
     'tests/rtl/integration/tb_raven_memory_adapters.sv')]

@@ -17,6 +17,52 @@ The initial implementation targets the pre-alpha demonstration of an 8×16 activ
 | `parameter_buffer.sv` | Stores bias and quantization parameters. |
 | `output_buffer.sv` | Stores the final INT8 output matrix. |
 | `banked_scratchpad.sv` | Managed scratchpad model with bank ownership, lifecycle states, generation IDs, and generic read/write interfaces. |
+| `raven_bram_bank.sv` | Parameterized synchronous 128-bit byte-strobed bank with optional `$readmemh` initialization. |
+| `raven_memory_banks.sv` | ACT0/1, WGT0/1, dual-reader PARAM, and read/write OUT0 bank aggregate. |
+
+## Physical BRAM banks
+
+`raven_bram_bank` is the reusable backing-memory primitive. Its default
+transfer is 128 bits (16 bytes), the address is a 24-bit **byte** address, and
+the low byte lane `data[7:0]` maps to the lowest address. Read requests are
+synchronous: a request accepted at a rising edge produces a response after that
+edge, and the response remains valid and stable until accepted. Reads are
+read-first when a read and write target the same word on one edge. Writes have
+one strobe bit per byte lane.
+
+Addresses must be 16-byte aligned and wholly within the configured bank.
+Invalid requests are not accepted; simulation assertions report a producer
+violating this precondition. Memory contents are not reset. `INIT_FILE` may
+specify a one-word-per-line 128-bit `$readmemh` image; omit it for an
+uninitialized runtime-loaded bank.
+
+`raven_memory_banks` defaults to 16 KiB per ACT/WGT bank, 4 KiB for PARAM,
+and 8 KiB for OUT0. It has independent read request/response ports for ACT0,
+ACT1, WGT0, WGT1, PARAM A, PARAM B, and OUT0, plus one byte-strobed write
+port for each bank. Both PARAM read ports use separate BRAM copies; PARAM
+writes are broadcast to both copies, allowing concurrent independent reads.
+OUT0 has independent read and write ports for result storage and readback.
+
+The aggregate provides optional initialization parameters for ACT0, ACT1,
+WGT0, WGT1, and PARAM. Both PARAM copies load the same PARAM image. OUT0 has
+no initialization parameter because the inference flow writes its results.
+This aggregate is the physical-memory RTL; `raven_banked_scratchpad` remains
+the separate bank-ownership/lifecycle model and is not yet wired into the
+pre-alpha NPU top.
+
+### Vivado inference check
+
+From the repository root, run the aggregate's dedicated out-of-context Vivado check:
+
+```sh
+vivado -mode batch -source hw/check_memory_banks_synthesis.tcl -tclargs . build/hw/memory-banks
+```
+
+The check verifies that RAMB36/RAMB18 resources account for the aggregate's
+80 KiB of storage and records utilization and timing reports. It does not prove
+board-level timing or production-top integration. See the [hardware instructions](../../hw/README.md#physical-memory-bank-synthesis)
+for scope and output details; the result remains unverified until the script is
+run with Vivado.
 
 ## 1. Banked Scratchpad
 
@@ -224,6 +270,7 @@ The integration logic must ensure that required data has been written before it 
 | Component | Status |
 |---|---|
 | Banked scratchpad | RTL model implemented; directed testbench covers lifecycle, ownership, bounds, generation, read backpressure, release, and reset. |
+| Physical ACT/WGT/PARAM/OUT banks | Synthesizable aggregate and fixture simulation implemented; dedicated Vivado BRAM inference check is available but not yet run. |
 | Activation buffer | RTL implemented; simulation tests passed. |
 | Weight buffer | RTL implemented; testbench passed. |
 | Parameter buffer | RTL implemented; simulation tests passed. |
@@ -265,7 +312,7 @@ The integration logic must ensure that required data has been written before it 
 - Coordinate memory interfaces with the compute core and output operators.
 - Integrate the buffers with the control and integration harness (in progress)
 - Verify the complete GEMM operation against the golden reference (in progress)
-- Evaluate FPGA synthesis and memory inference.
+- Run and inspect the [physical-bank Vivado inference check](../../hw/README.md#physical-memory-bank-synthesis).
 - Expand output storage to support future INT32 partial-sum requirements.
 
 ## Pre-alpha pipeline adapters

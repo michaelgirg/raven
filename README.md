@@ -6,7 +6,7 @@ RAVEN is a senior capstone project developing a programmable INT8 neural process
 
 The goal is to execute multiple supported model graphs using one FPGA bitstream and one runtime binary. Intended applications include audio anomaly detection, keyword spotting, and visual wake-word person detection, with inference performed locally on the board.
 
-**Current status: a pre-alpha RTL pipeline connecting control, GEMM, activation/weight/parameter buffers, requantization and buffered INT8 result storage.** One register-bus command runs one resident INT8 GEMM tile through to stored INT8 bytes, checked against the golden fixtures. Adapters connect all four memory-buffer modules to the existing datapath. The command driver (standing in for the RISC-V) and full-capacity backing memories are simulation models. Physical bank implementation, DMA, the RISC-V, full-system integration and FPGA measurements remain future work; the broader architecture below is a proposal. See [Control pre-alpha and integration](#control-pre-alpha-and-integration).
+**Current status: a pre-alpha RTL pipeline connecting control, GEMM, activation/weight/parameter buffers, requantization and buffered INT8 result storage.** One register-bus command runs one resident INT8 GEMM tile through to stored INT8 bytes, checked against the golden fixtures. A synthesizable fixed-capacity BRAM bank aggregate now backs the integration testbench, including both PARAM read ports and OUT0 readback; fixture loading uses the bank write ports. The aggregate is not yet instantiated by `raven_npu_top`. An [out-of-context Vivado check](hw/README.md#physical-memory-bank-synthesis) is available to verify BRAM inference, but has not yet been run. The command driver (standing in for the RISC-V), DMA, the RISC-V, full-system integration and board measurements remain future work. See [Control pre-alpha and integration](#control-pre-alpha-and-integration).
 
 
 ## Pre-alpha verification results
@@ -47,10 +47,10 @@ It does not correct data, cover all even-bit changes, authenticate inputs, or
 protect backing data before capture/after commit. Previously committed output
 bytes are not rolled back; the failed destination must be discarded and recomputed.
 
-This demonstrates a tested pre-alpha RTL integration. Full-capacity backing banks
-are still simulation models. Block synthesis has known memory-inference/reset
-warnings and excludes backing-bank BRAM, processor/DMA and board integration.
-Physical bank implementation, a loading/readback path, complete routed timing,
+This demonstrates a tested pre-alpha RTL integration. Full-capacity bank RTL is
+now exercised in simulation, but it remains outside `raven_npu_top`; the current
+block synthesis therefore excludes backing-bank BRAM, processor/DMA and board
+integration. BRAM inference for the new bank aggregate, complete routed timing,
 on-board tests and full-model execution remain future work. The staging path also
 adds substantial latency: the normal tile takes 786 busy cycles versus 146 on the
 direct path. See the [FPGA readiness review](docs/reviews/RAVEN_BOARD_READINESS_REVIEW.md).
@@ -81,11 +81,11 @@ Its results apply to the pinned PR revision and do not establish a working board
 
 | Area | Implemented and tested | Connection still needed |
 |---|---|---|
-| Compute — Michael | Resident INT8 GEMM microtile; connected to control, buffered operands and INT8 storage; reset/backpressure/error tests | Physical backing banks and broader operation support |
-| Memory — Taylor | Activation, weight, parameter and output buffers; connected through staging adapters; standalone and integrated tests | Physical backing banks, DMA, bank ownership and efficient tile reuse |
+| Compute — Michael | Resident INT8 GEMM microtile; connected to control, buffered operands and INT8 storage; reset/backpressure/error tests | Production physical-bank connection and broader operation support |
+| Memory — Taylor | Activation, weight, parameter and output buffers; synthesizable physical-bank aggregate connected in simulation; standalone and integrated tests | Production-top integration, Vivado BRAM inference, DMA, bank ownership and efficient tile reuse |
 | Operators — Quan | One-lane INT32-to-INT8 requantization/clamp; connected channel mapping, per-channel PARAM delivery and output storage | Broader operators and board integration |
 | Goldens — Jackie | Reproducible fixtures, byte comparator and three extra INT32 GEMM cases | Fixtures for overflow/bad-pitch errors (currently derived in the integration exporter) |
-| Control — Nahjay | Register block, single-command FSM, NPU simulation top (control → compute → requant → INT8 writer), command driver and T1–T15 integration tests | AXI4-Lite/generated CSR, command queue, bank-state interlock, physical banks, RISC-V firmware |
+| Control — Nahjay | Register block, single-command FSM, NPU simulation top (control → compute → requant → INT8 writer), command driver and T1–T16 integration tests | AXI4-Lite/generated CSR, command queue, bank-state interlock, production physical-bank integration, RISC-V firmware |
 
 Compute's operand frontend requests 128-bit words with bank-local byte offsets.
 The [memory adapters](rtl/memory/README.md#pre-alpha-pipeline-adapters) refill native
@@ -98,9 +98,10 @@ reset to discard pending replies.
 The operator tail uses the compute column tag to select multiplier and shift
 from canonical PARAM records; output zero-point and clamp remain command fields.
 Backpressure propagates through the complete path, and DONE follows the final
-committed OUT0 write. The small native buffers are transient staging, while the
-architectural ACT/WGT/PRM/OUT capacities still require backing storage. No FPGA
-memory inference, timing or board operation is claimed yet.
+committed OUT0 write. The small native buffers are transient staging, while the architectural
+ACT/WGT/PRM/OUT capacities have a synthesizable backing aggregate connected in
+simulation. The aggregate is not connected to the production NPU top, and its
+Vivado BRAM inference, timing and board operation have not yet been validated.
 
 ## Proposed system architecture
 
@@ -365,9 +366,10 @@ See the [source-hash/result report](evidence/questa/integration/results.json),
 - Everything listed as out of scope in the [plan](docs/plans/nahjay_control_integration_prealpha.md#9-out-of-scope-document-as-known-limitations):
   the command queue, the bank-state interlock, ABORT/ZERO_LOCAL, AXI4-Lite, multi-tile and
   K-chunk commands, DMA, the RISC-V and firmware, complete-system synthesis and routed timing.
-- Full-capacity backing banks are testbench stand-ins. The connected native buffers
-  stage each transaction and add latency; they do not implement the full scratchpad,
-  DMA, ownership or an optimized tile-prefetch/reuse path.
+- The testbench connects the synthesizable full-capacity bank aggregate, but
+  `raven_npu_top` still exposes external bank ports. The connected native buffers
+  stage each transaction and add latency; they do not implement DMA, ownership
+  interlocks or an optimized tile-prefetch/reuse path.
 - The core has no timeout, so a memory that never responds hangs the command until
   SOFT_RESET.
 - Control does not range-check Q_SHIFT or Q_MULT. Values outside the TFLM range
@@ -462,7 +464,7 @@ raven/
 ├── docs/               # Research, decisions, interface contracts, diagrams, and guides
 ├── evidence/           # Simulation results, verification notes and screenshots
 ├── rtl/                # Compute, memory buffers, INT8 tail, pre-alpha control and NPU top
-├── hw/                 # Future Vivado Tcl, constraints, and IP configuration
+├── hw/                 # Vivado Tcl, constraints, IP configuration and board setup
 ├── software/           # Future firmware, runtime, drivers, HAL, and host tests
 ├── tools/              # Golden-fixture tools; future model export and register generation
 ├── tests/              # Standalone RTL tests, goldens and the pre-alpha integration test
@@ -473,6 +475,6 @@ raven/
 └── README.md
 ```
 
-See the [full directory map and ownership guide](docs/REPOSITORY_STRUCTURE.md) for where each teammate's work belongs. Area READMEs describe current implementations and planned work; [automation notes](.github/AUTOMATION.md) cover future CI. `.gitkeep` files retain empty implementation folders in Git. The command queue, runtime, physical memory/DMA and full-system integration remain future work.
+See the [full directory map and ownership guide](docs/REPOSITORY_STRUCTURE.md) for where each teammate's work belongs. Area READMEs describe current implementations and planned work; [automation notes](.github/AUTOMATION.md) cover future CI. `.gitkeep` files retain empty implementation folders in Git. The command queue, physical-bank integration into the production top, DMA, runtime and full-system integration remain future work.
 
 Generated products belong under the Git-ignored `build/` directory. See the compute run instructions in this README; additional build instructions will accompany their corresponding implementations.

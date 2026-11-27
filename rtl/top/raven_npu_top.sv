@@ -6,7 +6,8 @@
 //
 // Full-capacity backing memories stay outside: ACT0/ACT1/WGT0/WGT1 read ports, two
 // PRM read ports and an OUT0 write port. Tile-buffer adapters stage each transfer
-// through the memory RTL; testbench models currently supply the backing storage.
+// through the memory RTL; the integration testbench connects these ports to
+// raven_memory_banks, while board/system integration still supplies the physical wrapper.
 // The core's A port is routed to ACT0 or ACT1 and its B port to
 // WGT0 or WGT1 by the snapshot's BANK_IDs (D8); control has already rejected any other ID.
 // A parity fault also holds the datapath and backing responders in reset until

@@ -1,9 +1,8 @@
 `default_nettype none
 // TESTBENCH ONLY: pre-alpha integration testbench for raven_npu_top.
 //
-// The NPU top connects to sim_read_memory models for ACT0/ACT1/WGT0/WGT1 and both PRM
-// ports, and to a sim_write_memory model for OUT0. raven_tb_driver_pkg stands in for the
-// RISC-V and talks to the register bus only. Fixtures come from export_fixtures.py.
+// The NPU top connects to the synthesizable raven_memory_banks aggregate. Fixtures come
+// from export_fixtures.py and are loaded through the banks' normal byte-strobed write ports.
 //
 // Plusargs:
 //   +FIXTURES=<dir>  export_fixtures.py output (required)
@@ -27,7 +26,7 @@ module tb_raven_npu_top #(
 
     raven_reg_bus_if bus_if(clk);
     wire irq, lrst_n;
-    bit stalls; // Random stalls in every bank model.
+    bit stalls; // Testbench backpressure injected around the real bank interfaces.
     wire [6:0] native_response;
     logic [127:0] injected_read;
     logic [63:0] injected_output;
@@ -90,16 +89,77 @@ module tb_raven_npu_top #(
         end
     endgenerate
 
-    // Bank model wiring. Index: 0 ACT0, 1 ACT1, 2 WGT0, 3 WGT1, 4 PRM port A, 5 PRM port B.
+    // Bank wiring. Index: 0 ACT0, 1 ACT1, 2 WGT0, 3 WGT1, 4 PRM A, 5 PRM B.
     wire rq_valid [6], rq_ready [6], rs_valid [6], rs_ready [6];
     wire [23:0] rq_addr [6];
     wire [127:0] rs_data [6];
-    wire [31:0] reads [6];
+    logic [31:0] reads [6];
+    wire bank_req_valid [6], bank_req_ready [6];
+    wire bank_rsp_valid [6], bank_rsp_ready [6];
+    wire [23:0] bank_req_addr [6];
+    wire [127:0] bank_rsp_data [6];
+    logic [31:0] stall_lfsr [7];
+    wire read_allow [6];
     wire ow_valid, ow_ready;
     wire [23:0] ow_addr;
     wire [127:0] ow_data;
     wire [15:0] ow_strb;
-    wire [31:0] out_writes, out_last_cycle;
+    logic [3:0] load_w_valid;
+    wire [3:0] load_w_ready;
+    logic [23:0] load_w_addr [4];
+    logic [127:0] load_w_data [4];
+    logic [15:0] load_w_strb [4];
+    logic prm_load_valid;
+    wire prm_load_ready;
+    logic [23:0] prm_load_addr;
+    logic [127:0] prm_load_data;
+    logic [15:0] prm_load_strb;
+    logic out0_init_mode, out0_init_valid;
+    wire out0_bank_w_ready, out0_init_ready;
+    logic [23:0] out0_init_addr;
+    logic [127:0] out0_init_data;
+    logic [15:0] out0_init_strb;
+    logic out0_rd_req_valid, out0_rd_rsp_ready;
+    logic [23:0] out0_rd_req_addr;
+    wire out0_rd_req_ready, out0_rd_rsp_valid;
+    wire [127:0] out0_rd_rsp_data;
+    wire out0_write_allow = !stalls || stall_lfsr[6][0];
+    wire [23:0] bank_out0_w_addr = out0_init_mode ? out0_init_addr : ow_addr;
+    wire [127:0] bank_out0_w_data = out0_init_mode ? out0_init_data : ow_data;
+    wire [15:0] bank_out0_w_strb = out0_init_mode ? out0_init_strb : ow_strb;
+    wire bank_out0_w_valid = out0_init_mode
+        ? out0_init_valid
+        : ow_valid && out0_write_allow;
+    assign out0_init_ready = out0_bank_w_ready;
+    assign ow_ready = !out0_init_mode && out0_bank_w_ready && out0_write_allow;
+
+    for (genvar p = 0; p < 6; p++) begin : gen_bank_backpressure
+        assign read_allow[p] = !stalls || stall_lfsr[p][0];
+        assign bank_req_valid[p] = rq_valid[p] && read_allow[p];
+        assign bank_req_addr[p] = rq_addr[p];
+        assign rq_ready[p] = bank_req_ready[p] && read_allow[p];
+        assign rs_valid[p] = bank_rsp_valid[p] && read_allow[p];
+        assign bank_rsp_ready[p] = rs_ready[p] && read_allow[p];
+        assign rs_data[p] = bank_rsp_data[p];
+    end
+
+    always_ff @(posedge clk) begin
+        if (!lrst_n) begin
+            for (int p = 0; p < 7; p++) begin
+                stall_lfsr[p] <= 32'(11 + p);
+            end
+            for (int p = 0; p < 6; p++)
+                reads[p] <= 0;
+        end else begin
+            for (int p = 0; p < 7; p++)
+                stall_lfsr[p] <= {stall_lfsr[p][30:0],
+                                   stall_lfsr[p][31] ^ stall_lfsr[p][21] ^
+                                   stall_lfsr[p][1] ^ stall_lfsr[p][0]};
+            for (int p = 0; p < 6; p++)
+                if (rq_valid[p] && rq_ready[p])
+                    reads[p] <= reads[p] + 1;
+        end
+    end
 
     raven_npu_top #(.COLS(COLS), .USE_TILE_BUFFERS(USE_TILE_BUFFERS)) dut (
         .clk_i(clk), .rst_ni(rst_n),
@@ -123,28 +183,57 @@ module tb_raven_npu_top #(
         .out0_w_data_o(ow_data), .out0_w_strb_o(ow_strb)
     );
 
-    // Bank responders reset with the datapath (D11).
-    sim_read_memory #(.BYTES(ACT_BYTES), .SEED(11)) m_act0 (.clk_i(clk), .rst_ni(lrst_n), .stalls_i(stalls),
-        .req_valid_i(rq_valid[0]), .req_ready_o(rq_ready[0]), .req_addr_i(rq_addr[0]),
-        .rsp_valid_o(rs_valid[0]), .rsp_ready_i(rs_ready[0]), .rsp_data_o(rs_data[0]), .reads_o(reads[0]));
-    sim_read_memory #(.BYTES(ACT_BYTES), .SEED(12)) m_act1 (.clk_i(clk), .rst_ni(lrst_n), .stalls_i(stalls),
-        .req_valid_i(rq_valid[1]), .req_ready_o(rq_ready[1]), .req_addr_i(rq_addr[1]),
-        .rsp_valid_o(rs_valid[1]), .rsp_ready_i(rs_ready[1]), .rsp_data_o(rs_data[1]), .reads_o(reads[1]));
-    sim_read_memory #(.BYTES(WGT_BYTES), .SEED(13)) m_wgt0 (.clk_i(clk), .rst_ni(lrst_n), .stalls_i(stalls),
-        .req_valid_i(rq_valid[2]), .req_ready_o(rq_ready[2]), .req_addr_i(rq_addr[2]),
-        .rsp_valid_o(rs_valid[2]), .rsp_ready_i(rs_ready[2]), .rsp_data_o(rs_data[2]), .reads_o(reads[2]));
-    sim_read_memory #(.BYTES(WGT_BYTES), .SEED(14)) m_wgt1 (.clk_i(clk), .rst_ni(lrst_n), .stalls_i(stalls),
-        .req_valid_i(rq_valid[3]), .req_ready_o(rq_ready[3]), .req_addr_i(rq_addr[3]),
-        .rsp_valid_o(rs_valid[3]), .rsp_ready_i(rs_ready[3]), .rsp_data_o(rs_data[3]), .reads_o(reads[3]));
-    sim_read_memory #(.BYTES(PRM_BYTES), .SEED(15)) m_prm_a (.clk_i(clk), .rst_ni(lrst_n), .stalls_i(stalls),
-        .req_valid_i(rq_valid[4]), .req_ready_o(rq_ready[4]), .req_addr_i(rq_addr[4]),
-        .rsp_valid_o(rs_valid[4]), .rsp_ready_i(rs_ready[4]), .rsp_data_o(rs_data[4]), .reads_o(reads[4]));
-    sim_read_memory #(.BYTES(PRM_BYTES), .SEED(16)) m_prm_b (.clk_i(clk), .rst_ni(lrst_n), .stalls_i(stalls),
-        .req_valid_i(rq_valid[5]), .req_ready_o(rq_ready[5]), .req_addr_i(rq_addr[5]),
-        .rsp_valid_o(rs_valid[5]), .rsp_ready_i(rs_ready[5]), .rsp_data_o(rs_data[5]), .reads_o(reads[5]));
-    sim_write_memory #(.BYTES(OUT0_BYTES), .SEED(17)) m_out0 (.clk_i(clk), .rst_ni(lrst_n), .stalls_i(stalls),
-        .w_valid_i(ow_valid), .w_ready_o(ow_ready), .w_addr_i(ow_addr), .w_data_i(ow_data),
-        .w_strb_i(ow_strb), .writes_o(out_writes), .last_write_cycle_o(out_last_cycle));
+    raven_memory_banks u_memory_banks (
+        .clk_i(clk), .rst_ni(lrst_n),
+
+        .act0_req_valid_i(bank_req_valid[0]), .act0_req_ready_o(bank_req_ready[0]),
+        .act0_req_addr_i(bank_req_addr[0]), .act0_rsp_valid_o(bank_rsp_valid[0]),
+        .act0_rsp_ready_i(bank_rsp_ready[0]), .act0_rsp_data_o(bank_rsp_data[0]),
+        .act0_w_valid_i(load_w_valid[0]), .act0_w_ready_o(load_w_ready[0]),
+        .act0_w_addr_i(load_w_addr[0]), .act0_w_data_i(load_w_data[0]),
+        .act0_w_strb_i(load_w_strb[0]),
+
+        .act1_req_valid_i(bank_req_valid[1]), .act1_req_ready_o(bank_req_ready[1]),
+        .act1_req_addr_i(bank_req_addr[1]), .act1_rsp_valid_o(bank_rsp_valid[1]),
+        .act1_rsp_ready_i(bank_rsp_ready[1]), .act1_rsp_data_o(bank_rsp_data[1]),
+        .act1_w_valid_i(load_w_valid[1]), .act1_w_ready_o(load_w_ready[1]),
+        .act1_w_addr_i(load_w_addr[1]), .act1_w_data_i(load_w_data[1]),
+        .act1_w_strb_i(load_w_strb[1]),
+
+        .wgt0_req_valid_i(bank_req_valid[2]), .wgt0_req_ready_o(bank_req_ready[2]),
+        .wgt0_req_addr_i(bank_req_addr[2]), .wgt0_rsp_valid_o(bank_rsp_valid[2]),
+        .wgt0_rsp_ready_i(bank_rsp_ready[2]), .wgt0_rsp_data_o(bank_rsp_data[2]),
+        .wgt0_w_valid_i(load_w_valid[2]), .wgt0_w_ready_o(load_w_ready[2]),
+        .wgt0_w_addr_i(load_w_addr[2]), .wgt0_w_data_i(load_w_data[2]),
+        .wgt0_w_strb_i(load_w_strb[2]),
+
+        .wgt1_req_valid_i(bank_req_valid[3]), .wgt1_req_ready_o(bank_req_ready[3]),
+        .wgt1_req_addr_i(bank_req_addr[3]), .wgt1_rsp_valid_o(bank_rsp_valid[3]),
+        .wgt1_rsp_ready_i(bank_rsp_ready[3]), .wgt1_rsp_data_o(bank_rsp_data[3]),
+        .wgt1_w_valid_i(load_w_valid[3]), .wgt1_w_ready_o(load_w_ready[3]),
+        .wgt1_w_addr_i(load_w_addr[3]), .wgt1_w_data_i(load_w_data[3]),
+        .wgt1_w_strb_i(load_w_strb[3]),
+
+        .prm_a_req_valid_i(bank_req_valid[4]), .prm_a_req_ready_o(bank_req_ready[4]),
+        .prm_a_req_addr_i(bank_req_addr[4]), .prm_a_rsp_valid_o(bank_rsp_valid[4]),
+        .prm_a_rsp_ready_i(bank_rsp_ready[4]), .prm_a_rsp_data_o(bank_rsp_data[4]),
+        .prm_b_req_valid_i(bank_req_valid[5]), .prm_b_req_ready_o(bank_req_ready[5]),
+        .prm_b_req_addr_i(bank_req_addr[5]), .prm_b_rsp_valid_o(bank_rsp_valid[5]),
+        .prm_b_rsp_ready_i(bank_rsp_ready[5]), .prm_b_rsp_data_o(bank_rsp_data[5]),
+        .prm_w_valid_i(prm_load_valid), .prm_w_ready_o(prm_load_ready),
+        .prm_w_addr_i(prm_load_addr), .prm_w_data_i(prm_load_data),
+        .prm_w_strb_i(prm_load_strb),
+
+        .out0_w_valid_i(bank_out0_w_valid), .out0_w_ready_o(out0_bank_w_ready),
+        .out0_w_addr_i(bank_out0_w_addr), .out0_w_data_i(bank_out0_w_data),
+        .out0_w_strb_i(bank_out0_w_strb),
+        .out0_rd_req_valid_i(out0_rd_req_valid),
+        .out0_rd_req_ready_o(out0_rd_req_ready),
+        .out0_rd_req_addr_i(out0_rd_req_addr),
+        .out0_rd_rsp_valid_o(out0_rd_rsp_valid),
+        .out0_rd_rsp_ready_i(out0_rd_rsp_ready),
+        .out0_rd_rsp_data_o(out0_rd_rsp_data)
+    );
 
 
     bit dbg_held = 0;
@@ -240,24 +329,92 @@ module tb_raven_npu_top #(
         if (got != 10) $fatal(1, "Malformed meta.txt for %s", name);
     endtask
 
-    // Load the case's images into the bank models its command reads from.
+    task automatic write_fixture_image(input string path, input int port, input int words);
+        logic [127:0] image [0:ACT_BYTES/16-1];
+        $readmemh(path, image);
+        for (int word = 0; word < words; word++) begin
+            @(negedge clk);
+            load_w_valid[port] = 1'b1;
+            load_w_addr[port] = 24'(word * 16);
+            load_w_data[port] = image[word];
+            load_w_strb[port] = 16'hFFFF;
+            while (!load_w_ready[port]) @(negedge clk);
+            @(posedge clk);
+        end
+        @(negedge clk);
+        load_w_valid[port] = 1'b0;
+    endtask
+
+    task automatic write_parameter_fixture(input string path);
+        logic [127:0] image [0:PRM_BYTES/16-1];
+        $readmemh(path, image);
+        for (int word = 0; word < PRM_BYTES/16; word++) begin
+            @(negedge clk);
+            prm_load_valid = 1'b1;
+            prm_load_addr = 24'(word * 16);
+            prm_load_data = image[word];
+            prm_load_strb = 16'hFFFF;
+            while (!prm_load_ready) @(negedge clk);
+            @(posedge clk);
+        end
+        @(negedge clk);
+        prm_load_valid = 1'b0;
+    endtask
+
+    // Load fixture bytes through the physical bank write interfaces.
     task automatic load_banks(input string name, input meta_t mt);
         string d = {fixtures, "/", name, "/"};
-        case (mt.a_bank)
-            BANK_ACT1: $readmemh({d, "act.hex"}, m_act1.mem);
-            default:   $readmemh({d, "act.hex"}, m_act0.mem);
-        endcase
-        case (mt.b_bank)
-            BANK_WGT1: $readmemh({d, "wgt.hex"}, m_wgt1.mem);
-            default:   $readmemh({d, "wgt.hex"}, m_wgt0.mem);
-        endcase
-        $readmemh({d, "prm.hex"}, m_prm_a.mem); // Both PRM ports see the same image (D7).
-        $readmemh({d, "prm.hex"}, m_prm_b.mem);
+        write_fixture_image({d, "act.hex"},
+                            mt.a_bank == BANK_ACT1 ? 1 : 0, ACT_BYTES/16);
+        write_fixture_image({d, "wgt.hex"},
+                            mt.b_bank == BANK_WGT1 ? 3 : 2, WGT_BYTES/16);
+        write_parameter_fixture({d, "prm.hex"});
+    endtask
+
+    task automatic fill_out0_guard();
+        out0_init_mode = 1'b1;
+        for (int word = 0; word < OUT0_BYTES/16; word++) begin
+            @(negedge clk);
+            out0_init_valid = 1'b1;
+            out0_init_addr = 24'(word * 16);
+            out0_init_data = {16{8'hA5}};
+            out0_init_strb = 16'hFFFF;
+            while (!out0_init_ready) @(negedge clk);
+            @(posedge clk);
+        end
+        @(negedge clk);
+        out0_init_valid = 1'b0;
+        out0_init_mode = 1'b0;
+    endtask
+
+    task automatic read_out0_word(input int word, output logic [127:0] data);
+        @(negedge clk);
+        out0_rd_req_addr = 24'(word * 16);
+        out0_rd_req_valid = 1'b1;
+        while (!out0_rd_req_ready) @(negedge clk);
+        @(posedge clk);
+        #1;
+        out0_rd_req_valid = 1'b0;
+        if (!out0_rd_rsp_valid) begin
+            int waited = 0;
+            while (!out0_rd_rsp_valid && waited < 16) begin
+                @(negedge clk);
+                waited++;
+            end
+            if (!out0_rd_rsp_valid)
+                $fatal(1, "OUT0 read response timeout at word %0d", word);
+        end
+        data = out0_rd_rsp_data;
+        out0_rd_rsp_ready = 1'b1;
+        @(posedge clk);
+        #1;
+        out0_rd_rsp_ready = 1'b0;
     endtask
 
     // Compare OUT0 against the expected M x N region at dst/pitch; every other byte must be guard.
     task automatic check_out_bank(input string name, input meta_t mt, input string tag = "");
         logic [7:0] exp [];
+        logic [127:0] data;
         int fd, got, mism = 0;
         logic [7:0] b;
         if (tag == "") tag = name;
@@ -272,26 +429,31 @@ module tb_raven_npu_top #(
             end
             $fclose(fd);
         end
-        for (int a = 0; a < OUT0_BYTES; a++) begin
-            int off = a - mt.dst_offset;
-            int r = -1;
-            int c = -1;
-            logic [7:0] want_b;
+        for (int word = 0; word < OUT0_BYTES/16; word++) begin
+            if (lrst_n)
+                read_out0_word(word, data);
+            else
+                data = u_memory_banks.u_out0.mem[word];
+            for (int lane = 0; lane < 16; lane++) begin
+                int a = word * 16 + lane;
+                int off = a - mt.dst_offset;
+                int r = -1;
+                int c = -1;
+                logic [7:0] want_b;
+                logic [7:0] actual_b = data[8*lane +: 8];
 
-            // Prevent division by zero
-            if (off >= 0 && mt.p4 > 0) begin
-                r = off / mt.p4;
-                c = off % mt.p4;
-            end
-
-            want_b = (r >= 0 && r < mt.m && c >= 0 && c < mt.n)
-                ? exp[r * mt.n + c] : 8'hA5;
-
-            if (m_out0.read_byte(a) !== want_b) begin
-                if (mism < 8)
-                    $display("  %s OUT0[%04h] = %02h, expected %02h",
-                            tag, a, m_out0.read_byte(a), want_b);
-                mism++;
+                if (off >= 0 && mt.p4 > 0) begin
+                    r = off / mt.p4;
+                    c = off % mt.p4;
+                end
+                want_b = (r >= 0 && r < mt.m && c >= 0 && c < mt.n)
+                    ? exp[r * mt.n + c] : 8'hA5;
+                if (actual_b !== want_b) begin
+                    if (mism < 8)
+                        $display("  %s OUT0[%04h] = %02h, expected %02h",
+                                 tag, a, actual_b, want_b);
+                    mism++;
+                end
             end
         end
         checks++;
@@ -300,11 +462,21 @@ module tb_raven_npu_top #(
 
     // Packed M x N result for compare_prealpha.py, listed in dumps.txt as "<tag> <fixture>".
     task automatic dump_actual(input string name, input string tag, input meta_t mt);
+        logic [127:0] data;
+        int cached_word = -1;
         int fd = $fopen({out_dir, "/actual_int8_", tag, ".bin"}, "wb");
         if (fd == 0) $fatal(1, "Cannot write actual_int8 for %s", tag);
-        for (int r = 0; r < mt.m; r++)
-            for (int c = 0; c < mt.n; c++)
-                $fwrite(fd, "%c", m_out0.read_byte(mt.dst_offset + r * mt.p4 + c));
+        for (int r = 0; r < mt.m; r++) begin
+            for (int c = 0; c < mt.n; c++) begin
+                int addr = mt.dst_offset + r * mt.p4 + c;
+                int word = addr / 16;
+                if (word != cached_word) begin
+                    read_out0_word(word, data);
+                    cached_word = word;
+                end
+                $fwrite(fd, "%c", data[8*(addr % 16) +: 8]);
+            end
+        end
         $fclose(fd);
         fd = $fopen({out_dir, "/dumps.txt"}, "a");
         $fdisplay(fd, "%s %s", tag, name);
@@ -317,7 +489,7 @@ module tb_raven_npu_top #(
                                 output meta_t mt);
         read_meta(name, mt);
         load_banks(name, mt);
-        m_out0.fill_guard();
+        fill_out0_guard();
         stalls = force_stall || mt.stall != 0;
         raven_open_trace({out_dir, "/trace_", tag, ".txt"});
         raven_set_op_from_file({fixtures, "/", name, "/cmd.txt"});
@@ -838,6 +1010,25 @@ module tb_raven_npu_top #(
         bus = bus_if;
         npu_bus_idle();
         cycle = 0; launches = 0; out_wr = 0; done_seq_seen = 16'hFFFF;
+        stalls = 0;
+        load_w_valid = '0;
+        for (int p = 0; p < 4; p++) begin
+            load_w_addr[p] = '0;
+            load_w_data[p] = '0;
+            load_w_strb[p] = '0;
+        end
+        prm_load_valid = 0;
+        prm_load_addr = '0;
+        prm_load_data = '0;
+        prm_load_strb = '0;
+        out0_init_mode = 0;
+        out0_init_valid = 0;
+        out0_init_addr = '0;
+        out0_init_data = '0;
+        out0_init_strb = '0;
+        out0_rd_req_valid = 0;
+        out0_rd_req_addr = '0;
+        out0_rd_rsp_ready = 0;
         hw_reset();
 
         if (want("T1")) begin t1_reset_values(); $display("TEST T1 PASS"); end

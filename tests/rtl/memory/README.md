@@ -22,6 +22,8 @@ matrix. Connected pipeline coverage is described in the
 | `tb_parameter_buffer.sv` | Tests bias and quantization parameter storage and retrieval. |
 | `tb_output_buffer.sv` | Tests output matrix storage and retrieval. |
 | `tb_banked_scratchpad.sv` | Tests managed bank lifecycle, ownership, generic storage, and handshake behavior. |
+| `tb_raven_memory_banks_fixture.sv` | Compares physical ACT0, WGT0, and both PARAM readers against fixture images; checks OUT0 writes and readback. |
+| `run_bram_fixture.py` | Exports `normal_8x16x8`, compiles the bank RTL, and runs its fixture testbench. |
 | `tb_banked_scratchpad_preload.sv` | Tests fixed 128-bit `.hex` preload and reset-to-ready behavior. |
 
 ## Running the Tests
@@ -49,6 +51,29 @@ vsim -c -onfinish exit -sva -immedassert work.tb_banked_scratchpad_preload -do "
 
 Run simulations sequentially. Check for each `ALL ... TESTS PASSED` marker and
 zero simulator errors because Questa can exit successfully after `$fatal`.
+
+### Preload physical banks from the normal fixture
+
+From the repository root, run:
+
+```powershell
+python tests/rtl/memory/run_bram_fixture.py --questa-bin "C:\path\to\questa\win64"
+```
+
+Omit `--questa-bin` when `vlib`, `vlog`, and `vsim` are on `PATH`. The script
+exports the existing `normal_8x16x8` bank images to
+`build/tests/integration/fixtures`, compiles the physical bank RTL, and runs
+the fixture bench. It checks every ACT0, WGT0, and PARAM word in both
+independent PARAM memories, simultaneous PARAM reads, and OUT0 partial strobes,
+readback stability under backpressure, misaligned addresses, and its last legal
+word address. OUT0 is written through its normal port rather than initialized
+from the fixture.
+
+Vivado BRAM inference is a separate check from this simulation. The
+[out-of-context synthesis target](../../../hw/README.md#physical-memory-bank-synthesis)
+checks that the physical aggregate maps sufficient storage to RAMB36/RAMB18
+resources; it does not replace the fixture simulation or validate board
+integration.
 
 ## Test Coverage
 

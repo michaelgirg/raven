@@ -11,11 +11,16 @@ directory contains the pre-alpha register block and single-command FSM. The top
 directory contains the pre-alpha NPU simulation top (`raven_npu_top`), which connects
 control, the GEMM core, a PARAM-loading wrapper around Quan's requant block, and the INT8
 result writer. Every bank transfer passes through the native memory-buffer RTL by
-default. Full-capacity backing banks are top-level ports served by testbench models. See
+default. Full-capacity backing banks remain top-level ports; the integration testbench
+connects them to the synthesizable `raven_memory_banks` aggregate. See
 [Control pre-alpha and integration](../README.md#control-pre-alpha-and-integration) and the
 [control plan](../docs/plans/nahjay_control_integration_prealpha.md). Common interfaces
 remain reserved, and an integrated FPGA build is not supplied. See the
 [current subsystem status](../README.md#current-subsystem-status-and-integration).
+
+The physical bank aggregate has a dedicated [Vivado out-of-context BRAM inference
+check](../hw/README.md#physical-memory-bank-synthesis); synthesis results remain
+unverified until that target is run.
 
 | Directory | Intended contents | Lead |
 |---|---|---|

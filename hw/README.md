@@ -151,8 +151,10 @@ There are 210 synthesis warnings, including the memory-inference/reset warnings
 described in the [review](../docs/reviews/RAVEN_BOARD_READINESS_REVIEW.md).
 The clock-source and external interface timing assumptions are incomplete.
 These are synthesis estimates, not complete-system resource use or routed timing
-closure. Physical backing BRAM, processor/DMA and the bank loading path remain future
-work; the board wrapper and readback path are described above. See the
+closure. The synthesizable backing-bank RTL is checked separately by the
+[physical memory bank synthesis target](#physical-memory-bank-synthesis); production
+bank integration, processor/DMA and the bank loading path remain future work. The
+board wrapper and readback path are described above. See the
 [runtime-integrity validation record](../evidence/questa/integrity/results.json) and
 the retained [resource](../evidence/vivado/staging-integrity/utilization_synth.rpt) /
 [timing](../evidence/vivado/staging-integrity/timing_synth.rpt) reports.
@@ -165,11 +167,29 @@ registers and seven integrity-error registers in this build. After synthesis, ru
 vivado -mode batch -source hw/check_staging_integrity_netlist.tcl -tclargs "<output-directory>/synthesis.dcp" "<output-directory>/netlist_protection.rpt"
 ```
 
+## Physical memory bank synthesis
+
+From the repository root, run the bank aggregate independently to verify that
+Vivado maps its full-capacity ACT, WGT, mirrored PARAM, and OUT0 arrays to block
+RAM:
+
+```sh
+vivado -mode batch -source hw/check_memory_banks_synthesis.tcl -tclargs . build/hw/memory-banks
+```
+
+The out-of-context target uses the ZU3EG speed-grade part and a 10 ns clock
+constraint. It checks that inferred RAMB36/RAMB18 capacity covers all 80 KiB
+of logical storage, and writes utilization, timing, and checkpoint outputs under
+`build/hw/memory-banks/`. This validates bank-memory inference only; it does not
+integrate the banks into `raven_npu_top`, validate the NPU memory adapters, or
+establish board timing. The target has been added, but its result must not be
+reported as validated until run with Vivado.
+
 ## Board project layout
 
 - `board_settings.tcl`: shared options, paths, address map and source list for the board scripts.
 - `create_project.tcl`, `bd.tcl`, `build.tcl`: project, block design, and the full build and handoff.
-- `check_board_synthesis.tcl`, `check_npu_synthesis.tcl`, `check_staging_integrity_netlist.tcl`: out-of-context checks.
+- `check_board_synthesis.tcl`, `check_npu_synthesis.tcl`, `check_memory_banks_synthesis.tcl`, `check_staging_integrity_netlist.tcl`: out-of-context checks.
 - `constraints/raven_board.xdc`: board constraints. There are no package pins, and the PS IP constrains `pl_clk0`.
 - `debug/`: board-side scripts (`board_bringup_xsdb.tcl`, `run_fixture.tcl`); generated captures belong under `build/hw/`.
 - `ip/`: vendor-IP configuration sources, such as reviewed Tcl or XCI files.

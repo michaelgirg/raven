@@ -14,6 +14,7 @@ resolved host launch issue.
 | PE/compute | 65,536 signed INT8 products; 168 fixtures across 8×8, 4×4, 2×4 and 1×1; 12 reset/restart phases; all 64 demo outputs. |
 | Operator | Rounding, saturation/clamp, tags, consecutive inputs, output stalls and reset. |
 | Native buffers | Activation, weight, parameter and output standalone benches; eight deliberate reset/validity/mode faults rejected. |
+| Physical backing banks | `normal_8x16x8` fixture preload checks, concurrent PARAM reads, OUT0 strobes/readback and address boundaries; run with `python tests/rtl/memory/run_bram_fixture.py`. |
 | Buffer/operator goldens | Four buffer types on six fixtures, plus requantization with and without stalls on all six: 36 successful runs. |
 | Supplemental compute goldens | Normal, signed/nonzero-zero-point and partial-tile INT32 fixtures passed using the Python exporter and Questa directly. |
 | Control/integration | T1–T16: 79 PASS records / 1,162 buffered checks; 65 PASS records / 875 direct-reference checks; 36 independently compared INT8 dumps each. All output bytes agreed. |
@@ -75,10 +76,15 @@ python tests/rtl/integration/run_questa.py
 ```
 
 See [Control pre-alpha and integration](../README.md#control-pre-alpha-and-integration)
-for T1–T16 and its verification status. A full run also checks the original direct-bank
-configuration against the buffered outputs and runs dedicated adapter stall, address,
-byte-strobe and reset tests. Integration through physical backing banks and the
-RISC-V remains future work. See the [current subsystem boundaries](../README.md#current-subsystem-status-and-integration).
+for T1–T16 and its verification status. A full run uses the synthesizable physical bank
+aggregate in the integration testbench, checks the direct-bank configuration against
+buffered outputs, and runs dedicated adapter stall, address, byte-strobe and reset tests.
+The fixture-focused physical-bank simulation can also be run with
+`python tests/rtl/memory/run_bram_fixture.py`. The
+[Vivado BRAM inference check](../hw/README.md#physical-memory-bank-synthesis) is
+available but has not yet been run. Instantiating the aggregate in the production
+top, DMA and RISC-V integration remain future work. See the
+[current subsystem boundaries](../README.md#current-subsystem-status-and-integration).
 
 | Directory | Intended contents | Lead |
 |---|---|---|
