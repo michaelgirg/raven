@@ -115,9 +115,112 @@ module raven_board_top #(
             assign bank_rs_data[b] = '0;
         end
         assign out0_w_ready = 1'b0;
+    end else if (OUT0_SOURCE == "MEMORY") begin : g_memory
+        raven_memory_banks #(
+            .ACT0_INIT_FILE("build/prototype/fixtures/normal_8x16x8/act.hex"),
+            .WGT0_INIT_FILE("build/prototype/fixtures/normal_8x16x8/wgt.hex"),
+            .PRM_INIT_FILE("build/prototype/fixtures/normal_8x16x8/prm.hex")
+        ) u_memory (
+            .clk_i(aclk),
+            .rst_ni(local_rst_n),
+
+            // OUT0 writes from NPU
+            .out0_w_valid_i(out0_w_valid),
+            .out0_w_ready_o(out0_w_ready),
+            .out0_w_addr_i(out0_w_addr),
+            .out0_w_data_i(out0_w_data),
+            .out0_w_strb_i(out0_w_strb),
+
+            // OUT0 readback toward AXI bridge
+            .out0_rd_req_valid_i(out0_rq_valid),
+            .out0_rd_req_ready_o(out0_rq_ready),
+            .out0_rd_req_addr_i({11'b0, out0_rq_addr}),
+            .out0_rd_rsp_valid_o(out0_rs_valid),
+            .out0_rd_rsp_ready_i(out0_rs_ready),
+            .out0_rd_rsp_data_o(out0_rs_data),
+
+            // ACT0
+            .act0_req_valid_i(bank_rq_valid[0]),
+            .act0_req_ready_o(bank_rq_ready[0]),
+            .act0_req_addr_i(bank_rq_addr[0]),
+            .act0_rsp_valid_o(bank_rs_valid[0]),
+            .act0_rsp_ready_i(bank_rs_ready[0]),
+            .act0_rsp_data_o(bank_rs_data[0]),
+
+            // ACT1
+            .act1_req_valid_i(bank_rq_valid[1]),
+            .act1_req_ready_o(bank_rq_ready[1]),
+            .act1_req_addr_i(bank_rq_addr[1]),
+            .act1_rsp_valid_o(bank_rs_valid[1]),
+            .act1_rsp_ready_i(bank_rs_ready[1]),
+            .act1_rsp_data_o(bank_rs_data[1]),
+
+            // WGT0
+            .wgt0_req_valid_i(bank_rq_valid[2]),
+            .wgt0_req_ready_o(bank_rq_ready[2]),
+            .wgt0_req_addr_i(bank_rq_addr[2]),
+            .wgt0_rsp_valid_o(bank_rs_valid[2]),
+            .wgt0_rsp_ready_i(bank_rs_ready[2]),
+            .wgt0_rsp_data_o(bank_rs_data[2]),
+
+            // WGT1
+            .wgt1_req_valid_i(bank_rq_valid[3]),
+            .wgt1_req_ready_o(bank_rq_ready[3]),
+            .wgt1_req_addr_i(bank_rq_addr[3]),
+            .wgt1_rsp_valid_o(bank_rs_valid[3]),
+            .wgt1_rsp_ready_i(bank_rs_ready[3]),
+            .wgt1_rsp_data_o(bank_rs_data[3]),
+
+            // PRM port A
+            .prm_a_req_valid_i(bank_rq_valid[4]),
+            .prm_a_req_ready_o(bank_rq_ready[4]),
+            .prm_a_req_addr_i(bank_rq_addr[4]),
+            .prm_a_rsp_valid_o(bank_rs_valid[4]),
+            .prm_a_rsp_ready_i(bank_rs_ready[4]),
+            .prm_a_rsp_data_o(bank_rs_data[4]),
+
+            // PRM port B
+            .prm_b_req_valid_i(bank_rq_valid[5]),
+            .prm_b_req_ready_o(bank_rq_ready[5]),
+            .prm_b_req_addr_i(bank_rq_addr[5]),
+            .prm_b_rsp_valid_o(bank_rs_valid[5]),
+            .prm_b_rsp_ready_i(bank_rs_ready[5]),
+            .prm_b_rsp_data_o(bank_rs_data[5]),
+
+            // Disable host writes to preloaded input banks
+            .act0_w_valid_i(1'b0),
+            .act0_w_ready_o(),
+            .act0_w_addr_i(24'd0),
+            .act0_w_data_i(128'd0),
+            .act0_w_strb_i(16'd0),
+
+            .act1_w_valid_i(1'b0),
+            .act1_w_ready_o(),
+            .act1_w_addr_i(24'd0),
+            .act1_w_data_i(128'd0),
+            .act1_w_strb_i(16'd0),
+
+            .wgt0_w_valid_i(1'b0),
+            .wgt0_w_ready_o(),
+            .wgt0_w_addr_i(24'd0),
+            .wgt0_w_data_i(128'd0),
+            .wgt0_w_strb_i(16'd0),
+
+            .wgt1_w_valid_i(1'b0),
+            .wgt1_w_ready_o(),
+            .wgt1_w_addr_i(24'd0),
+            .wgt1_w_data_i(128'd0),
+            .wgt1_w_strb_i(16'd0),
+
+            .prm_w_valid_i(1'b0),
+            .prm_w_ready_o(),
+            .prm_w_addr_i(24'd0),
+            .prm_w_data_i(128'd0),
+            .prm_w_strb_i(16'd0)
+        );
+
     end else begin : g_unsupported
-        // MEMORY waits for the bank adapter (open item O1); any other value is a typo.
-        $error("raven_board_top: OUT0_SOURCE \"%s\" is not available; use \"PATTERN\"", OUT0_SOURCE);
+        initial $error("Invalid OUT0_SOURCE");
     end
 endmodule
 `default_nettype wire

@@ -21,7 +21,8 @@
 // Plusargs: +TESTS=<list> (e.g. "W1,W4"; default all), +SEED=<n> (default 1).
 module tb_raven_axil_bridge #(
     parameter int OUT0_LATENCY = 4, // Pattern responder latency; the runner also uses 0.
-    parameter bit BOARD_TOP = 0 // 1: test raven_board_top_v instead of the separate parts.
+    parameter bit BOARD_TOP = 0, // 1: test raven_board_top_v instead of the separate parts.
+    parameter bit BOARD_MEMORY = 0
 );
     import raven_ctrl_pkg::*;
     import axil_master_pkg::*;
@@ -107,7 +108,7 @@ module tb_raven_axil_bridge #(
         .w_valid_i(ow_valid), .w_ready_o(ow_ready), .w_addr_i(ow_addr), .w_data_i(ow_data),
         .w_strb_i(ow_strb), .writes_o(out_writes), .last_write_cycle_o(out_last_cycle));
     end else begin : g_board
-        raven_board_top_v #(.OUT0_MEMORY(0), .OUT0_LATENCY(OUT0_LATENCY)) u_board (
+        raven_board_top_v #(.OUT0_MEMORY(BOARD_MEMORY), .OUT0_LATENCY(OUT0_LATENCY)) u_board (
             .aclk(clk), .aresetn(rst_n),
             .s_axi_awaddr(axi.awaddr), .s_axi_awprot(3'd0), .s_axi_awvalid(axi.awvalid), .s_axi_awready(axi.awready),
             .s_axi_wdata(axi.wdata), .s_axi_wstrb(axi.wstrb), .s_axi_wvalid(axi.wvalid), .s_axi_wready(axi.wready),
