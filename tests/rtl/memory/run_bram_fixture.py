@@ -42,7 +42,13 @@ def main():
             command, cwd=RUN, text=True, stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT, timeout=args.timeout, check=False)
         print(result.stdout, end="")
-        if result.returncode or ERROR.search(result.stdout):
+        filtered = re.sub(
+            r"^.*\*\* Warning: \((?:vlog|vsim|vopt)-223\) The environment variable MGC_HOME.*\n?",
+            "",
+            result.stdout,
+            flags=re.M
+        )
+        if result.returncode or ERROR.search(filtered):
             raise RuntimeError(f"{label} failed (exit {result.returncode})")
         return result.stdout
 

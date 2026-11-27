@@ -46,7 +46,8 @@ VECTORS = ROOT / 'tests/vectors/prealpha'
 # Tests the testbench must report, each by at least one "PASS ..." line.
 TESTS = [f'T{i}' for i in range(1, 17)]
 ERROR = re.compile(r'\*\*\s+(?:Warning|Error|Fatal)\b|^\s*#?\s*Errors:\s*[1-9]', re.M)
-BENIGN_WARNING = re.compile(r'^.*\*\*\s+Warning:\s+\(vopt-10587\).*$', re.M)
+BENIGN_WARNING = re.compile(r'^\s*\**\s+Warning:\s+\((?:vopt-10587|vmap-223|vlog-223|vsim-223|vopt-223)\).*$',
+                            re.M)
 # ModelSim-only: SVA is parsed but not simulated. Allowed only with --no-sva-guard.
 NO_SVA_WARNING = re.compile(r'^.*\*\*\s+Warning:.*\((?:vlog-2186|vsim-8311)\).*$', re.M)
 PROBE = '''`timescale 1ns/1ps
