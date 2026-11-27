@@ -1,0 +1,13 @@
+------------------------------------------------------------------------------------------------
+| Design Timing Summary
+| ---------------------
+------------------------------------------------------------------------------------------------
+
+    WNS(ns)      TNS(ns)  TNS Failing Endpoints  TNS Total Endpoints      WHS(ns)      THS(ns)  THS Failing Endpoints  THS Total Endpoints     WPWS(ns)     TPWS(ns)  TPWS Failing Endpoints  TPWS Total Endpoints
+    -------      -------  ---------------------  -------------------      -------      -------  ---------------------  -------------------     --------     --------  ----------------------  --------------------
+      7.202        0.000                      0                49739        0.007        0.000                      0                49675        9.427        0.000                       0                 18481
+
+
+All user specified timing constraints are met.
+
+RAVEN_BUILD_COMPLETE pl_clk0=50.000000MHz WNS=7.202 WHS=0.007

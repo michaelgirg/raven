@@ -1,0 +1,4 @@
+case=normal_8x16x8 kind=int8 shape=8x8
+golden_sha256=7a7e3e650a742d2f73270a627889c52133b2b896ea3acd17577dadc12eeb0453
+actual_sha256=7a7e3e650a742d2f73270a627889c52133b2b896ea3acd17577dadc12eeb0453
+PASS normal_8x16x8: 64/64 int8 values match, 0 mismatches

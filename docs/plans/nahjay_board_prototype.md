@@ -1,6 +1,11 @@
 # Board prototype plan: control bridge and board wrapper (Nahjay)
 
-**Status:** Phases 1–3 and 5 implemented. W1–W12 pass under ModelSim ASE 18.1 with
+**Live result.** W14 passed on the Ultra96-V2 with the corrected MEMORY build.
+All 14 smoke checks passed, the GEMM retired with `DONE_SEQ=1`, and the raw OUT0
+capture matched 64/64 golden bytes. W1–W13 and T1–T16 also passed in Questa.
+[Live evidence](../../evidence/vivado/board-prototype/live-gemm/results.json) · [Rerun instructions](../../hw/README.md#run-the-full-board-test)
+
+**Earlier build record.** Phases 1–3 and 5 implemented. W1–W12 pass under ModelSim ASE 18.1 with
 `--no-sva-guard` (immediate checks only) for the separate parts at OUT0 latency 4 and 0,
 and for `raven_board_top_v` in PATTERN mode; a licensed Questa run with SVA is still
 needed for acceptance evidence. Vivado 2025.2 on the development machine: the wrapper's
@@ -382,10 +387,11 @@ Then:
 Item 4 is done: the MEMORY build meets timing at 50 MHz, its record and reports are in
 `evidence/vivado/board-prototype/memory/`, and the package is
 `hw/handoff/raven_board_memory.zip`. `run_fixture.tcl` now detects the build from
-`build_info.txt` and checks OUT0 against `expected_int8.hex` on the board. Item 5 (Michael's
-board run, following `hw/handoff/BOARD_HANDOFF.md`) remains.
+`build_info.txt` and checks OUT0 against `expected_int8.hex` on the board.
 
-Still open but not blocking this step: Michael's results from the PATTERN smoke test
-(they may need small fixes to `board_bringup_xsdb.tcl` or `run_fixture.tcl`), and a
-licensed Questa run of `tests/rtl/board/run_questa.py` with SVA for
-`evidence/questa/board/`.
+Item 5 passed with the corrected MEMORY bitstream and `run_board_test.tcl`.
+The record includes the Vivado JTAG transcript, raw OUT0 bytes, independent
+golden comparison and routed timing. [W14 results](../../evidence/vivado/board-prototype/live-gemm/results.json)
+
+The live result covers the MEMORY configuration. The separate PATTERN hardware
+smoke test remains open.

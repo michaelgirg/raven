@@ -1,0 +1,57 @@
+{
+  "status": "pass",
+  "scope": "One preloaded INT8 GEMM on a physical Ultra96-V2 via JTAG AXI4-Lite",
+  "fixture": "normal_8x16x8",
+  "tested_source_commit": "2def3904fb556a30417853121b85a3af47ca36ae",
+  "bitstream_build_base_commit": "62835659fd7af8aa12f478e8268f018db98dd1b2",
+  "provenance": "The bitstream was generated with the corrected board RTL locally before it was committed. Main advanced only in Questa runner files before the fix commit. The board was programmed and tested again from that bitstream using host Tcl files verified against the fix commit.",
+  "tool": "Vivado and XSDB 2025.2",
+  "board_part": "avnet.com:ultra96v2:part0:1.2",
+  "device_part": "xczu3eg-sbva484-1-i",
+  "boot_setup": "JTAG pod attached; SD card removed",
+  "out0_source": "MEMORY",
+  "clock_mhz": 50.0,
+  "setup_slack_ns": 7.202,
+  "hold_slack_ns": 0.007,
+  "smoke_checks_passed": 14,
+  "responses": {
+    "unmapped_hole_read": "DECERR",
+    "out0_write": "SLVERR",
+    "outside_window_read": "DECERR",
+    "outside_window_write": "DECERR"
+  },
+  "nop_done_seq": 0,
+  "gemm_done_seq": 1,
+  "out0_bytes": 64,
+  "matching_bytes": 64,
+  "mismatches": 0,
+  "golden_sha256": "7a7e3e650a742d2f73270a627889c52133b2b896ea3acd17577dadc12eeb0453",
+  "bitstream_sha256": "40304f739fd42891c50aae1847dfd5ef7e0d7db7e8f0c9a19619edcab8ff21d3",
+  "psu_init_sha256": "34015b22fdc4138f17cab44a6502668bd1120694e0cddf378d3a2bf96945af0f",
+  "host_script_sha256": {
+    "board_bringup_xsdb.tcl": "403d808cae91ebcdefe9bb478c8bec26e2c9fc55317270e1d71cc7b41c40b945",
+    "run_fixture.tcl": "b286d67cd69d58f9fed7f314b47a966a68ab29d91b7ba0e50d8f41a1d9006fbc",
+    "run_board_test.tcl": "d45e5cd5739592b583ce8448716994b9a1dbdfb7b30bf1e2e1727404164547e4"
+  },
+  "commands": {
+    "build": "vivado -mode batch -source hw/build.tcl -tclargs -out0_memory 1 -jobs 8",
+    "board": "vivado -mode batch -log board_test.log -source build/hw/board/handoff/run_board_test.tcl",
+    "golden": "python tools/goldens/compare_prealpha.py --case tests/vectors/prealpha/normal_8x16x8 --kind int8 --actual evidence/vivado/board-prototype/live-gemm/out0.bin"
+  },
+  "prior_result": "The original image timed out after START. The diagnostic image reproduced the timeout with an ACT0 request waiting for bank ready. SOFT_RESET returned control to idle.",
+  "transcript_note": "Execution lines are from the Vivado Hardware Manager transcript. Header metadata, echoed Tcl source, and build date lines were stripped. Local paths and the JTAG adapter serial were normalized.",
+  "original_vivado_transcript_sha256": "7bdeee3806fa5122f5c73df37d318cc2208a7f1a4c9d152803239670d24d2506",
+  "artifacts_sha256": {
+    "board_test.log": "6582c6aee95cb1be8445d8b69d6dcb3e40cea274e7327e0cd5620d4a1d724bf6",
+    "golden.log": "c18e6660e5972e8036f9a36cfd94794e6e707b56d6fb286398495956d2020d21",
+    "out0.bin": "7a7e3e650a742d2f73270a627889c52133b2b896ea3acd17577dadc12eeb0453",
+    "stall_before_fix.txt": "6f8671e47651c33414be5909a84586aaeb3db2b2c238d20bf06bec237b964106",
+    "timing_summary.txt": "bee8ca90abf888861ba04b1497e8d7ad1a0706acc340cbc4927a0e1798d4e3ae"
+  },
+  "rtl_regressions": {
+    "board_W1_W13": "pass",
+    "integration_T1_T16": "pass",
+    "simulator": "Questa Intel Starter FPGA Edition 2021.2"
+  },
+  "artifact_hash_format": "SHA-256 of the Git blobs; text uses LF line endings."
+}

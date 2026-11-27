@@ -156,6 +156,7 @@ The corrected MEMORY bitstream met timing at 50 MHz in Vivado 2025.2, with +7.20
 setup slack and +0.007 ns hold slack. On the Ultra96-V2, the full Tcl test passed all
 14 smoke checks over JTAG, retired the `normal_8x16x8` GEMM, and matched all 64 INT8
 bytes against both the fixture and the independent golden checker.
+[Board evidence and captured output](../evidence/vivado/board-prototype/live-gemm/results.json)
 
 The archived MEMORY build from `d567757` used `pl_clk0` at 50.000 MHz and reported
 WNS +7.026 ns, WHS +0.010 ns, 0 failing endpoints, 0 errors and 0 critical warnings;

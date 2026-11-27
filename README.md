@@ -6,7 +6,7 @@ RAVEN is a senior capstone project developing a programmable INT8 neural process
 
 The goal is to execute multiple supported model graphs using one FPGA bitstream and one runtime binary. Intended applications include audio anomaly detection, keyword spotting, and visual wake-word person detection, with inference performed locally on the board.
 
-**Current status: a pre-alpha RTL pipeline connecting control, GEMM, activation/weight/parameter buffers, requantization and buffered INT8 result storage.** One register-bus command runs one resident INT8 GEMM tile through to stored INT8 bytes, checked against the golden fixtures. A synthesizable fixed-capacity BRAM bank aggregate now backs the integration testbench, including both PARAM read ports and OUT0 readback; fixture loading uses the bank write ports. The aggregate is not yet instantiated by `raven_npu_top`. An [out-of-context Vivado check](hw/README.md#physical-memory-bank-synthesis) is available to verify BRAM inference, but has not yet been run. The command driver (standing in for the RISC-V), DMA, the RISC-V, full-system integration and board measurements remain future work. See [Control pre-alpha and integration](#control-pre-alpha-and-integration).
+**Current status.** The INT8 pipeline runs a preloaded GEMM on the Ultra96-V2. The board wrapper connects the NPU to BRAM and exposes command registers and OUT0 readback through JTAG AXI4-Lite. The live `normal_8x16x8` fixture passed all 14 smoke checks and matched 64/64 INT8 output bytes. [Board test instructions](hw/README.md#run-the-full-board-test) · [Live board evidence](evidence/vivado/board-prototype/live-gemm/results.json)
 
 
 ## Pre-alpha verification results
@@ -47,13 +47,10 @@ It does not correct data, cover all even-bit changes, authenticate inputs, or
 protect backing data before capture/after commit. Previously committed output
 bytes are not rolled back; the failed destination must be discarded and recomputed.
 
-This demonstrates a tested pre-alpha RTL integration. Full-capacity bank RTL is
-now exercised in simulation, but it remains outside `raven_npu_top`; the current
-block synthesis therefore excludes backing-bank BRAM, processor/DMA and board
-integration. BRAM inference for the new bank aggregate, complete routed timing,
-on-board tests and full-model execution remain future work. The staging path also
-adds substantial latency: the normal tile takes 786 busy cycles versus 146 on the
-direct path. See the [FPGA readiness review](docs/reviews/RAVEN_BOARD_READINESS_REVIEW.md).
+The Ultra96-V2 wrapper connects the same NPU to the backing-bank BRAM for the
+preloaded GEMM demo. Processor and DMA integration and full-model execution
+remain future work. In simulation the buffered staging path takes 786 busy cycles
+for the normal tile and the direct path takes 146. [FPGA readiness review](docs/reviews/RAVEN_BOARD_READINESS_REVIEW.md) · [Live board transcript](evidence/vivado/board-prototype/live-gemm/board_test.log)
 
 ## Documentation and ownership
 
@@ -65,7 +62,7 @@ direct path. See the [FPGA readiness review](docs/reviews/RAVEN_BOARD_READINESS_
 | RISC-V integration, MMIO, control, and runtime | Nahjay | [RISC-V integration and runtime](docs/RISCV_Research.md) |
 | Model analysis/export, tensor extraction, and golden-reference generation | Jackie | [Quantized-model research](docs/Quantized_Models.md); [golden fixtures and GEMM verification](evidence/prealpha/compute/README.md) |
 
-The research documents describe broader proposed behavior and identify implemented subsets. The [shared interface contract](docs/interfaces/RAVEN_INTERFACE_CONTRACT.md) defines the operand, DMA, mailbox, constant-format, and recovery baseline. The [project plan](docs/PROJECT_PLAN.md) holds shared acceptance goals and milestones. Full-system implementation, routed FPGA timing, and model-quality evidence remain to be collected; standalone simulation instructions are linked below.
+The research documents describe proposed behavior and identify implemented subsets. Full-system implementation and model-quality validation remain future work. [Shared interface contract](docs/interfaces/RAVEN_INTERFACE_CONTRACT.md) · [Project plan](docs/PROJECT_PLAN.md)
 
 Use [docs/RAVEN_Memory_System_Research.md](docs/RAVEN_Memory_System_Research.md)
 for the current memory proposal and [the revised draft sections](docs/drafts/RAVEN_Design_Draft_Revised_Memory_DMA_Sections.md)

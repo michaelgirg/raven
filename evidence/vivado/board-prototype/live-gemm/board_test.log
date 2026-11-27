@@ -1,0 +1,133 @@
+Vivado v2025.2 (64-bit)
+source handoff/run_board_test.tcl
+open_hw_manager: Time (s): cpu = 00:00:07 ; elapsed = 00:00:05 . Memory (MB): peak = 556.145 ; gain = 224.930
+INFO: [Labtools 27-2285] Connecting to hw_server url TCP:localhost:3121
+INFO: [Labtools 27-3415] Connecting to cs_server url TCP:localhost:0
+INFO: [Labtools 27-3417] Launching cs_server...
+INFO: [Labtools 27-2221] Launch Output:
+
+
+******** Xilinx cs_server v2025.2.0
+    **** Build number : 2025.2.1763075812
+      ** Copyright 2017-2022 Xilinx, Inc. All Rights Reserved.
+      ** Copyright 2022-2026 Advanced Micro Devices, Inc. All Rights Reserved.
+
+
+
+RAVEN: targets on the JTAG chain:
+  1  PS TAP
+     2  PMU
+     3  PL
+        4  Legacy Debug Hub
+           5  JTAG2AXI
+  6  PSU
+     7  RPU (Reset)
+        8  Cortex-R5 #0 (RPU Reset)
+        9  Cortex-R5 #1 (RPU Reset)
+    10  APU (L2 Cache Reset)
+       11  Cortex-A53 #0 (APU Reset)
+       12  Cortex-A53 #1 (APU Reset)
+       13  Cortex-A53 #2 (APU Reset)
+       14  Cortex-A53 #3 (APU Reset)
+RAVEN: programming handoff/raven_board.bit
+RAVEN: running psu_init
+RAVEN_BRINGUP_COMPLETE: PS initialized, PL programmed, pl_resetn0 released.
+Next: in Vivado Hardware Manager, open the target, refresh the xczu3 device, then
+      source run_fixture.tcl with -smoke.
+
+INFO: [Labtoolstcl 44-466] Opening hw_target localhost:3121/xilinx_tcf/Xilinx/<serial>
+RAVEN: OUT0 source memory
+INFO: [Labtools 27-2302] Device xczu3 (JTAG device index = 0) is programmed with a design that has 1 JTAG AXI core(s).
+RAVEN smoke test
+INFO: [Labtoolstcl 44-481] READ DATA is: 5241564e
+  ok  ID (RAVN)                          5241564E
+INFO: [Labtoolstcl 44-481] READ DATA is: 00000001
+  ok  VERSION                            00000001
+INFO: [Labtoolstcl 44-481] READ DATA is: 00001010
+  --  STATUS                             00001010
+INFO: [Labtoolstcl 44-481] WRITE DATA is: 12345678
+INFO: [Labtoolstcl 44-481] READ DATA is: 12345678
+  ok  staging P3 write/read              12345678
+INFO: [Labtoolstcl 44-481] WRITE DATA is: 00000000
+INFO: [Labtoolstcl 44-481] READ DATA is: 00000000
+  ok  OUT0 BRAM read +0x000              00000000
+INFO: [Labtoolstcl 44-481] READ DATA is: 00000000
+  ok  OUT0 BRAM read +0x010              00000000
+INFO: [Labtoolstcl 44-481] READ DATA is: 00000000
+  ok  OUT0 BRAM read +0x03C              00000000
+INFO: [Labtoolstcl 44-481] READ DATA is: 00000000
+  ok  OUT0 BRAM read +0x1FFC             00000000
+INFO: [Labtoolstcl 44-481] READ DATA is: 00000000
+  ok  unmapped hole read                 DECERR
+INFO: [Labtoolstcl 44-481] WRITE DATA is: 00000000
+  ok  OUT0 write rejected                SLVERR
+INFO: [Labtoolstcl 44-481] READ DATA is: 00000000
+  ok  outside window read                DECERR
+INFO: [Labtoolstcl 44-481] WRITE DATA is: 12345678
+  ok  outside window write               DECERR
+INFO: [Labtoolstcl 44-481] READ DATA is: 00000000
+  ok  P3 after rejected write            00000000
+INFO: [Labtoolstcl 44-481] READ DATA is: 5241564e
+  ok  ID after error responses           5241564E
+INFO: [Labtoolstcl 44-481] READ DATA is: 00001010
+INFO: [Labtoolstcl 44-481] WRITE DATA is: 00000001
+INFO: [Labtoolstcl 44-481] WRITE DATA is: 00000000
+INFO: [Labtoolstcl 44-481] READ DATA is: 00000000
+INFO: [Labtoolstcl 44-481] WRITE DATA is: 00000001
+INFO: [Labtoolstcl 44-481] READ DATA is: 00001010
+INFO: [Labtoolstcl 44-481] READ DATA is: 00000001
+INFO: [Labtoolstcl 44-481] READ DATA is: 00000000
+  ok  DONE_SEQ matches NEXT_SEQ          00000000
+  ok  NOP START -> DONE                  seq 0
+INFO: [Labtoolstcl 44-481] WRITE DATA is: 00000001
+RAVEN_SMOKE_PASS (14 checks)
+RAVEN: OUT0 source memory
+INFO: [Labtools 27-2302] Device xczu3 (JTAG device index = 0) is programmed with a design that has 1 JTAG AXI core(s).
+RAVEN fixture normal_8x16x8: 16 staging writes
+INFO: [Labtoolstcl 44-481] READ DATA is: 00001010
+INFO: [Labtoolstcl 44-481] WRITE DATA is: 00000001
+INFO: [Labtoolstcl 44-481] WRITE DATA is: 00000002
+INFO: [Labtoolstcl 44-481] WRITE DATA is: 00000047
+INFO: [Labtoolstcl 44-481] WRITE DATA is: 00000000
+INFO: [Labtoolstcl 44-481] WRITE DATA is: 20000000
+INFO: [Labtoolstcl 44-481] WRITE DATA is: 00080008
+INFO: [Labtoolstcl 44-481] WRITE DATA is: 00000010
+INFO: [Labtoolstcl 44-481] WRITE DATA is: 00000010
+INFO: [Labtoolstcl 44-481] WRITE DATA is: 00000000
+INFO: [Labtoolstcl 44-481] WRITE DATA is: 00000008
+INFO: [Labtoolstcl 44-481] WRITE DATA is: 00000000
+INFO: [Labtoolstcl 44-481] WRITE DATA is: 40000000
+INFO: [Labtoolstcl 44-481] WRITE DATA is: 60000000
+INFO: [Labtoolstcl 44-481] WRITE DATA is: 00FC0000
+INFO: [Labtoolstcl 44-481] WRITE DATA is: 00000000
+INFO: [Labtoolstcl 44-481] WRITE DATA is: 00000000
+INFO: [Labtoolstcl 44-481] WRITE DATA is: 00007F80
+INFO: [Labtoolstcl 44-481] READ DATA is: 00000001
+INFO: [Labtoolstcl 44-481] WRITE DATA is: 00000001
+INFO: [Labtoolstcl 44-481] READ DATA is: 00011010
+INFO: [Labtoolstcl 44-481] READ DATA is: 00000001
+INFO: [Labtoolstcl 44-481] READ DATA is: 00000001
+  ok  DONE_SEQ matches NEXT_SEQ          00000001
+  ok  command 1 retired
+INFO: [Labtoolstcl 44-481] READ DATA is: 0f00f1f8
+INFO: [Labtoolstcl 44-481] READ DATA is: e807f9f2
+INFO: [Labtoolstcl 44-481] READ DATA is: 12070506
+INFO: [Labtoolstcl 44-481] READ DATA is: 09f10de4
+INFO: [Labtoolstcl 44-481] READ DATA is: 12d0fd13
+INFO: [Labtoolstcl 44-481] READ DATA is: ec17fded
+INFO: [Labtoolstcl 44-481] READ DATA is: 0c03110e
+INFO: [Labtoolstcl 44-481] READ DATA is: 00f2eff9
+INFO: [Labtoolstcl 44-481] READ DATA is: 0f030203
+INFO: [Labtoolstcl 44-481] READ DATA is: fb080ce8
+INFO: [Labtoolstcl 44-481] READ DATA is: 13050406
+INFO: [Labtoolstcl 44-481] READ DATA is: fdffddf5
+INFO: [Labtoolstcl 44-481] READ DATA is: 03fd2c12
+INFO: [Labtoolstcl 44-481] READ DATA is: fa0207f8
+INFO: [Labtoolstcl 44-481] READ DATA is: efd9fc00
+INFO: [Labtoolstcl 44-481] READ DATA is: 0009ff02
+Wrote 64 bytes to results/.out0-19012.bin
+  ok  OUT0 matches expected_int8.hex (64/64 bytes)
+RAVEN_FIXTURE_DONE (2 checks)
+INFO: [Labtoolstcl 44-464] Closing hw_target localhost:3121/xilinx_tcf/Xilinx/<serial>
+RAVEN_BOARD_TEST_PASS (64/64 bytes). OUT0 saved to results/out0.bin
+INFO: [Common 17-206] Exiting Vivado
