@@ -1,5 +1,21 @@
 # Hardware and system verification
 
+## Prototype fixture and board comparison
+
+Export the canonical fixture with `python tests/rtl/integration/export_fixtures.py --output build/prototype/fixtures`.
+The board handoff reads 16 OUT0 words into `build/prototype/out0.bin` as 64 raw
+bytes in ascending address order. After a successful live GEMM, compare and save
+the log with:
+
+```sh
+python tools/goldens/compare_prealpha.py --case tests/vectors/prealpha/normal_8x16x8 --kind int8 --actual build/prototype/out0.bin --log build/prototype/compare.log
+```
+
+The comparator requires 64 values, reports each mismatch with its byte offset,
+and records SHA-256 hashes of the golden and dump. Board readback remains pending.
+See the [board interface](../docs/interfaces/RAVEN_BOARD_PROTOTYPE_INTERFACE.md)
+for the command sequence and OUT0 mapping.
+
 ## Verified pre-alpha results
 
 The [runtime-integrity record](../evidence/questa/integrity/results.json) contains
