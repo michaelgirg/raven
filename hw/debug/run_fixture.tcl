@@ -57,11 +57,17 @@ proc rvn::txn {type addr {data 0}} {
     } else {
         create_hw_axi_txn -force rvn_txn $axi -type read -address $a -len 1
     }
-    # run_hw_axi fails on SLVERR/DECERR responses.
-    if {[catch {run_hw_axi -quiet [get_hw_axi_txns rvn_txn]} msg]} {
+    # -quiet can return TCL_OK even when the transaction fails. Check the
+    # hardware response before resetting the AXI core.
+    set failed [catch {run_hw_axi [get_hw_axi_txns rvn_txn]} msg]
+    set field [expr {$type eq "write" ? "STATUS.BRESP" : "STATUS.RRESP"}]
+    set resp [get_property $field $axi]
+    if {$resp in {SLVERR DECERR}} {
         catch {reset_hw_axi $axi}
-        return [list 0 $msg]
+        return [list 0 $resp]
     }
+    if {$failed} { error "AXI transport failed at $a: $msg" }
+    if {$resp ne "OKAY"} { error "Unexpected AXI status at $a: $resp" }
     if {$type eq "write"} { return [list 1 0] }
     # Parse as unsigned: scan %x would make words with bit 31 set negative.
     set hex [string range [get_property DATA [get_hw_axi_txns rvn_txn]] end-7 end]
@@ -89,12 +95,15 @@ proc rvn::expect {what got exp} {
     puts [format "  ok  %-34s %08X" $what $got]
 }
 
-proc rvn::expect_error {what type addr {data 0}} {
+proc rvn::expect_error {what type addr expected {data 0}} {
     variable checks
     incr checks
     lassign [txn $type $addr $data] ok msg
-    if {$ok} { error [format "CHECK FAILED: %s: %s %08X succeeded; expected an AXI error" $what $type $addr] }
-    puts [format "  ok  %-34s AXI error as expected" $what]
+    if {$ok} { set msg OKAY }
+    if {$msg ne $expected} {
+        error [format "CHECK FAILED: %s: %s %08X returned %s; expected %s" $what $type $addr $msg $expected]
+    }
+    puts [format "  ok  %-34s %s" $what $msg]
 }
 
 # OUT0 byte p reads p[7:0]^0x5A in the PATTERN build (rtl/board/raven_out0_pattern.sv).
@@ -144,7 +153,7 @@ proc rvn::start_and_wait {timeout_ms} {
         if {($irq & 0x1) && !($s & 0x1)} break
         if {[clock milliseconds] > $deadline} {
             diagnostics
-            error "No DONE within $timeout_ms ms (a GEMM never completes in the PATTERN build)"
+            error "No DONE within $timeout_ms ms"
         }
     }
     expect "DONE_SEQ matches NEXT_SEQ" [expr {[csr_rd $DONE_SEQ] & 0xFFFF}] $seq
@@ -175,9 +184,11 @@ proc rvn::smoke {soft_reset timeout_ms} {
             puts [format "  ok  %-34s %08X" [format "OUT0 BRAM read +0x%03X" $off] [rd [expr {$out0 + $off}]]]
         }
     }
-    expect_error "unmapped hole read" read [expr {$base + 0x1000}]
-    expect_error "OUT0 write rejected" write $out0 0
-    expect_error "outside window (interconnect)" read [expr {$base + 0x4000}]
+    expect_error "unmapped hole read" read [expr {$base + 0x1000}] DECERR
+    expect_error "OUT0 write rejected" write $out0 SLVERR
+    expect_error "outside window read" read [expr {$base + 0x4000}] DECERR
+    expect_error "outside window write" write [expr {$base + 0x4000 + $P3}] DECERR 0x12345678
+    expect "P3 after rejected write" [csr_rd $P3] 0
     expect "ID after error responses" [csr_rd $ID] $NPU_ID
     # Live START -> DONE through the controller with a NOP (no memory needed).
     require_idle $soft_reset
@@ -226,7 +237,7 @@ proc rvn::fixture {dir out bytes soft_reset timeout_ms} {
         close $fd
         set fd [open $out rb]; binary scan [read $fd] cu* got; close $fd
         set n [llength $exp]
-        if {[llength $got] < $n} { error "Dumped [llength $got] bytes but expected_int8.hex has $n; raise -bytes" }
+        if {[llength $got] != $n} { error "Dumped [llength $got] bytes but expected_int8.hex has $n" }
         set mism 0
         for {set i 0} {$i < $n} {incr i} {
             if {[lindex $got $i] != [lindex $exp $i]} {
@@ -238,8 +249,6 @@ proc rvn::fixture {dir out bytes soft_reset timeout_ms} {
         if {$mism} { error "CHECK FAILED: $mism/$n OUT0 bytes differ from expected_int8.hex" }
         puts "  ok  OUT0 matches expected_int8.hex ($n/$n bytes)"
     }
-    puts "Independent check (from the repository root):"
-    puts "  python tools/goldens/compare_prealpha.py --case tests/vectors/prealpha/[file tail $dir] --kind int8 --actual $out"
 }
 
 # ------------------------------------------------------------------ main

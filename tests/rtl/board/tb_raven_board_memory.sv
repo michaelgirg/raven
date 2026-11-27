@@ -17,13 +17,13 @@ module tb_raven_board_memory;
         .USE_TILE_BUFFERS(1)
     ) dut (
         .aclk(clk), .aresetn(rst_n),
-        .s_axi_awaddr(axi.awaddr), .s_axi_awprot(3'b000),
+        .s_axi_awaddr(32'(axi.awaddr)), .s_axi_awprot(3'b000),
         .s_axi_awvalid(axi.awvalid), .s_axi_awready(axi.awready),
         .s_axi_wdata(axi.wdata), .s_axi_wstrb(axi.wstrb),
         .s_axi_wvalid(axi.wvalid), .s_axi_wready(axi.wready),
         .s_axi_bresp(axi.bresp), .s_axi_bvalid(axi.bvalid),
         .s_axi_bready(axi.bready),
-        .s_axi_araddr(axi.araddr), .s_axi_arprot(3'b000),
+        .s_axi_araddr(32'(axi.araddr)), .s_axi_arprot(3'b000),
         .s_axi_arvalid(axi.arvalid), .s_axi_arready(axi.arready),
         .s_axi_rdata(axi.rdata), .s_axi_rresp(axi.rresp),
         .s_axi_rvalid(axi.rvalid), .s_axi_rready(axi.rready)

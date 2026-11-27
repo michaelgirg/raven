@@ -110,10 +110,10 @@ module tb_raven_axil_bridge #(
     end else begin : g_board
         raven_board_top_v #(.OUT0_MEMORY(BOARD_MEMORY), .OUT0_LATENCY(OUT0_LATENCY)) u_board (
             .aclk(clk), .aresetn(rst_n),
-            .s_axi_awaddr(axi.awaddr), .s_axi_awprot(3'd0), .s_axi_awvalid(axi.awvalid), .s_axi_awready(axi.awready),
+            .s_axi_awaddr(32'(axi.awaddr)), .s_axi_awprot(3'd0), .s_axi_awvalid(axi.awvalid), .s_axi_awready(axi.awready),
             .s_axi_wdata(axi.wdata), .s_axi_wstrb(axi.wstrb), .s_axi_wvalid(axi.wvalid), .s_axi_wready(axi.wready),
             .s_axi_bresp(axi.bresp), .s_axi_bvalid(axi.bvalid), .s_axi_bready(axi.bready),
-            .s_axi_araddr(axi.araddr), .s_axi_arprot(3'd0), .s_axi_arvalid(axi.arvalid), .s_axi_arready(axi.arready),
+            .s_axi_araddr(32'(axi.araddr)), .s_axi_arprot(3'd0), .s_axi_arvalid(axi.arvalid), .s_axi_arready(axi.arready),
             .s_axi_rdata(axi.rdata), .s_axi_rresp(axi.rresp), .s_axi_rvalid(axi.rvalid), .s_axi_rready(axi.rready));
         // Observe the wrapper's internal nets for the monitors.
         assign reg_valid = u_board.u_top.reg_valid;

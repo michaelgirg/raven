@@ -22,6 +22,7 @@ module raven_board_top #(
     parameter string OUT0_SOURCE = "PATTERN", // "PATTERN" or "MEMORY".
     parameter int OUT0_LATENCY = 1, // Pattern responder latency, in extra clocks.
     parameter bit USE_TILE_BUFFERS = 1, // Passed to raven_npu_top.
+    parameter logic [31:0] AXI_BASE_ADDR = '0,
     // MEMORY only: $readmemh images (export_fixtures.py act/wgt/prm.hex). Bare names are
     // found by Vivado among the project's memory files (hw/create_project.tcl).
     parameter string ACT0_INIT_FILE = "act.hex",
@@ -32,8 +33,8 @@ module raven_board_top #(
 ) (
     input wire aclk, // pl_clk0, 50 MHz for bring-up.
     input wire aresetn, // Board reset, active low, synchronous to aclk.
-    // AXI4-Lite slave (14-bit window: CSR 0x0000, unmapped 0x1000, OUT0 0x2000).
-    input wire [13:0] s_axi_awaddr,
+    // Full AXI address, with a 16 KiB window: CSR +0x0000, hole +0x1000, OUT0 +0x2000.
+    input wire [31:0] s_axi_awaddr,
     input wire [2:0] s_axi_awprot,
     input wire s_axi_awvalid,
     output wire s_axi_awready,
@@ -44,7 +45,7 @@ module raven_board_top #(
     output wire [1:0] s_axi_bresp,
     output wire s_axi_bvalid,
     input wire s_axi_bready,
-    input wire [13:0] s_axi_araddr,
+    input wire [31:0] s_axi_araddr,
     input wire [2:0] s_axi_arprot,
     input wire s_axi_arvalid,
     output wire s_axi_arready,
@@ -72,7 +73,7 @@ module raven_board_top #(
     wire [127:0] out0_w_data;
     wire [15:0] out0_w_strb;
 
-    raven_axil_bridge u_bridge (
+    raven_axil_bridge #(.ADDR_W(32), .BASE_ADDR(AXI_BASE_ADDR)) u_bridge (
         .s_axi_aclk(aclk), .s_axi_aresetn(aresetn),
         .s_axi_awaddr, .s_axi_awprot, .s_axi_awvalid, .s_axi_awready,
         .s_axi_wdata, .s_axi_wstrb, .s_axi_wvalid, .s_axi_wready,

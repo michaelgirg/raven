@@ -53,7 +53,8 @@ setup and hold slack are non-negative. Output goes to `build/hw/board/`:
 | `handoff/raven_board.ltx` | Debug probes file |
 | `handoff/raven_board.xsa` | Hardware platform, including the bitstream |
 | `handoff/psu_init.tcl` | PS initialization generated for this exact configuration |
-| `handoff/board_bringup_xsdb.tcl`, `handoff/run_fixture.tcl` | Board-side scripts |
+| `handoff/board_bringup_xsdb.tcl`, `handoff/run_fixture.tcl` | Separate programming, smoke, and GEMM steps |
+| `handoff/run_board_test.tcl` | Full JTAG board test for a MEMORY build |
 | `handoff/build_info.txt` | Revision, options, clock and timing summary |
 | `reports/` | Utilization, timing, clocks, DRC and methodology reports |
 | `prj/raven.xpr` | The generated Vivado project |
@@ -62,15 +63,27 @@ Always use the `.bit` and `psu_init.tcl` from the same build.
 
 ## Bring up the board
 
-Prebuilt packages are committed in [handoff/](handoff/README.md):
-`raven_board_memory.zip` (GEMM demo, with [BOARD_HANDOFF.md](handoff/BOARD_HANDOFF.md)
-as the step-by-step guide) and `raven_board_pattern.zip` (bridge bring-up only), so the
-board can be brought up without rebuilding. The commands below use a local build;
-with the zip, use the folder you unzipped it to instead of `build/hw/board/handoff`.
-
 Hardware: Ultra96-V2 with a JTAG pod on the J3 header (for example Avnet
-`AES-ACC-U96-JTAG`). Set boot mode switch SW3 to JTAG, or power up with no SD card, so
-no SD image takes over the PS.
+`AES-ACC-U96-JTAG`). Power up with no SD card so no SD image takes over the PS.
+
+### Run the full board test
+
+Build a fresh MEMORY handoff and run the board test from the repository root. The
+archived bitstreams predate the board address and GEMM writeback fixes. [Archived handoffs](handoff/README.md)
+
+```sh
+vivado -mode batch -source hw/build.tcl -tclargs -out0_memory 1 -jobs 8
+vivado -mode batch -log board-test.log -source build/hw/board/handoff/run_board_test.tcl
+```
+
+The test programs the PL, initializes the PS, runs the JTAG AXI smoke checks, and
+starts the preloaded `normal_8x16x8` GEMM. It prints `RAVEN_BOARD_TEST_PASS` after
+`DONE_SEQ` matches and all 64 OUT0 bytes match the golden fixture. The output is
+`build/prototype/board-test/out0.bin` and the XSDB transcript is
+`build/prototype/board-test/bringup.log`. The Vivado transcript is saved to
+`board-test.log`. Use `-tclargs <results-dir>` to select a different results directory.
+
+### Run the steps individually
 
 1. **Program and initialize** with xsdb (from Vivado or Vitis), passing the handoff folder:
 
@@ -87,10 +100,10 @@ no SD image takes over the PS.
    vivado -mode batch -source build/hw/board/handoff/run_fixture.tcl -tclargs -smoke
    ```
 
-   It checks the `RAVN` ID and VERSION, a staging register write and readback, the OUT0
-   pattern (all 16 fixture words plus the last word), AXI error responses for the
-   unmapped hole, an OUT0 write and an address outside the window, and a live NOP
-   START → DONE. It must end with `RAVEN_SMOKE_PASS`. From the Hardware Manager Tcl
+   It checks the `RAVN` ID and VERSION, a staging register write and readback, OUT0
+   reads, and a live NOP START → DONE. It also requires `DECERR` for the unmapped
+   hole and outside-window accesses and `SLVERR` for an OUT0 write. It must end with
+   `RAVEN_SMOKE_PASS`. From the Hardware Manager Tcl
    console with the target already open, use `set argv {-smoke -no_connect}` and then
    `source run_fixture.tcl`. Add `-soft_reset` if the NPU was left busy or halted.
 3. **GEMM fixture** (MEMORY build only). The handoff includes the preloaded fixture
@@ -112,8 +125,8 @@ then refresh the device.
 
 ## Verified board build
 
-Vivado 2025.2 builds the PATTERN bitstream for `xczu3eg-sbva484-1-i` (board part
-`avnet.com:ultra96v2:part0:1.2`). Measured results:
+Vivado 2025.2 built the archived PATTERN bitstream for `xczu3eg-sbva484-1-i`
+(board part `avnet.com:ultra96v2:part0:1.2`).
 
 | Metric | Result |
 |---|---:|
@@ -135,12 +148,16 @@ The [results record](../evidence/vivado/board-prototype/results.json) lists the 
 revision, file hashes and what is not yet covered. The curated
 [implementation](../evidence/vivado/board-prototype/implementation/) and
 [wrapper synthesis](../evidence/vivado/board-prototype/wrapper-synthesis/) reports have
-host/date lines removed and workspace paths normalized. The board bring-up and smoke
-test above have not yet been run on hardware.
+workspace paths normalized.
 
 ### MEMORY build
 
-`hw/build.tcl -tclargs -out0_memory 1` (from `d567757`) also passes: `pl_clk0` 50.000 MHz,
+The corrected MEMORY bitstream met timing at 50 MHz in Vivado 2025.2, with +7.202 ns
+setup slack and +0.007 ns hold slack. On the Ultra96-V2, the full Tcl test passed all
+14 smoke checks over JTAG, retired the `normal_8x16x8` GEMM, and matched all 64 INT8
+bytes against both the fixture and the independent golden checker.
+
+The archived MEMORY build from `d567757` used `pl_clk0` at 50.000 MHz and reported
 WNS +7.026 ns, WHS +0.010 ns, 0 failing endpoints, 0 errors and 0 critical warnings;
 16,691 LUTs, 18,037 flip-flops, 24.5 block RAM tiles (22 RAMB36 for the memory banks) and
 16 DSPs. Synthesis reads the `act.hex`, `wgt.hex` and `prm.hex` init images. DRC and

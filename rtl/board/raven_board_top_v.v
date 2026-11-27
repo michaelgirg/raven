@@ -11,7 +11,8 @@
 module raven_board_top_v #(
     parameter integer OUT0_MEMORY = 0, // 0: pattern OUT0 source (bring-up). 1: raven_memory_banks with the fixture preload.
     parameter integer OUT0_LATENCY = 1, // Pattern responder latency, in extra clocks.
-    parameter integer USE_TILE_BUFFERS = 1 // Passed to raven_npu_top.
+    parameter integer USE_TILE_BUFFERS = 1, // Passed to raven_npu_top.
+    parameter integer AXI_BASE_ADDR = 0
 ) (
     (* X_INTERFACE_INFO = "xilinx.com:signal:clock:1.0 aclk CLK" *)
     (* X_INTERFACE_PARAMETER = "ASSOCIATED_BUSIF s_axi, ASSOCIATED_RESET aresetn" *)
@@ -20,8 +21,8 @@ module raven_board_top_v #(
     (* X_INTERFACE_PARAMETER = "POLARITY ACTIVE_LOW" *)
     input wire aresetn,
     (* X_INTERFACE_INFO = "xilinx.com:interface:aximm:1.0 s_axi AWADDR" *)
-    (* X_INTERFACE_PARAMETER = "PROTOCOL AXI4LITE, DATA_WIDTH 32, ADDR_WIDTH 14, READ_WRITE_MODE READ_WRITE, MAX_BURST_LENGTH 1, NUM_READ_OUTSTANDING 1, NUM_WRITE_OUTSTANDING 1, SUPPORTS_NARROW_BURST 0, HAS_BURST 0, HAS_LOCK 0, HAS_CACHE 0, HAS_QOS 0, HAS_REGION 0, HAS_PROT 1, HAS_WSTRB 1, HAS_BRESP 1, HAS_RRESP 1" *)
-    input wire [13:0] s_axi_awaddr,
+    (* X_INTERFACE_PARAMETER = "PROTOCOL AXI4LITE, DATA_WIDTH 32, ADDR_WIDTH 32, READ_WRITE_MODE READ_WRITE, MAX_BURST_LENGTH 1, NUM_READ_OUTSTANDING 1, NUM_WRITE_OUTSTANDING 1, SUPPORTS_NARROW_BURST 0, HAS_BURST 0, HAS_LOCK 0, HAS_CACHE 0, HAS_QOS 0, HAS_REGION 0, HAS_PROT 1, HAS_WSTRB 1, HAS_BRESP 1, HAS_RRESP 1" *)
+    input wire [31:0] s_axi_awaddr,
     (* X_INTERFACE_INFO = "xilinx.com:interface:aximm:1.0 s_axi AWPROT" *)
     input wire [2:0] s_axi_awprot,
     (* X_INTERFACE_INFO = "xilinx.com:interface:aximm:1.0 s_axi AWVALID" *)
@@ -43,7 +44,7 @@ module raven_board_top_v #(
     (* X_INTERFACE_INFO = "xilinx.com:interface:aximm:1.0 s_axi BREADY" *)
     input wire s_axi_bready,
     (* X_INTERFACE_INFO = "xilinx.com:interface:aximm:1.0 s_axi ARADDR" *)
-    input wire [13:0] s_axi_araddr,
+    input wire [31:0] s_axi_araddr,
     (* X_INTERFACE_INFO = "xilinx.com:interface:aximm:1.0 s_axi ARPROT" *)
     input wire [2:0] s_axi_arprot,
     (* X_INTERFACE_INFO = "xilinx.com:interface:aximm:1.0 s_axi ARVALID" *)
@@ -62,7 +63,8 @@ module raven_board_top_v #(
     raven_board_top #(
         .OUT0_SOURCE(OUT0_MEMORY ? "MEMORY" : "PATTERN"),
         .OUT0_LATENCY(OUT0_LATENCY),
-        .USE_TILE_BUFFERS(USE_TILE_BUFFERS)
+        .USE_TILE_BUFFERS(USE_TILE_BUFFERS),
+        .AXI_BASE_ADDR(AXI_BASE_ADDR)
     ) u_top (
         .aclk(aclk), .aresetn(aresetn),
         .s_axi_awaddr(s_axi_awaddr), .s_axi_awprot(s_axi_awprot),
