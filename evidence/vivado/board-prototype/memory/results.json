@@ -1,0 +1,93 @@
+{
+  "scope": "Ultra96-V2 board prototype, OUT0_SOURCE MEMORY (GEMM demo build: raven_memory_banks preloaded with hw/fixtures/normal_8x16x8); not yet run on the board",
+  "base_revision": "d567757c03e244fed9c5b48faf8a779813038bfe",
+  "revision_note": "Built from d567757 with the run_fixture.tcl changes (MEMORY-aware smoke, on-board expected_int8.hex compare) uncommitted; those host scripts are not part of the bitstream and are committed with this record. Reports have host/date lines removed and paths normalized.",
+  "tool": "Vivado 2025.2 (win64)",
+  "board_part": "avnet.com:ultra96v2:part0:1.2",
+  "part": "xczu3eg-sbva484-1-i",
+  "commands": {
+    "build": "vivado -mode batch -source hw/build.tcl -tclargs -jobs 6 -out0_memory 1 -out C:/rvnm"
+  },
+  "implementation": {
+    "status": "pass",
+    "errors": 0,
+    "critical_warnings": 0,
+    "pl_clk0_mhz": 50.0,
+    "pl_clk0_divisors": "IOPLL 1500 MHz / 30 / 1",
+    "clk_pl_0_period_ns": 20.0,
+    "wns_ns": 7.026,
+    "tns_failing_endpoints": 0,
+    "whs_ns": 0.01,
+    "ths_failing_endpoints": 0,
+    "resources": {
+      "lut": 16691,
+      "ff": 18037,
+      "bram_tiles": 24.5,
+      "ramb36_memory_banks": 22,
+      "dsp": 16
+    },
+    "resources_raven_board_top": {
+      "lut": 14963,
+      "ff": 15449,
+      "ramb36": 22,
+      "dsp": 16
+    },
+    "bram_preload": "Synthesis log: $readmem data files 'act.hex', 'wgt.hex' and 'prm.hex' read successfully (bare names resolved from the project's memory files)",
+    "drc": "advisories only (DSP pipelining, LUT equation, one unroutable load, RAMB write-first collision notices inside the JTAG-to-AXI FIFOs)",
+    "methodology": "5 LUTAR-1 warnings inside the Vivado debug hub",
+    "address_map": {
+      "master": "jtag_axi_0/Data",
+      "segment": "/raven_board_0/s_axi/reg0",
+      "offset": "0xA4000000",
+      "range": "16K"
+    }
+  },
+  "simulation": {
+    "testbench": "tests/rtl/board/tb_raven_board_top.sv (W13) via tests/rtl/board/run_questa.py",
+    "simulator": "ModelSim ASE 18.1, --no-sva-guard (immediate checks only)",
+    "result": "W1-W13 pass; W13 64/64 bytes for ACT0/WGT0, after SOFT_RESET, and for ACT1/WGT1; compare_prealpha.py 0 mismatches on all three dumps"
+  },
+  "handoff_sha256": {
+    "raven_board.bit": "a4015788444c577b48903f9d67ba89d2546ac107533cb4a032cd02c2348be69a",
+    "raven_board.xsa": "65747aaecd4a41df73a22156f7816caa3cd068afefc9df3f21a07cc94c881899",
+    "psu_init.tcl": "34015b22fdc4138f17cab44a6502668bd1120694e0cddf378d3a2bf96945af0f"
+  },
+  "source_sha256": {
+    "rtl/control/raven_ctrl_pkg.sv": "2cf1ed2ef508ff7c3ca2b8d20d31b886be09c1f4e2097fb844911409427a9b51",
+    "rtl/control/raven_ctrl_regs.sv": "ee13b0f56cfb03ce0421dec23d0cb555e106ae4cbf9374049a9d575fedbf0b84",
+    "rtl/control/raven_ctrl.sv": "e7337bedcade59e6cc6375397370ec586e34d85f202d14ca4a58484158b8f1f5",
+    "rtl/compute/raven_mac_pe.sv": "0b69cc03b120401f22bc2e39a1c126de4ad5ca5d3bc8af325c0e6627de3fc863",
+    "rtl/compute/raven_mac_array.sv": "9012c246244b0bff1e9ed752945f2bee89d4a81ba44cbead7cc3ea9928a3c60f",
+    "rtl/compute/raven_gemm_frontend.sv": "fd285b7bfc29b0b80ec7ae0f84b85e59a5f47209e0f372d26efb89e616c92f9f",
+    "rtl/compute/raven_gemm_core.sv": "a62277a61663804b8a8e60bdb0b81525d7c8a55d7a3e72807dbd5b4a1cde5562",
+    "rtl/operators/raven_requantize_clamp.sv": "2138cc243e7d23651bda9f398013ed5531fd80ae789ba6de9ad22a9ecfdfaf2e",
+    "rtl/memory/activation_buffer.sv": "b8a2eaaff623f7c91bf6a34de6fa4f7f3e88f94816a208f2abca73031d752040",
+    "rtl/memory/weight_buffer.sv": "c5bf67afc986322cb91afc87b567b4c66e6a3ab95560ed85eb9aa043d2ca5b44",
+    "rtl/memory/parameter_buffer.sv": "ae5739a285fcda0f555af09297c9ed884be4805b983c05b78c6a6bb21f866f63",
+    "rtl/memory/output_buffer.sv": "f214272ee04aa75195c14a536d1139c88ded200a1d917a7772175bfc0af100d3",
+    "rtl/memory/raven_bram_bank.sv": "2c85dadc027cb460db5ea3dc41bb7c28212ee66eef777865d46cd78b85e2048b",
+    "rtl/memory/raven_memory_banks.sv": "2003ae934c43a535c0f313fc511253185b4c521a0279c18924c0dbfc48f90f04",
+    "rtl/memory/raven_integrity_pkg.sv": "d17a6815deb6f2b607a2b0c768db8bdfa1ad527930dc8f8bf338b8acbc6b8741",
+    "rtl/memory/raven_read_buffer_adapter.sv": "36961e7555558afd786e2f17335e260f8b911eaab44e3763b895e5f1815f5ef0",
+    "rtl/memory/raven_output_buffer_adapter.sv": "4524a412b0761524f034078bd91fa536ec9fc2dec0da6a577090189128d57c40",
+    "rtl/top/raven_requant.sv": "21bb18c04aaa763cc3c7a751dbe29d83c6452159fdeb28db32b12d91c5efea96",
+    "rtl/top/raven_result_writer.sv": "08ab9987c7981583cd4319d1640688f33d6ad642720826d744999f62fc824a03",
+    "rtl/top/raven_npu_top.sv": "b3f57a9c80de730cbfbd7b81eea5959e63f21ca800f8a3f227566fc4c9e84f64",
+    "rtl/board/raven_axil_bridge.sv": "f1fffd0366360894eb99d4c024fce1c102d49c294973f1802768ba791dacc449",
+    "rtl/board/raven_out0_pattern.sv": "ef60b9c02c93634fd370e28a8e13a91727c22a8cf970c5ca2f25cf2fa4ebeef8",
+    "rtl/board/raven_board_top.sv": "544fc5cb1264b408777a0739282ae61629140dfd984eeed0c641267f4dd0bc34",
+    "rtl/board/raven_board_top_v.v": "56c4e7ce935000883336e7c5cb4c3dc91c460afe0c17599de351d96dd7f740dd",
+    "hw/constraints/raven_board.xdc": "ae9ef76f6da0c9bf2c2750167c16bb08df0e29013872688a94271e3fdfc42d25",
+    "hw/fixtures/normal_8x16x8/act.hex": "e64607f24b28e7076b2415954efe289bb291f7cd944e342a36dbbdab26e48546",
+    "hw/fixtures/normal_8x16x8/wgt.hex": "b6d842cd7e14c46c14cd0819f602e1cdff9dbcc1424f3897d8b7894c28cb9027",
+    "hw/fixtures/normal_8x16x8/prm.hex": "7e26b941f34edddafe4d716de9165b587cff90d8edc22f4aed1ab885f4111497"
+  },
+  "not_covered": [
+    "On-board run: board_bringup_xsdb.tcl, run_fixture.tcl -smoke and -fixture normal_8x16x8 (W14)",
+    "Licensed Questa run of tests/rtl/board with concurrent SVA"
+  ],
+  "handoff_package": {
+    "path": "hw/handoff/raven_board_memory.zip",
+    "sha256": "0eb1f591020fcfc93352c8b751fa9438c8992c743ac66fb3ecdd6ab26c731334"
+  }
+}

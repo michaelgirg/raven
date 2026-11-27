@@ -18,19 +18,19 @@ foreach ($name in @('act.hex','wgt.hex','prm.hex','cmd.txt')) {
 $build = Join-Path $repo 'build/tests/board/memory_functional'
 New-Item -ItemType Directory -Force $build | Out-Null
 
-# Paths below match raven_board_top.sv's fixed fixture parameters.
+# cmd.txt path used by tb_raven_board_memory below.
 $relativeFixture = 'build/prototype/fixtures/normal_8x16x8'
 $dest = Join-Path $build $relativeFixture
 New-Item -ItemType Directory -Force $dest | Out-Null
 Copy-Item (Join-Path $fixture '*.hex') $dest -Force
 Copy-Item (Join-Path $fixture 'cmd.txt') $dest -Force
+# raven_board_top loads act.hex/wgt.hex/prm.hex by bare name from the vsim directory.
+Copy-Item (Join-Path $fixture '*.hex') $build -Force
 
 # The runner's canonical source list + BRAM modules + our new TB.
 $sources = @(python -c "import runpy; d=runpy.run_path(r'$repo/tests/rtl/board/run_questa.py'); print(*(str(p) for p in d['SOURCES']), sep='\n')")
-$memory = @(
-    (Join-Path $repo 'rtl/memory/raven_bram_bank.sv'),
-    (Join-Path $repo 'rtl/memory/raven_memory_banks.sv')
-)
+# SOURCES already includes rtl/memory/raven_bram_bank.sv and raven_memory_banks.sv.
+$memory = @()
 $tb = Join-Path $repo 'tests/rtl/board/tb_raven_board_memory.sv'
 if (-not (Test-Path $tb)) { throw "Copy tb_raven_board_memory.sv into $tb first" }
 

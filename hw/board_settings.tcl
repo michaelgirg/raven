@@ -6,7 +6,8 @@
 #                       short: Vivado's debug-core step fails if its temp path exceeds 146
 #                       characters (checked up front by raven::check_path_length).
 #   -jobs <n>           parallel Vivado jobs (default 4)
-#   -out0_memory <0|1>  0: pattern OUT0 source for bring-up; 1: bank adapter (Phase 4)
+#   -out0_memory <0|1>  0: pattern OUT0 source for bring-up; 1: raven_memory_banks preloaded
+#                       with the fixture in fixture_dir (GEMM demo)
 #   -board_part <name>  board part to use instead of the newest installed Ultra96-V2 one
 
 namespace eval raven {
@@ -40,6 +41,8 @@ namespace eval raven {
         rtl/memory/weight_buffer.sv
         rtl/memory/parameter_buffer.sv
         rtl/memory/output_buffer.sv
+        rtl/memory/raven_bram_bank.sv
+        rtl/memory/raven_memory_banks.sv
         rtl/memory/raven_integrity_pkg.sv
         rtl/memory/raven_read_buffer_adapter.sv
         rtl/memory/raven_output_buffer_adapter.sv
@@ -51,6 +54,9 @@ namespace eval raven {
         rtl/board/raven_board_top.sv
         rtl/board/raven_board_top_v.v
     }
+    # BRAM init images for -out0_memory 1 (export_fixtures.py output, see hw/fixtures/).
+    variable fixture_dir hw/fixtures/normal_8x16x8
+    variable fixture_images {act.hex wgt.hex prm.hex}
     variable xdc_sources {
         hw/constraints/raven_board.xdc
     }

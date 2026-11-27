@@ -11,6 +11,7 @@
 #   <out>/handoff/raven_board.xsa      hardware platform (includes the bitstream)
 #   <out>/handoff/psu_init.tcl         PS initialization matching this build
 #   <out>/handoff/board_bringup_xsdb.tcl, run_fixture.tcl   board-side scripts
+#   <out>/handoff/normal_8x16x8/       MEMORY builds: the preloaded fixture (cmd.txt etc.)
 #   <out>/handoff/build_info.txt       revision, options, clock and timing summary
 #   <out>/reports/*.rpt
 # The batch run fails (non-zero exit) if any step or check fails.
@@ -89,6 +90,11 @@ proc raven::build {} {
 
     foreach f {hw/debug/board_bringup_xsdb.tcl hw/debug/run_fixture.tcl} {
         file copy -force [file join $root $f] $handoff
+    }
+    if {$out0_memory} {
+        # The preloaded fixture, so run_fixture.tcl -fixture <name> works from the handoff.
+        variable fixture_dir
+        file copy -force [file join $root $fixture_dir] $handoff
     }
 
     # Build record.

@@ -9,7 +9,7 @@
 // If a SystemVerilog module reference works in the Vivado version in use, this shell can
 // be dropped without changing raven_board_top.
 module raven_board_top_v #(
-    parameter integer OUT0_MEMORY = 0, // 0: pattern bring-up. 1: BRAM-backed memory.
+    parameter integer OUT0_MEMORY = 0, // 0: pattern OUT0 source (bring-up). 1: raven_memory_banks with the fixture preload.
     parameter integer OUT0_LATENCY = 1, // Pattern responder latency, in extra clocks.
     parameter integer USE_TILE_BUFFERS = 1 // Passed to raven_npu_top.
 ) (

@@ -16,12 +16,19 @@
 //   "PATTERN"  raven_out0_pattern (B7). The NPU bank ports are tied idle: reads and OUT0
 //              writes are never accepted, so a GEMM START stays in RUN until SOFT_RESET.
 //              NOP commands retire normally. Use this for bridge/JTAG bring-up.
-//   "MEMORY"   the BRAM-backed bank adapter (open item O1). Not available yet;
-//              elaboration fails until it is connected.
+//   "MEMORY"   rtl/memory/raven_memory_banks, preloaded from the fixture init files.
+//              Runs the GEMM demo end to end (W13).
 module raven_board_top #(
     parameter string OUT0_SOURCE = "PATTERN", // "PATTERN" or "MEMORY".
     parameter int OUT0_LATENCY = 1, // Pattern responder latency, in extra clocks.
-    parameter bit USE_TILE_BUFFERS = 1 // Passed to raven_npu_top.
+    parameter bit USE_TILE_BUFFERS = 1, // Passed to raven_npu_top.
+    // MEMORY only: $readmemh images (export_fixtures.py act/wgt/prm.hex). Bare names are
+    // found by Vivado among the project's memory files (hw/create_project.tcl).
+    parameter string ACT0_INIT_FILE = "act.hex",
+    parameter string ACT1_INIT_FILE = "act.hex",
+    parameter string WGT0_INIT_FILE = "wgt.hex",
+    parameter string WGT1_INIT_FILE = "wgt.hex",
+    parameter string PRM_INIT_FILE = "prm.hex"
 ) (
     input wire aclk, // pl_clk0, 50 MHz for bring-up.
     input wire aresetn, // Board reset, active low, synchronous to aclk.
@@ -116,111 +123,41 @@ module raven_board_top #(
         end
         assign out0_w_ready = 1'b0;
     end else if (OUT0_SOURCE == "MEMORY") begin : g_memory
+        // Taylor's raven_memory_banks on every NPU bank port and on out0_rd (O1). The banks
+        // follow local_rst_n, so SOFT_RESET or a latched fault drops pending responses (B5).
+        // O2: all four ACT/WGT banks have real storage. O3: the fixture is a BRAM init image;
+        // nothing writes ACT/WGT/PRM on the board, so it survives SOFT_RESET unchanged.
         raven_memory_banks #(
-            .ACT0_INIT_FILE("build/prototype/fixtures/normal_8x16x8/act.hex"),
-            .WGT0_INIT_FILE("build/prototype/fixtures/normal_8x16x8/wgt.hex"),
-            .PRM_INIT_FILE("build/prototype/fixtures/normal_8x16x8/prm.hex")
-        ) u_memory (
-            .clk_i(aclk),
-            .rst_ni(local_rst_n),
-
-            // OUT0 writes from NPU
-            .out0_w_valid_i(out0_w_valid),
-            .out0_w_ready_o(out0_w_ready),
-            .out0_w_addr_i(out0_w_addr),
-            .out0_w_data_i(out0_w_data),
-            .out0_w_strb_i(out0_w_strb),
-
-            // OUT0 readback toward AXI bridge
-            .out0_rd_req_valid_i(out0_rq_valid),
-            .out0_rd_req_ready_o(out0_rq_ready),
+            .ACT0_INIT_FILE(ACT0_INIT_FILE), .ACT1_INIT_FILE(ACT1_INIT_FILE),
+            .WGT0_INIT_FILE(WGT0_INIT_FILE), .WGT1_INIT_FILE(WGT1_INIT_FILE),
+            .PRM_INIT_FILE(PRM_INIT_FILE)
+        ) u_mem (
+            .clk_i(aclk), .rst_ni(local_rst_n),
+            .act0_req_valid_i(bank_rq_valid[0]), .act0_req_ready_o(bank_rq_ready[0]), .act0_req_addr_i(bank_rq_addr[0]),
+            .act0_rsp_valid_o(bank_rs_valid[0]), .act0_rsp_ready_i(bank_rs_ready[0]), .act0_rsp_data_o(bank_rs_data[0]),
+            .act0_w_valid_i(1'b0), .act0_w_ready_o(), .act0_w_addr_i('0), .act0_w_data_i('0), .act0_w_strb_i('0),
+            .act1_req_valid_i(bank_rq_valid[1]), .act1_req_ready_o(bank_rq_ready[1]), .act1_req_addr_i(bank_rq_addr[1]),
+            .act1_rsp_valid_o(bank_rs_valid[1]), .act1_rsp_ready_i(bank_rs_ready[1]), .act1_rsp_data_o(bank_rs_data[1]),
+            .act1_w_valid_i(1'b0), .act1_w_ready_o(), .act1_w_addr_i('0), .act1_w_data_i('0), .act1_w_strb_i('0),
+            .wgt0_req_valid_i(bank_rq_valid[2]), .wgt0_req_ready_o(bank_rq_ready[2]), .wgt0_req_addr_i(bank_rq_addr[2]),
+            .wgt0_rsp_valid_o(bank_rs_valid[2]), .wgt0_rsp_ready_i(bank_rs_ready[2]), .wgt0_rsp_data_o(bank_rs_data[2]),
+            .wgt0_w_valid_i(1'b0), .wgt0_w_ready_o(), .wgt0_w_addr_i('0), .wgt0_w_data_i('0), .wgt0_w_strb_i('0),
+            .wgt1_req_valid_i(bank_rq_valid[3]), .wgt1_req_ready_o(bank_rq_ready[3]), .wgt1_req_addr_i(bank_rq_addr[3]),
+            .wgt1_rsp_valid_o(bank_rs_valid[3]), .wgt1_rsp_ready_i(bank_rs_ready[3]), .wgt1_rsp_data_o(bank_rs_data[3]),
+            .wgt1_w_valid_i(1'b0), .wgt1_w_ready_o(), .wgt1_w_addr_i('0), .wgt1_w_data_i('0), .wgt1_w_strb_i('0),
+            .prm_a_req_valid_i(bank_rq_valid[4]), .prm_a_req_ready_o(bank_rq_ready[4]), .prm_a_req_addr_i(bank_rq_addr[4]),
+            .prm_a_rsp_valid_o(bank_rs_valid[4]), .prm_a_rsp_ready_i(bank_rs_ready[4]), .prm_a_rsp_data_o(bank_rs_data[4]),
+            .prm_b_req_valid_i(bank_rq_valid[5]), .prm_b_req_ready_o(bank_rq_ready[5]), .prm_b_req_addr_i(bank_rq_addr[5]),
+            .prm_b_rsp_valid_o(bank_rs_valid[5]), .prm_b_rsp_ready_i(bank_rs_ready[5]), .prm_b_rsp_data_o(bank_rs_data[5]),
+            .prm_w_valid_i(1'b0), .prm_w_ready_o(), .prm_w_addr_i('0), .prm_w_data_i('0), .prm_w_strb_i('0),
+            .out0_w_valid_i(out0_w_valid), .out0_w_ready_o(out0_w_ready), .out0_w_addr_i(out0_w_addr),
+            .out0_w_data_i(out0_w_data), .out0_w_strb_i(out0_w_strb),
+            .out0_rd_req_valid_i(out0_rq_valid), .out0_rd_req_ready_o(out0_rq_ready),
             .out0_rd_req_addr_i({11'b0, out0_rq_addr}),
-            .out0_rd_rsp_valid_o(out0_rs_valid),
-            .out0_rd_rsp_ready_i(out0_rs_ready),
-            .out0_rd_rsp_data_o(out0_rs_data),
-
-            // ACT0
-            .act0_req_valid_i(bank_rq_valid[0]),
-            .act0_req_ready_o(bank_rq_ready[0]),
-            .act0_req_addr_i(bank_rq_addr[0]),
-            .act0_rsp_valid_o(bank_rs_valid[0]),
-            .act0_rsp_ready_i(bank_rs_ready[0]),
-            .act0_rsp_data_o(bank_rs_data[0]),
-
-            // ACT1
-            .act1_req_valid_i(bank_rq_valid[1]),
-            .act1_req_ready_o(bank_rq_ready[1]),
-            .act1_req_addr_i(bank_rq_addr[1]),
-            .act1_rsp_valid_o(bank_rs_valid[1]),
-            .act1_rsp_ready_i(bank_rs_ready[1]),
-            .act1_rsp_data_o(bank_rs_data[1]),
-
-            // WGT0
-            .wgt0_req_valid_i(bank_rq_valid[2]),
-            .wgt0_req_ready_o(bank_rq_ready[2]),
-            .wgt0_req_addr_i(bank_rq_addr[2]),
-            .wgt0_rsp_valid_o(bank_rs_valid[2]),
-            .wgt0_rsp_ready_i(bank_rs_ready[2]),
-            .wgt0_rsp_data_o(bank_rs_data[2]),
-
-            // WGT1
-            .wgt1_req_valid_i(bank_rq_valid[3]),
-            .wgt1_req_ready_o(bank_rq_ready[3]),
-            .wgt1_req_addr_i(bank_rq_addr[3]),
-            .wgt1_rsp_valid_o(bank_rs_valid[3]),
-            .wgt1_rsp_ready_i(bank_rs_ready[3]),
-            .wgt1_rsp_data_o(bank_rs_data[3]),
-
-            // PRM port A
-            .prm_a_req_valid_i(bank_rq_valid[4]),
-            .prm_a_req_ready_o(bank_rq_ready[4]),
-            .prm_a_req_addr_i(bank_rq_addr[4]),
-            .prm_a_rsp_valid_o(bank_rs_valid[4]),
-            .prm_a_rsp_ready_i(bank_rs_ready[4]),
-            .prm_a_rsp_data_o(bank_rs_data[4]),
-
-            // PRM port B
-            .prm_b_req_valid_i(bank_rq_valid[5]),
-            .prm_b_req_ready_o(bank_rq_ready[5]),
-            .prm_b_req_addr_i(bank_rq_addr[5]),
-            .prm_b_rsp_valid_o(bank_rs_valid[5]),
-            .prm_b_rsp_ready_i(bank_rs_ready[5]),
-            .prm_b_rsp_data_o(bank_rs_data[5]),
-
-            // Disable host writes to preloaded input banks
-            .act0_w_valid_i(1'b0),
-            .act0_w_ready_o(),
-            .act0_w_addr_i(24'd0),
-            .act0_w_data_i(128'd0),
-            .act0_w_strb_i(16'd0),
-
-            .act1_w_valid_i(1'b0),
-            .act1_w_ready_o(),
-            .act1_w_addr_i(24'd0),
-            .act1_w_data_i(128'd0),
-            .act1_w_strb_i(16'd0),
-
-            .wgt0_w_valid_i(1'b0),
-            .wgt0_w_ready_o(),
-            .wgt0_w_addr_i(24'd0),
-            .wgt0_w_data_i(128'd0),
-            .wgt0_w_strb_i(16'd0),
-
-            .wgt1_w_valid_i(1'b0),
-            .wgt1_w_ready_o(),
-            .wgt1_w_addr_i(24'd0),
-            .wgt1_w_data_i(128'd0),
-            .wgt1_w_strb_i(16'd0),
-
-            .prm_w_valid_i(1'b0),
-            .prm_w_ready_o(),
-            .prm_w_addr_i(24'd0),
-            .prm_w_data_i(128'd0),
-            .prm_w_strb_i(16'd0)
-        );
-
+            .out0_rd_rsp_valid_o(out0_rs_valid), .out0_rd_rsp_ready_i(out0_rs_ready),
+            .out0_rd_rsp_data_o(out0_rs_data));
     end else begin : g_unsupported
-        initial $error("Invalid OUT0_SOURCE");
+        $error("raven_board_top: OUT0_SOURCE \"%s\" is not valid; use \"PATTERN\" or \"MEMORY\"", OUT0_SOURCE);
     end
 endmodule
 `default_nettype wire

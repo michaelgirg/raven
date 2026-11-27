@@ -4,7 +4,10 @@
 Steps: assertion guards, compile (NPU RTL + board RTL + bridge TB), simulate
 tb_raven_axil_bridge with the default OUT0 latency, again with zero latency and a
 different seed, and once against raven_board_top_v in PATTERN mode with the board's
-default latency; scan each transcript, then compile the board RTL with SYNTHESIS defined.
+default latency; then W13, tb_raven_board_top against raven_board_top_v in MEMORY mode
+with the hw/fixtures BRAM images (checked against a fresh export_fixtures.py run), with
+every OUT0 dump checked by tools/goldens/compare_prealpha.py; scan each transcript, then
+compile the board RTL with SYNTHESIS defined.
 The report goes to build/tests/board/questa/run_*/results.json and latest.json.
 
 --no-sva-guard is for simulators that cannot run concurrent assertions (for example
@@ -27,7 +30,8 @@ import time
 
 ROOT = Path(__file__).resolve().parents[3]
 TEST = ROOT / 'tests/rtl/board'
-BOARD_RTL = [ROOT / p for p in ('rtl/board/raven_axil_bridge.sv', 'rtl/board/raven_out0_pattern.sv',
+BOARD_RTL = [ROOT / p for p in ('rtl/memory/raven_bram_bank.sv', 'rtl/memory/raven_memory_banks.sv',
+                                 'rtl/board/raven_axil_bridge.sv', 'rtl/board/raven_out0_pattern.sv',
                                  'rtl/board/raven_board_top.sv', 'rtl/board/raven_board_top_v.v')]
 SOURCES = [ROOT / p for p in (
     'rtl/control/raven_ctrl_pkg.sv', 'rtl/control/raven_ctrl_regs.sv', 'rtl/control/raven_ctrl.sv',
@@ -43,10 +47,18 @@ SOURCES = [ROOT / p for p in (
     'tests/rtl/compute/sim_read_memory.sv',
     'tests/rtl/integration/sim_write_memory.sv',
     'tests/rtl/board/axil_master_pkg.sv',
-    'tests/rtl/board/tb_raven_axil_bridge.sv')]
-SCRIPTS = [TEST / 'run_questa.py', TEST / 'run_batch.do']
+    'tests/rtl/board/tb_raven_axil_bridge.sv',
+    'tests/rtl/board/tb_raven_board_top.sv')]
+SCRIPTS = [TEST / 'run_questa.py', TEST / 'run_batch.do',
+           ROOT / 'tests/rtl/integration/export_fixtures.py', ROOT / 'tools/goldens/compare_prealpha.py']
+# W13: the fixture preloaded into the MEMORY build, and the ACT1/WGT1 variant of its command.
+FIXTURE = 'normal_8x16x8'
+FIXTURE_DIR = ROOT / 'hw/fixtures' / FIXTURE
+FIXTURE_IMAGES = ('act.hex', 'wgt.hex', 'prm.hex')
+FIXTURE_ALT = 't7_normal_act1_wgt1'
 # Tests the testbench must report, each by a "TEST Wn PASS" line.
-TESTS = [f'W{i}' for i in range(1, 13)]
+BRIDGE_TESTS = [f'W{i}' for i in range(1, 13)]
+TESTS = BRIDGE_TESTS + ['W13']
 # Simulation configurations: (label, OUT0 latency, seed, test the board wrapper).
 CONFIGS = [('bridge', 4, 1, 0), ('bridge-latency0', 0, 2, 0), ('board-top', 1, 3, 1)]
 ERROR = re.compile(r'\*\*\s+(?:Warning|Error|Fatal)\b|^\s*#?\s*Errors:\s*[1-9]', re.M)
@@ -99,7 +111,7 @@ def main():
         parser.error('--timeout must be positive')
     wanted = [t for t in args.tests.split(',') if t] or TESTS
     if any(t not in TESTS for t in wanted):
-        parser.error('--tests takes names from W1..W12')
+        parser.error('--tests takes names from W1..W13')
     questa_bin = args.questa_bin
     if questa_bin is None and os.environ.get('QUESTA_BIN'):
         questa_bin = Path(os.environ['QUESTA_BIN']).expanduser()
@@ -192,13 +204,14 @@ def main():
             simulate('guard-sva', 'tb_assertion_probe', ['+SVA'], marker='ASSERT_PROBE_SVA_ACTIVE', rejection=True)
 
         configurations = {}
-        for label, latency, seed, board_top in CONFIGS:
+        bridge_wanted = [t for t in wanted if t in BRIDGE_TESTS]
+        for label, latency, seed, board_top in (CONFIGS if bridge_wanted else ()):
             transcript = simulate(label, 'tb_raven_axil_bridge',
-                                  ['+TESTS=' + ','.join(wanted), f'+SEED={seed}'],
+                                  ['+TESTS=' + ','.join(bridge_wanted), f'+SEED={seed}'],
                                   generics=[f'-gOUT0_LATENCY={latency}', f'-gBOARD_TOP={board_top}'],
                                   marker='ALL TESTS PASSED')
             seen = set(re.findall(r'^#\s*TEST (W\d+) PASS\s*$', transcript, re.M))
-            missing = [t for t in wanted if t not in seen]
+            missing = [t for t in bridge_wanted if t not in seen]
             summary = SUMMARY.search(transcript)
             if missing or not summary or int(summary.group(2)) != 0:
                 raise RuntimeError(f'{label}: missing PASS records {missing} or bad summary')
@@ -208,6 +221,35 @@ def main():
                 'pass_records': int(summary.group(1)), 'checks': int(summary.group(3)),
                 'axi_writes': int(summary.group(4)), 'axi_reads': int(summary.group(5))}
         report['configurations'] = configurations
+
+        if 'W13' in wanted:
+            # The committed board fixture must match what export_fixtures.py writes today.
+            command('export-fixtures', [sys.executable, ROOT / 'tests/rtl/integration/export_fixtures.py',
+                                        '--vectors', ROOT / 'tests/vectors/prealpha', '--output', run / 'fixtures'])
+            fresh = run / 'fixtures' / FIXTURE
+            for f in sorted(p.name for p in FIXTURE_DIR.iterdir()):
+                if (FIXTURE_DIR / f).read_bytes() != (fresh / f).read_bytes():
+                    raise RuntimeError(f'hw/fixtures/{FIXTURE}/{f} is stale; regenerate it with export_fixtures.py')
+            # raven_board_top_v loads the images by bare name, as in the Vivado project.
+            for f in FIXTURE_IMAGES:
+                shutil.copyfile(FIXTURE_DIR / f, run / f)
+            (run / 'out-w13').mkdir()
+            transcript = simulate('board-memory', 'tb_raven_board_top',
+                                  [f'+FIXTURE=fixtures/{FIXTURE}', f'+CMD_ALT=fixtures/{FIXTURE_ALT}/cmd.txt',
+                                   '+OUT=out-w13'], marker='TEST W13 PASS')
+            summary = SUMMARY.search(transcript)
+            dumps = sorted((run / 'out-w13').glob('out0_*.bin'))
+            if not summary or int(summary.group(2)) != 0 or len(dumps) != 3:
+                raise RuntimeError('board-memory: bad summary or missing OUT0 dumps')
+            for dump in dumps:
+                command('compare-' + dump.stem, [sys.executable, run_path(ROOT / 'tools/goldens/compare_prealpha.py'),
+                                                 '--case', run_path(ROOT / 'tests/vectors/prealpha' / FIXTURE),
+                                                 '--kind', 'int8', '--actual', run_path(dump)],
+                        marker='0 mismatches')
+            configurations['board-memory'] = {
+                'fixture': FIXTURE, 'runs': [d.stem for d in dumps], 'tests': ['W13'],
+                'pass_records': int(summary.group(1)), 'checks': int(summary.group(3)),
+                'axi_writes': int(summary.group(4)), 'axi_reads': int(summary.group(5))}
 
         # The board RTL must compile with simulation-only code removed.
         command('synthesis-define-vlib', [tools['vlib'], 'rtl_synthesis'])

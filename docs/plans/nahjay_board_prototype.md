@@ -7,7 +7,12 @@ needed for acceptance evidence. Vivado 2025.2 on the development machine: the wr
 out-of-context synthesis passes (0 critical warnings, +11.2 ns at 20 ns), and
 `hw/build.tcl` builds the PATTERN bitstream with pl_clk0 at 50.000 MHz, WNS +7.667 ns,
 WHS +0.012 ns, 0 critical warnings, and the RAVEN slave at 0xA4000000/16K. Not yet run on
-the board (xsdb bring-up and `run_fixture.tcl -smoke`). Phase 4 is blocked on O1–O3.
+the board (xsdb bring-up and `run_fixture.tcl -smoke`). Phase 4: the MEMORY branch of
+`raven_board_top` now instantiates Taylor's `raven_memory_banks` (O1–O3 resolved in §13),
+and W13 passes under ModelSim ASE (64/64 bytes for ACT0/WGT0, after SOFT_RESET, and for
+ACT1/WGT1). The MEMORY bitstream builds from `d567757` at 50 MHz (WNS +7.026 ns,
+WHS +0.010 ns, 0 critical warnings) and is packaged as `hw/handoff/raven_board_memory.zip`
+with the step-by-step guide `hw/handoff/BOARD_HANDOFF.md`; only the board run (W14) remains.
 Phase 6: Vivado evidence (`evidence/vivado/board-prototype/`), the `hw/README.md` build
 and bring-up guide, and the PATTERN handoff package (`hw/handoff/raven_board_pattern.zip`,
 rebuilt from `3cba04a`) are done; Questa evidence and the board run are pending. The last
@@ -358,6 +363,27 @@ Then:
    `evidence/vivado/board-prototype/`.
 5. Michael runs README step 3 on the board and sends Quan `out0.bin`. Quan's 64/64 log
    goes into the evidence. Commit as P12.
+
+**Status of this step.** Taylor's port list is `rtl/memory/raven_memory_banks.sv` (with
+`raven_bram_bank.sv`), so items 1–3 are done:
+
+- O1: `raven_board_top` `"MEMORY"` connects `raven_memory_banks` directly; no extra adapter
+  was needed. Its reset is `rst_ni` (active low) driven by `local_rst_no`. The bridge's
+  13-bit `out0_rd` offset is zero-extended to the banks' 24-bit byte address.
+- O2: (a) all four ACT/WGT banks have real 16 KiB storage; ACT1/WGT1 load the same images
+  as ACT0/WGT0, so a command routed to either bank ID produces the same result.
+- O3: `act.hex`/`wgt.hex`/`prm.hex` are BRAM init images (`$readmemh`, bare names found
+  via the Vivado project's memory files), committed in `hw/fixtures/normal_8x16x8`. The
+  ACT/WGT/PRM write ports are tied off, so SOFT_RESET leaves the fixture intact.
+- W13: `tests/rtl/board/tb_raven_board_top.sv`, run by `tests/rtl/board/run_questa.py`,
+  passes under ModelSim ASE 18.1 (`--no-sva-guard`) and `compare_prealpha.py` reports 0
+  mismatches for all three OUT0 dumps.
+
+Item 4 is done: the MEMORY build meets timing at 50 MHz, its record and reports are in
+`evidence/vivado/board-prototype/memory/`, and the package is
+`hw/handoff/raven_board_memory.zip`. `run_fixture.tcl` now detects the build from
+`build_info.txt` and checks OUT0 against `expected_int8.hex` on the board. Item 5 (Michael's
+board run, following `hw/handoff/BOARD_HANDOFF.md`) remains.
 
 Still open but not blocking this step: Michael's results from the PATTERN smoke test
 (they may need small fixes to `board_bringup_xsdb.tcl` or `run_fixture.tcl`), and a
