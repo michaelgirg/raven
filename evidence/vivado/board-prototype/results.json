@@ -81,11 +81,11 @@
   },
   "not_covered": [
     "On-board bring-up (board_bringup_xsdb.tcl) and run_fixture.tcl -smoke",
-    "MEMORY build and the 64-byte GEMM readback (Phase 4, waiting on the bank adapter)",
     "Licensed Questa run of tests/rtl/board with concurrent SVA"
   ],
   "handoff_package": {
     "path": "hw/handoff/raven_board_pattern.zip",
     "sha256": "ce7f2ff95be47675749d31335c7dd61716298126953c2c2a38efd5c6175b0838"
-  }
+  },
+  "memory_build": "See memory/results.json (MEMORY build, hw/handoff/raven_board_memory.zip)"
 }

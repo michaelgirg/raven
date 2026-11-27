@@ -10,7 +10,9 @@ WHS +0.012 ns, 0 critical warnings, and the RAVEN slave at 0xA4000000/16K. Not y
 the board (xsdb bring-up and `run_fixture.tcl -smoke`). Phase 4: the MEMORY branch of
 `raven_board_top` now instantiates Taylor's `raven_memory_banks` (O1–O3 resolved in §13),
 and W13 passes under ModelSim ASE (64/64 bytes for ACT0/WGT0, after SOFT_RESET, and for
-ACT1/WGT1); the MEMORY bitstream build and the board run are pending.
+ACT1/WGT1). The MEMORY bitstream builds from `d567757` at 50 MHz (WNS +7.026 ns,
+WHS +0.010 ns, 0 critical warnings) and is packaged as `hw/handoff/raven_board_memory.zip`
+with the step-by-step guide `hw/handoff/BOARD_HANDOFF.md`; only the board run (W14) remains.
 Phase 6: Vivado evidence (`evidence/vivado/board-prototype/`), the `hw/README.md` build
 and bring-up guide, and the PATTERN handoff package (`hw/handoff/raven_board_pattern.zip`,
 rebuilt from `3cba04a`) are done; Questa evidence and the board run are pending. The last
@@ -377,7 +379,11 @@ Then:
   passes under ModelSim ASE 18.1 (`--no-sva-guard`) and `compare_prealpha.py` reports 0
   mismatches for all three OUT0 dumps.
 
-Items 4 (MEMORY bitstream and evidence) and 5 (board run) remain.
+Item 4 is done: the MEMORY build meets timing at 50 MHz, its record and reports are in
+`evidence/vivado/board-prototype/memory/`, and the package is
+`hw/handoff/raven_board_memory.zip`. `run_fixture.tcl` now detects the build from
+`build_info.txt` and checks OUT0 against `expected_int8.hex` on the board. Item 5 (Michael's
+board run, following `hw/handoff/BOARD_HANDOFF.md`) remains.
 
 Still open but not blocking this step: Michael's results from the PATTERN smoke test
 (they may need small fixes to `board_bringup_xsdb.tcl` or `run_fixture.tcl`), and a

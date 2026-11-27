@@ -1,0 +1,186 @@
+Copyright 1986-2022 Xilinx, Inc. All Rights Reserved. Copyright 2022-2025 Advanced Micro Devices, Inc. All Rights Reserved.
+---------------------------------------------------------------------------------------------------------------------------------------------
+| Tool Version : Vivado v.2025.2 (win64) Build 6299465 Fri Nov 14 19:35:11 GMT 2025
+| Command      : report_utilization -hierarchical -file <workspace>/build/hw/board/reports/utilization_impl.rpt
+| Design       : raven_bd_wrapper
+| Device       : xczu3eg-sbva484-1-i
+| Speed File   : -1
+| Design State : Routed
+---------------------------------------------------------------------------------------------------------------------------------------------
+
+Utilization Design Information
+
+Table of Contents
+-----------------
+1. Utilization by Hierarchy
+
+1. Utilization by Hierarchy
+---------------------------
+
++-------------------------------------------------------+------------------------------------------------------------------------+------------+------------+---------+------+-------+--------+--------+------+------------+
+|                        Instance                       |                                 Module                                 | Total LUTs | Logic LUTs | LUTRAMs | SRLs |  FFs  | RAMB36 | RAMB18 | URAM | DSP Blocks |
++-------------------------------------------------------+------------------------------------------------------------------------+------------+------------+---------+------+-------+--------+--------+------+------------+
+| raven_bd_wrapper                                      |                                                                  (top) |      16691 |      16500 |     180 |   11 | 18037 |     24 |      1 |    0 |         16 |
+|   dbg_hub                                             |                                                                dbg_hub |        431 |        411 |      20 |    0 |   741 |      0 |      0 |    0 |          0 |
+|     inst                                              |                                             dbg_hub_xsdbm_v3_0_5_xsdbm |        431 |        411 |      20 |    0 |   741 |      0 |      0 |    0 |          0 |
+|       BSCANID.u_xsdbm_id                              |                                          dbg_hub_xsdbm_v3_0_5_xsdbm_id |        431 |        411 |      20 |    0 |   741 |      0 |      0 |    0 |          0 |
+|         SWITCH_N_EXT_BSCAN.bscan_switch               |                                      dbg_hub_xsdbm_v3_0_5_bscan_switch |        120 |        120 |       0 |    0 |   125 |      0 |      0 |    0 |          0 |
+|         CORE_XSDB.UUT_MASTER                          |                                         dbg_hub_xsdbm_v3_0_5_icon2xsdb |        261 |        241 |      20 |    0 |   554 |      0 |      0 |    0 |          0 |
+|           U_ICON_INTERFACE                            |                                                dbg_hub_xsdbm_v3_0_5_if |        157 |        137 |      20 |    0 |   450 |      0 |      0 |    0 |          0 |
+|             U_CMD6_WR                                 |                                             dbg_hub_xsdbm_v3_0_5_wrreg |         41 |         31 |      10 |    0 |   110 |      0 |      0 |    0 |          0 |
+|               U_WR_FIFO                               |                                            dbg_hub_xsdbm_v3_0_5_wrfifo |         39 |         29 |      10 |    0 |    90 |      0 |      0 |    0 |          0 |
+|                 SUBCORE_FIFO.xsdbm_v3_0_5_wrfifo_inst |                                         dbg_hub_fifo_generator_v13_1_5 |         38 |         28 |      10 |    0 |    90 |      0 |      0 |    0 |          0 |
+|                   inst_fifo_gen                       |                                   dbg_hub_fifo_generator_v13_1_5_synth |         38 |         28 |      10 |    0 |    90 |      0 |      0 |    0 |          0 |
+|                     gconvfifo.rf                      |                                             dbg_hub_fifo_generator_top |         38 |         28 |      10 |    0 |    90 |      0 |      0 |    0 |          0 |
+|                       grf.rf                          |                                         dbg_hub_fifo_generator_ramfifo |         38 |         28 |      10 |    0 |    90 |      0 |      0 |    0 |          0 |
+|             U_CMD4                                    |                           dbg_hub_xsdbm_v3_0_5_ctl_reg__parameterized0 |         11 |         11 |       0 |    0 |    62 |      0 |      0 |    0 |          0 |
+|             U_CMD6_RD                                 |                                             dbg_hub_xsdbm_v3_0_5_rdreg |         64 |         54 |      10 |    0 |   134 |      0 |      0 |    0 |          0 |
+|               U_RD_FIFO                               |                                            dbg_hub_xsdbm_v3_0_5_rdfifo |         62 |         52 |      10 |    0 |   114 |      0 |      0 |    0 |          0 |
+|                 SUBCORE_FIFO.xsdbm_v3_0_5_rdfifo_inst |                         dbg_hub_fifo_generator_v13_1_5__parameterized0 |         44 |         34 |      10 |    0 |   114 |      0 |      0 |    0 |          0 |
+|                   inst_fifo_gen                       |                   dbg_hub_fifo_generator_v13_1_5_synth__parameterized0 |         44 |         34 |      10 |    0 |   114 |      0 |      0 |    0 |          0 |
+|                     gconvfifo.rf                      |                             dbg_hub_fifo_generator_top__parameterized0 |         44 |         34 |      10 |    0 |   114 |      0 |      0 |    0 |          0 |
+|                       grf.rf                          |                         dbg_hub_fifo_generator_ramfifo__parameterized0 |         44 |         34 |      10 |    0 |   114 |      0 |      0 |    0 |          0 |
+|           U_XSDB_BUS_CONTROLLER                       |                                           dbg_hub_xsdbm_v3_0_5_bus_ctl |         66 |         66 |       0 |    0 |    48 |      0 |      0 |    0 |          0 |
+|   raven_bd_i                                          |                                                               raven_bd |      16262 |      16091 |     160 |   11 | 17296 |     24 |      1 |    0 |         16 |
+|     jtag_axi_0                                        |                                                  raven_bd_jtag_axi_0_0 |        622 |        453 |     160 |    9 |  1593 |      2 |      1 |    0 |          0 |
+|       inst                                            |                        raven_bd_jtag_axi_0_0_jtag_axi_v1_2_23_jtag_axi |        622 |        453 |     160 |    9 |  1593 |      2 |      1 |    0 |          0 |
+|         jtag_axi_engine_u                             |                 raven_bd_jtag_axi_0_0_jtag_axi_v1_2_23_jtag_axi_engine |        595 |        426 |     160 |    9 |  1441 |      2 |      1 |    0 |          0 |
+|           (jtag_axi_engine_u)                         |                 raven_bd_jtag_axi_0_0_jtag_axi_v1_2_23_jtag_axi_engine |         27 |         27 |       0 |    0 |   244 |      0 |      0 |    0 |          0 |
+|           U_XSDB_SLAVE                                |                               raven_bd_jtag_axi_0_0_xsdbs_v1_0_5_xsdbs |         76 |         76 |       0 |    0 |   161 |      0 |      0 |    0 |          0 |
+|           rd_cmd_fifo_i                               |          raven_bd_jtag_axi_0_0_fifo_generator_v13_2_14__parameterized1 |         37 |         34 |       0 |    3 |   108 |      1 |      0 |    0 |          0 |
+|             inst_fifo_gen                             | raven_bd_jtag_axi_0_0_fifo_generator_v13_2_14_synth__parameterized1_12 |         37 |         34 |       0 |    3 |   108 |      1 |      0 |    0 |          0 |
+|               gconvfifo.rf                            |            raven_bd_jtag_axi_0_0_fifo_generator_top__parameterized1_13 |         37 |         34 |       0 |    3 |   108 |      1 |      0 |    0 |          0 |
+|                 grf.rf                                |        raven_bd_jtag_axi_0_0_fifo_generator_ramfifo__parameterized1_14 |         37 |         34 |       0 |    3 |   108 |      1 |      0 |    0 |          0 |
+|           rx_fifo_i                                   |          raven_bd_jtag_axi_0_0_fifo_generator_v13_2_14__parameterized0 |         66 |         63 |       0 |    3 |   156 |      0 |      1 |    0 |          0 |
+|             inst_fifo_gen                             |    raven_bd_jtag_axi_0_0_fifo_generator_v13_2_14_synth__parameterized0 |         66 |         63 |       0 |    3 |   156 |      0 |      1 |    0 |          0 |
+|               gconvfifo.rf                            |               raven_bd_jtag_axi_0_0_fifo_generator_top__parameterized0 |         66 |         63 |       0 |    3 |   156 |      0 |      1 |    0 |          0 |
+|                 grf.rf                                |           raven_bd_jtag_axi_0_0_fifo_generator_ramfifo__parameterized0 |         66 |         63 |       0 |    3 |   156 |      0 |      1 |    0 |          0 |
+|                   gntv_or_sync_fifo.gcx.clkx          |                                    raven_bd_jtag_axi_0_0_clk_x_pntrs_4 |         31 |         31 |       0 |    0 |    64 |      0 |      0 |    0 |          0 |
+|           tx_fifo_i                                   |                          raven_bd_jtag_axi_0_0_fifo_generator_v13_2_14 |        251 |         91 |     160 |    0 |   180 |      0 |      0 |    0 |          0 |
+|             inst_fifo_gen                             |                    raven_bd_jtag_axi_0_0_fifo_generator_v13_2_14_synth |        251 |         91 |     160 |    0 |   180 |      0 |      0 |    0 |          0 |
+|               gconvfifo.rf                            |                               raven_bd_jtag_axi_0_0_fifo_generator_top |        251 |         91 |     160 |    0 |   180 |      0 |      0 |    0 |          0 |
+|                 grf.rf                                |                           raven_bd_jtag_axi_0_0_fifo_generator_ramfifo |        251 |         91 |     160 |    0 |   180 |      0 |      0 |    0 |          0 |
+|                   gntv_or_sync_fifo.gcx.clkx          |                                      raven_bd_jtag_axi_0_0_clk_x_pntrs |         31 |         31 |       0 |    0 |    64 |      0 |      0 |    0 |          0 |
+|                   gntv_or_sync_fifo.mem               |                                           raven_bd_jtag_axi_0_0_memory |        192 |         32 |     160 |    0 |    64 |      0 |      0 |    0 |          0 |
+|                     gdm.dm_gen.dm                     |                                             raven_bd_jtag_axi_0_0_dmem |        192 |         32 |     160 |    0 |    32 |      0 |      0 |    0 |          0 |
+|           u_xsdb_fifo_interface                       |             raven_bd_jtag_axi_0_0_jtag_axi_v1_2_23_xsdb_fifo_interface |         88 |         88 |       0 |    0 |   474 |      0 |      0 |    0 |          0 |
+|             (u_xsdb_fifo_interface)                   |             raven_bd_jtag_axi_0_0_jtag_axi_v1_2_23_xsdb_fifo_interface |         44 |         44 |       0 |    0 |    51 |      0 |      0 |    0 |          0 |
+|             rxfifo2xsdb_i                             |                     raven_bd_jtag_axi_0_0_jtag_axi_v1_2_23_rxfifo2xsdb |         28 |         28 |       0 |    0 |    86 |      0 |      0 |    0 |          0 |
+|             xsdb2read_cmdfifo                         |     raven_bd_jtag_axi_0_0_jtag_axi_v1_2_23_xsdb2txfifo__parameterized0 |          5 |          5 |       0 |    0 |   134 |      0 |      0 |    0 |          0 |
+|             xsdb2txfifo_i                             |                     raven_bd_jtag_axi_0_0_jtag_axi_v1_2_23_xsdb2txfifo |          6 |          6 |       0 |    0 |    69 |      0 |      0 |    0 |          0 |
+|             xsdb2write_cmdfifo                        |   raven_bd_jtag_axi_0_0_jtag_axi_v1_2_23_xsdb2txfifo__parameterized0_2 |          5 |          5 |       0 |    0 |   134 |      0 |      0 |    0 |          0 |
+|           wr_cmd_fifo_i                               |        raven_bd_jtag_axi_0_0_fifo_generator_v13_2_14__parameterized1_1 |         39 |         36 |       0 |    3 |   108 |      1 |      0 |    0 |          0 |
+|             inst_fifo_gen                             |    raven_bd_jtag_axi_0_0_fifo_generator_v13_2_14_synth__parameterized1 |         39 |         36 |       0 |    3 |   108 |      1 |      0 |    0 |          0 |
+|               gconvfifo.rf                            |               raven_bd_jtag_axi_0_0_fifo_generator_top__parameterized1 |         39 |         36 |       0 |    3 |   108 |      1 |      0 |    0 |          0 |
+|                 grf.rf                                |           raven_bd_jtag_axi_0_0_fifo_generator_ramfifo__parameterized1 |         39 |         36 |       0 |    3 |   108 |      1 |      0 |    0 |          0 |
+|         axi_bridge_u                                  |                      raven_bd_jtag_axi_0_0_jtag_axi_v1_2_23_axi_bridge |         27 |         27 |       0 |    0 |   152 |      0 |      0 |    0 |          0 |
+|           read_axi_lite_u                             |                    raven_bd_jtag_axi_0_0_jtag_axi_v1_2_23_read_axilite |         11 |         11 |       0 |    0 |    74 |      0 |      0 |    0 |          0 |
+|           write_axi_lite_u                            |                   raven_bd_jtag_axi_0_0_jtag_axi_v1_2_23_write_axilite |         16 |         16 |       0 |    0 |    78 |      0 |      0 |    0 |          0 |
+|     raven_board_0                                     |                                               raven_bd_raven_board_0_0 |      15537 |      15537 |       0 |    0 | 15449 |     22 |      0 |    0 |         16 |
+|       (raven_board_0)                                 |                                               raven_bd_raven_board_0_0 |        576 |        576 |       0 |    0 |     0 |      0 |      0 |    0 |          0 |
+|       inst                                            |                             raven_bd_raven_board_0_0_raven_board_top_v |      14963 |      14963 |       0 |    0 | 15449 |     22 |      0 |    0 |         16 |
+|         u_top                                         |                               raven_bd_raven_board_0_0_raven_board_top |      14963 |      14963 |       0 |    0 | 15449 |     22 |      0 |    0 |         16 |
+|           g_memory.u_mem                              |                            raven_bd_raven_board_0_0_raven_memory_banks |        237 |        237 |       0 |    0 |     7 |     22 |      0 |    0 |          0 |
+|           u_bridge                                    |                             raven_bd_raven_board_0_0_raven_axil_bridge |        212 |        212 |       0 |    0 |   121 |      0 |      0 |    0 |          0 |
+|           u_npu                                       |                                 raven_bd_raven_board_0_0_raven_npu_top |      14515 |      14515 |       0 |    0 | 15321 |      0 |      0 |    0 |         16 |
+|             u_requant                                 |                                 raven_bd_raven_board_0_0_raven_requant |        749 |        749 |       0 |    0 |   469 |      0 |      0 |    0 |          4 |
+|               (u_requant)                             |                                 raven_bd_raven_board_0_0_raven_requant |         53 |         53 |       0 |    0 |   459 |      0 |      0 |    0 |          0 |
+|               u_requant                               |                        raven_bd_raven_board_0_0_raven_requantize_clamp |        696 |        696 |       0 |    0 |    10 |      0 |      0 |    0 |          4 |
+|             g_output_buffer.u_adapter                 |                   raven_bd_raven_board_0_0_raven_output_buffer_adapter |        177 |        177 |       0 |    0 |   374 |      0 |      0 |    0 |          0 |
+|               (g_output_buffer.u_adapter)             |                   raven_bd_raven_board_0_0_raven_output_buffer_adapter |         46 |         46 |       0 |    0 |   133 |      0 |      0 |    0 |          0 |
+|               u_buffer                                |                                  raven_bd_raven_board_0_0_outputBuffer |        131 |        131 |       0 |    0 |   241 |      0 |      0 |    0 |          0 |
+|             g_read_ports[0].g_buffered.u_adapter      |                     raven_bd_raven_board_0_0_raven_read_buffer_adapter |        528 |        528 |       0 |    0 |  1273 |      0 |      0 |    0 |          0 |
+|               (g_read_ports[0].g_buffered.u_adapter)  |                     raven_bd_raven_board_0_0_raven_read_buffer_adapter |         99 |         99 |       0 |    0 |   184 |      0 |      0 |    0 |          0 |
+|               g_activation.u_buffer                   |                           raven_bd_raven_board_0_0_activationBuffer_68 |        429 |        429 |       0 |    0 |  1089 |      0 |      0 |    0 |          0 |
+|             g_read_ports[1].g_buffered.u_adapter      |                   raven_bd_raven_board_0_0_raven_read_buffer_adapter_0 |        579 |        579 |       0 |    0 |  1273 |      0 |      0 |    0 |          0 |
+|               (g_read_ports[1].g_buffered.u_adapter)  |                   raven_bd_raven_board_0_0_raven_read_buffer_adapter_0 |        150 |        150 |       0 |    0 |   184 |      0 |      0 |    0 |          0 |
+|               g_activation.u_buffer                   |                              raven_bd_raven_board_0_0_activationBuffer |        429 |        429 |       0 |    0 |  1089 |      0 |      0 |    0 |          0 |
+|             g_read_ports[2].g_buffered.u_adapter      |     raven_bd_raven_board_0_0_raven_read_buffer_adapter__parameterized0 |        505 |        505 |       0 |    0 |  1272 |      0 |      0 |    0 |          0 |
+|               (g_read_ports[2].g_buffered.u_adapter)  |     raven_bd_raven_board_0_0_raven_read_buffer_adapter__parameterized0 |         85 |         85 |       0 |    0 |   183 |      0 |      0 |    0 |          0 |
+|               g_weight.u_buffer                       |                               raven_bd_raven_board_0_0_weightBuffer_67 |        423 |        423 |       0 |    0 |  1089 |      0 |      0 |    0 |          0 |
+|             g_read_ports[3].g_buffered.u_adapter      |   raven_bd_raven_board_0_0_raven_read_buffer_adapter__parameterized0_1 |        554 |        554 |       0 |    0 |  1272 |      0 |      0 |    0 |          0 |
+|               (g_read_ports[3].g_buffered.u_adapter)  |   raven_bd_raven_board_0_0_raven_read_buffer_adapter__parameterized0_1 |        135 |        135 |       0 |    0 |   183 |      0 |      0 |    0 |          0 |
+|               g_weight.u_buffer                       |                                  raven_bd_raven_board_0_0_weightBuffer |        421 |        421 |       0 |    0 |  1089 |      0 |      0 |    0 |          0 |
+|             g_read_ports[4].g_buffered.u_adapter      |     raven_bd_raven_board_0_0_raven_read_buffer_adapter__parameterized1 |        433 |        433 |       0 |    0 |   831 |      0 |      0 |    0 |          0 |
+|               (g_read_ports[4].g_buffered.u_adapter)  |     raven_bd_raven_board_0_0_raven_read_buffer_adapter__parameterized1 |        110 |        110 |       0 |    0 |   180 |      0 |      0 |    0 |          0 |
+|               g_parameter.u_buffer                    |                            raven_bd_raven_board_0_0_parameterBuffer_66 |        323 |        323 |       0 |    0 |   651 |      0 |      0 |    0 |          0 |
+|             g_read_ports[5].g_buffered.u_adapter      |   raven_bd_raven_board_0_0_raven_read_buffer_adapter__parameterized1_2 |        408 |        408 |       0 |    0 |   831 |      0 |      0 |    0 |          0 |
+|               (g_read_ports[5].g_buffered.u_adapter)  |   raven_bd_raven_board_0_0_raven_read_buffer_adapter__parameterized1_2 |         85 |         85 |       0 |    0 |   180 |      0 |      0 |    0 |          0 |
+|               g_parameter.u_buffer                    |                               raven_bd_raven_board_0_0_parameterBuffer |        323 |        323 |       0 |    0 |   651 |      0 |      0 |    0 |          0 |
+|             u_core                                    |                               raven_bd_raven_board_0_0_raven_gemm_core |       9874 |       9874 |       0 |    0 |  6355 |      0 |      0 |    0 |          6 |
+|               (u_core)                                |                               raven_bd_raven_board_0_0_raven_gemm_core |        276 |        276 |       0 |    0 |   525 |      0 |      0 |    0 |          4 |
+|               u_array                                 |                               raven_bd_raven_board_0_0_raven_mac_array |       7526 |       7526 |       0 |    0 |  3328 |      0 |      0 |    0 |          0 |
+|                 g_row[7].g_col[7].u_pe                |                               raven_bd_raven_board_0_0_raven_mac_pe_65 |        161 |        161 |       0 |    0 |    52 |      0 |      0 |    0 |          0 |
+|                 g_row[0].g_col[0].u_pe                |                                  raven_bd_raven_board_0_0_raven_mac_pe |        109 |        109 |       0 |    0 |    52 |      0 |      0 |    0 |          0 |
+|                 g_row[0].g_col[1].u_pe                |                                raven_bd_raven_board_0_0_raven_mac_pe_3 |        109 |        109 |       0 |    0 |    52 |      0 |      0 |    0 |          0 |
+|                 g_row[0].g_col[2].u_pe                |                                raven_bd_raven_board_0_0_raven_mac_pe_4 |        114 |        114 |       0 |    0 |    52 |      0 |      0 |    0 |          0 |
+|                 g_row[0].g_col[3].u_pe                |                                raven_bd_raven_board_0_0_raven_mac_pe_5 |        109 |        109 |       0 |    0 |    52 |      0 |      0 |    0 |          0 |
+|                 g_row[0].g_col[4].u_pe                |                                raven_bd_raven_board_0_0_raven_mac_pe_6 |        109 |        109 |       0 |    0 |    52 |      0 |      0 |    0 |          0 |
+|                 g_row[0].g_col[5].u_pe                |                                raven_bd_raven_board_0_0_raven_mac_pe_7 |        110 |        110 |       0 |    0 |    52 |      0 |      0 |    0 |          0 |
+|                 g_row[0].g_col[6].u_pe                |                                raven_bd_raven_board_0_0_raven_mac_pe_8 |        111 |        111 |       0 |    0 |    52 |      0 |      0 |    0 |          0 |
+|                 g_row[0].g_col[7].u_pe                |                                raven_bd_raven_board_0_0_raven_mac_pe_9 |        119 |        119 |       0 |    0 |    52 |      0 |      0 |    0 |          0 |
+|                 g_row[1].g_col[0].u_pe                |                               raven_bd_raven_board_0_0_raven_mac_pe_10 |        109 |        109 |       0 |    0 |    52 |      0 |      0 |    0 |          0 |
+|                 g_row[1].g_col[1].u_pe                |                               raven_bd_raven_board_0_0_raven_mac_pe_11 |        109 |        109 |       0 |    0 |    52 |      0 |      0 |    0 |          0 |
+|                 g_row[1].g_col[2].u_pe                |                               raven_bd_raven_board_0_0_raven_mac_pe_12 |        108 |        108 |       0 |    0 |    52 |      0 |      0 |    0 |          0 |
+|                 g_row[1].g_col[3].u_pe                |                               raven_bd_raven_board_0_0_raven_mac_pe_13 |        108 |        108 |       0 |    0 |    52 |      0 |      0 |    0 |          0 |
+|                 g_row[1].g_col[4].u_pe                |                               raven_bd_raven_board_0_0_raven_mac_pe_14 |        108 |        108 |       0 |    0 |    52 |      0 |      0 |    0 |          0 |
+|                 g_row[1].g_col[5].u_pe                |                               raven_bd_raven_board_0_0_raven_mac_pe_15 |        110 |        110 |       0 |    0 |    52 |      0 |      0 |    0 |          0 |
+|                 g_row[1].g_col[6].u_pe                |                               raven_bd_raven_board_0_0_raven_mac_pe_16 |        111 |        111 |       0 |    0 |    52 |      0 |      0 |    0 |          0 |
+|                 g_row[1].g_col[7].u_pe                |                               raven_bd_raven_board_0_0_raven_mac_pe_17 |        116 |        116 |       0 |    0 |    52 |      0 |      0 |    0 |          0 |
+|                 g_row[2].g_col[0].u_pe                |                               raven_bd_raven_board_0_0_raven_mac_pe_18 |        107 |        107 |       0 |    0 |    52 |      0 |      0 |    0 |          0 |
+|                 g_row[2].g_col[1].u_pe                |                               raven_bd_raven_board_0_0_raven_mac_pe_19 |        108 |        108 |       0 |    0 |    52 |      0 |      0 |    0 |          0 |
+|                 g_row[2].g_col[2].u_pe                |                               raven_bd_raven_board_0_0_raven_mac_pe_20 |        109 |        109 |       0 |    0 |    52 |      0 |      0 |    0 |          0 |
+|                 g_row[2].g_col[3].u_pe                |                               raven_bd_raven_board_0_0_raven_mac_pe_21 |        109 |        109 |       0 |    0 |    52 |      0 |      0 |    0 |          0 |
+|                 g_row[2].g_col[4].u_pe                |                               raven_bd_raven_board_0_0_raven_mac_pe_22 |        110 |        110 |       0 |    0 |    52 |      0 |      0 |    0 |          0 |
+|                 g_row[2].g_col[5].u_pe                |                               raven_bd_raven_board_0_0_raven_mac_pe_23 |        107 |        107 |       0 |    0 |    52 |      0 |      0 |    0 |          0 |
+|                 g_row[2].g_col[6].u_pe                |                               raven_bd_raven_board_0_0_raven_mac_pe_24 |        108 |        108 |       0 |    0 |    52 |      0 |      0 |    0 |          0 |
+|                 g_row[2].g_col[7].u_pe                |                               raven_bd_raven_board_0_0_raven_mac_pe_25 |        117 |        117 |       0 |    0 |    52 |      0 |      0 |    0 |          0 |
+|                 g_row[3].g_col[0].u_pe                |                               raven_bd_raven_board_0_0_raven_mac_pe_26 |        141 |        141 |       0 |    0 |    52 |      0 |      0 |    0 |          0 |
+|                 g_row[3].g_col[1].u_pe                |                               raven_bd_raven_board_0_0_raven_mac_pe_27 |        140 |        140 |       0 |    0 |    52 |      0 |      0 |    0 |          0 |
+|                 g_row[3].g_col[2].u_pe                |                               raven_bd_raven_board_0_0_raven_mac_pe_28 |        141 |        141 |       0 |    0 |    52 |      0 |      0 |    0 |          0 |
+|                 g_row[3].g_col[3].u_pe                |                               raven_bd_raven_board_0_0_raven_mac_pe_29 |        141 |        141 |       0 |    0 |    52 |      0 |      0 |    0 |          0 |
+|                 g_row[3].g_col[4].u_pe                |                               raven_bd_raven_board_0_0_raven_mac_pe_30 |        142 |        142 |       0 |    0 |    52 |      0 |      0 |    0 |          0 |
+|                 g_row[3].g_col[5].u_pe                |                               raven_bd_raven_board_0_0_raven_mac_pe_31 |        145 |        145 |       0 |    0 |    52 |      0 |      0 |    0 |          0 |
+|                 g_row[3].g_col[6].u_pe                |                               raven_bd_raven_board_0_0_raven_mac_pe_32 |        172 |        172 |       0 |    0 |    52 |      0 |      0 |    0 |          0 |
+|                 g_row[3].g_col[7].u_pe                |                               raven_bd_raven_board_0_0_raven_mac_pe_33 |        150 |        150 |       0 |    0 |    52 |      0 |      0 |    0 |          0 |
+|                 g_row[4].g_col[0].u_pe                |                               raven_bd_raven_board_0_0_raven_mac_pe_34 |        108 |        108 |       0 |    0 |    52 |      0 |      0 |    0 |          0 |
+|                 g_row[4].g_col[1].u_pe                |                               raven_bd_raven_board_0_0_raven_mac_pe_35 |        108 |        108 |       0 |    0 |    52 |      0 |      0 |    0 |          0 |
+|                 g_row[4].g_col[2].u_pe                |                               raven_bd_raven_board_0_0_raven_mac_pe_36 |        109 |        109 |       0 |    0 |    52 |      0 |      0 |    0 |          0 |
+|                 g_row[4].g_col[3].u_pe                |                               raven_bd_raven_board_0_0_raven_mac_pe_37 |        108 |        108 |       0 |    0 |    52 |      0 |      0 |    0 |          0 |
+|                 g_row[4].g_col[4].u_pe                |                               raven_bd_raven_board_0_0_raven_mac_pe_38 |        108 |        108 |       0 |    0 |    52 |      0 |      0 |    0 |          0 |
+|                 g_row[4].g_col[5].u_pe                |                               raven_bd_raven_board_0_0_raven_mac_pe_39 |        108 |        108 |       0 |    0 |    52 |      0 |      0 |    0 |          0 |
+|                 g_row[4].g_col[6].u_pe                |                               raven_bd_raven_board_0_0_raven_mac_pe_40 |        113 |        113 |       0 |    0 |    52 |      0 |      0 |    0 |          0 |
+|                 g_row[4].g_col[7].u_pe                |                               raven_bd_raven_board_0_0_raven_mac_pe_41 |        116 |        116 |       0 |    0 |    52 |      0 |      0 |    0 |          0 |
+|                 g_row[5].g_col[0].u_pe                |                               raven_bd_raven_board_0_0_raven_mac_pe_42 |        108 |        108 |       0 |    0 |    52 |      0 |      0 |    0 |          0 |
+|                 g_row[5].g_col[1].u_pe                |                               raven_bd_raven_board_0_0_raven_mac_pe_43 |        108 |        108 |       0 |    0 |    52 |      0 |      0 |    0 |          0 |
+|                 g_row[5].g_col[2].u_pe                |                               raven_bd_raven_board_0_0_raven_mac_pe_44 |        109 |        109 |       0 |    0 |    52 |      0 |      0 |    0 |          0 |
+|                 g_row[5].g_col[3].u_pe                |                               raven_bd_raven_board_0_0_raven_mac_pe_45 |        109 |        109 |       0 |    0 |    52 |      0 |      0 |    0 |          0 |
+|                 g_row[5].g_col[4].u_pe                |                               raven_bd_raven_board_0_0_raven_mac_pe_46 |        109 |        109 |       0 |    0 |    52 |      0 |      0 |    0 |          0 |
+|                 g_row[5].g_col[5].u_pe                |                               raven_bd_raven_board_0_0_raven_mac_pe_47 |        109 |        109 |       0 |    0 |    52 |      0 |      0 |    0 |          0 |
+|                 g_row[5].g_col[6].u_pe                |                               raven_bd_raven_board_0_0_raven_mac_pe_48 |        109 |        109 |       0 |    0 |    52 |      0 |      0 |    0 |          0 |
+|                 g_row[5].g_col[7].u_pe                |                               raven_bd_raven_board_0_0_raven_mac_pe_49 |        117 |        117 |       0 |    0 |    52 |      0 |      0 |    0 |          0 |
+|                 g_row[6].g_col[0].u_pe                |                               raven_bd_raven_board_0_0_raven_mac_pe_50 |        108 |        108 |       0 |    0 |    52 |      0 |      0 |    0 |          0 |
+|                 g_row[6].g_col[1].u_pe                |                               raven_bd_raven_board_0_0_raven_mac_pe_51 |        108 |        108 |       0 |    0 |    52 |      0 |      0 |    0 |          0 |
+|                 g_row[6].g_col[2].u_pe                |                               raven_bd_raven_board_0_0_raven_mac_pe_52 |        109 |        109 |       0 |    0 |    52 |      0 |      0 |    0 |          0 |
+|                 g_row[6].g_col[3].u_pe                |                               raven_bd_raven_board_0_0_raven_mac_pe_53 |        110 |        110 |       0 |    0 |    52 |      0 |      0 |    0 |          0 |
+|                 g_row[6].g_col[4].u_pe                |                               raven_bd_raven_board_0_0_raven_mac_pe_54 |        111 |        111 |       0 |    0 |    52 |      0 |      0 |    0 |          0 |
+|                 g_row[6].g_col[5].u_pe                |                               raven_bd_raven_board_0_0_raven_mac_pe_55 |        107 |        107 |       0 |    0 |    52 |      0 |      0 |    0 |          0 |
+|                 g_row[6].g_col[6].u_pe                |                               raven_bd_raven_board_0_0_raven_mac_pe_56 |        109 |        109 |       0 |    0 |    52 |      0 |      0 |    0 |          0 |
+|                 g_row[6].g_col[7].u_pe                |                               raven_bd_raven_board_0_0_raven_mac_pe_57 |        116 |        116 |       0 |    0 |    52 |      0 |      0 |    0 |          0 |
+|                 g_row[7].g_col[0].u_pe                |                               raven_bd_raven_board_0_0_raven_mac_pe_58 |        150 |        150 |       0 |    0 |    52 |      0 |      0 |    0 |          0 |
+|                 g_row[7].g_col[1].u_pe                |                               raven_bd_raven_board_0_0_raven_mac_pe_59 |        150 |        150 |       0 |    0 |    52 |      0 |      0 |    0 |          0 |
+|                 g_row[7].g_col[2].u_pe                |                               raven_bd_raven_board_0_0_raven_mac_pe_60 |        150 |        150 |       0 |    0 |    52 |      0 |      0 |    0 |          0 |
+|                 g_row[7].g_col[3].u_pe                |                               raven_bd_raven_board_0_0_raven_mac_pe_61 |        148 |        148 |       0 |    0 |    52 |      0 |      0 |    0 |          0 |
+|                 g_row[7].g_col[4].u_pe                |                               raven_bd_raven_board_0_0_raven_mac_pe_62 |        148 |        148 |       0 |    0 |    52 |      0 |      0 |    0 |          0 |
+|                 g_row[7].g_col[5].u_pe                |                               raven_bd_raven_board_0_0_raven_mac_pe_63 |        149 |        149 |       0 |    0 |    52 |      0 |      0 |    0 |          0 |
+|                 g_row[7].g_col[6].u_pe                |                               raven_bd_raven_board_0_0_raven_mac_pe_64 |        151 |        151 |       0 |    0 |    52 |      0 |      0 |    0 |          0 |
+|               u_frontend                              |                           raven_bd_raven_board_0_0_raven_gemm_frontend |       2779 |       2779 |       0 |    0 |  2502 |      0 |      0 |    0 |          2 |
+|             u_ctrl                                    |                                    raven_bd_raven_board_0_0_raven_ctrl |        538 |        538 |       0 |    0 |   742 |      0 |      0 |    0 |          4 |
+|             u_regs                                    |                               raven_bd_raven_board_0_0_raven_ctrl_regs |        167 |        167 |       0 |    0 |   554 |      0 |      0 |    0 |          0 |
+|     smartconnect_0                                    |                                              raven_bd_smartconnect_0_0 |         86 |         85 |       0 |    1 |   217 |      0 |      0 |    0 |          0 |
+|       inst                                            |                                      raven_bd_smartconnect_0_0_bd_6cc6 |         86 |         85 |       0 |    1 |   217 |      0 |      0 |    0 |          0 |
+|         s00_nodes                                     |                         raven_bd_smartconnect_0_0_s00_nodes_imp_PB5LQ9 |         42 |         42 |       0 |    0 |   150 |      0 |      0 |    0 |          0 |
++-------------------------------------------------------+------------------------------------------------------------------------+------------+------------+---------+------+-------+--------+--------+------+------------+
+* Note: The sum of lower-level cells may be larger than their parent cells total, due to cross-hierarchy LUT combining
+
+

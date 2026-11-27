@@ -62,9 +62,10 @@ Always use the `.bit` and `psu_init.tcl` from the same build.
 
 ## Bring up the board
 
-A prebuilt package is committed in [handoff/](handoff/README.md):
-`raven_board_pattern.zip` holds the PATTERN build's files and short bring-up steps, so
-the board can be brought up without rebuilding. The commands below use a local build;
+Prebuilt packages are committed in [handoff/](handoff/README.md):
+`raven_board_memory.zip` (GEMM demo, with [BOARD_HANDOFF.md](handoff/BOARD_HANDOFF.md)
+as the step-by-step guide) and `raven_board_pattern.zip` (bridge bring-up only), so the
+board can be brought up without rebuilding. The commands below use a local build;
 with the zip, use the folder you unzipped it to instead of `build/hw/board/handoff`.
 
 Hardware: Ultra96-V2 with a JTAG pod on the J3 header (for example Avnet
@@ -100,7 +101,11 @@ no SD image takes over the PS.
    python tools/goldens/compare_prealpha.py --case tests/vectors/prealpha/normal_8x16x8 --kind int8 --actual build/prototype/out0.bin
    ```
 
-   On the PATTERN build this step times out by design, and `-soft_reset` recovers the NPU.
+   It also compares OUT0 with the fixture's `expected_int8.hex` on the spot and fails with
+   `CHECK FAILED` on any difference. `run_fixture.tcl` reads `out0_source` from the
+   `build_info.txt` beside it (override with `-out0 pattern|memory`), so `-smoke` skips the
+   PATTERN value checks on the MEMORY build. On the PATTERN build this step times out by
+   design, and `-soft_reset` recovers the NPU.
 
 If Hardware Manager reports no JTAG-to-AXI core, the PL clock is not running: rerun step 1,
 then refresh the device.
@@ -132,6 +137,16 @@ revision, file hashes and what is not yet covered. The curated
 [wrapper synthesis](../evidence/vivado/board-prototype/wrapper-synthesis/) reports have
 host/date lines removed and workspace paths normalized. The board bring-up and smoke
 test above have not yet been run on hardware.
+
+### MEMORY build
+
+`hw/build.tcl -tclargs -out0_memory 1` (from `d567757`) also passes: `pl_clk0` 50.000 MHz,
+WNS +7.026 ns, WHS +0.010 ns, 0 failing endpoints, 0 errors and 0 critical warnings;
+16,691 LUTs, 18,037 flip-flops, 24.5 block RAM tiles (22 RAMB36 for the memory banks) and
+16 DSPs. Synthesis reads the `act.hex`, `wgt.hex` and `prm.hex` init images. DRC and
+methodology findings are the same advisory classes as above, plus BRAM write-first notices
+inside the JTAG-to-AXI FIFOs. Record and reports:
+[evidence/vivado/board-prototype/memory/](../evidence/vivado/board-prototype/memory/results.json).
 
 ## NPU block synthesis
 

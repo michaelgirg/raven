@@ -7,8 +7,11 @@
 # GUI Tcl console (hardware target already open): set argv {-smoke -no_connect}; source run_fixture.tcl
 #
 # Options:
-#   -smoke               bus checks plus a NOP START->DONE (works with the PATTERN build)
-#   -fixture <dir>       run a GEMM from <dir>/cmd.txt (export_fixtures.py output) and dump OUT0
+#   -smoke               bus checks plus a NOP START->DONE (PATTERN or MEMORY build)
+#   -fixture <dir>       run a GEMM from <dir>/cmd.txt (export_fixtures.py output), dump OUT0,
+#                        and compare it with <dir>/expected_int8.hex when that file exists
+#   -out0 <src>          pattern or memory: which build is loaded. Default: read
+#                        out0_source from build_info.txt next to this script, else pattern
 #   -out <file>          OUT0 dump for -fixture (default build/prototype/out0.bin)
 #   -bytes <n>           OUT0 bytes to dump, a multiple of 4 (default 64)
 #   -timeout_ms <ms>     completion poll limit (default 2000)
@@ -31,6 +34,18 @@ namespace eval rvn {
     variable NPU_ID 0x5241564E
     variable axi ""
     variable checks 0
+    variable out0_src pattern
+    variable here [file dirname [file normalize [info script]]]
+}
+
+# out0_source from the build_info.txt beside this script (handoff folder), if present.
+proc rvn::detect_out0 {} {
+    variable here
+    set info [file join $here build_info.txt]
+    if {![file isfile $info]} { return pattern }
+    set fd [open $info r]; set text [read $fd]; close $fd
+    if {[regexp -line {^out0_source:\s*MEMORY} $text]} { return memory }
+    return pattern
 }
 
 # ------------------------------------------------------------------ transport
@@ -147,10 +162,19 @@ proc rvn::smoke {soft_reset timeout_ms} {
     csr_wr $P3 0x12345678
     expect "staging P3 write/read" [csr_rd $P3] 0x12345678
     csr_wr $P3 0
-    for {set off 0} {$off < 0x40} {incr off 4} {
-        expect [format "OUT0 pattern +0x%03X" $off] [rd [expr {$out0 + $off}]] [pattern_word $off]
+    variable out0_src
+    if {$out0_src eq "pattern"} {
+        for {set off 0} {$off < 0x40} {incr off 4} {
+            expect [format "OUT0 pattern +0x%03X" $off] [rd [expr {$out0 + $off}]] [pattern_word $off]
+        }
+        expect "OUT0 pattern +0x1FFC" [rd [expr {$out0 + 0x1FFC}]] [pattern_word 0x1FFC]
+    } else {
+        # MEMORY build: OUT0 is BRAM with no fixed contents; check the reads complete.
+        foreach off {0x000 0x010 0x03C 0x1FFC} {
+            incr ::rvn::checks
+            puts [format "  ok  %-34s %08X" [format "OUT0 BRAM read +0x%03X" $off] [rd [expr {$out0 + $off}]]]
+        }
     }
-    expect "OUT0 pattern +0x1FFC" [rd [expr {$out0 + 0x1FFC}]] [pattern_word 0x1FFC]
     expect_error "unmapped hole read" read [expr {$base + 0x1000}]
     expect_error "OUT0 write rejected" write $out0 0
     expect_error "outside window (interconnect)" read [expr {$base + 0x4000}]
@@ -190,13 +214,38 @@ proc rvn::fixture {dir out bytes soft_reset timeout_ms} {
         puts -nonewline $fd [binary format i [rd [expr {$out0 + $off}]]]
     }
     close $fd
-    puts "Wrote $bytes bytes to $out. Compare with:"
+    puts "Wrote $bytes bytes to $out"
+
+    # On-board pass/fail against the fixture's expected bytes.
+    set exp_file [file join $dir expected_int8.hex]
+    if {[file isfile $exp_file]} {
+        set fd [open $exp_file r]; set exp {}
+        foreach line [split [read $fd] \n] {
+            if {[string trim $line] ne ""} { lappend exp [expr {"0x[string trim $line]"}] }
+        }
+        close $fd
+        set fd [open $out rb]; binary scan [read $fd] cu* got; close $fd
+        set n [llength $exp]
+        if {[llength $got] < $n} { error "Dumped [llength $got] bytes but expected_int8.hex has $n; raise -bytes" }
+        set mism 0
+        for {set i 0} {$i < $n} {incr i} {
+            if {[lindex $got $i] != [lindex $exp $i]} {
+                if {$mism < 8} { puts [format "  MISMATCH byte %d: got %02X expected %02X" $i [lindex $got $i] [lindex $exp $i]] }
+                incr mism
+            }
+        }
+        incr ::rvn::checks
+        if {$mism} { error "CHECK FAILED: $mism/$n OUT0 bytes differ from expected_int8.hex" }
+        puts "  ok  OUT0 matches expected_int8.hex ($n/$n bytes)"
+    }
+    puts "Independent check (from the repository root):"
     puts "  python tools/goldens/compare_prealpha.py --case tests/vectors/prealpha/[file tail $dir] --kind int8 --actual $out"
 }
 
 # ------------------------------------------------------------------ main
 proc rvn::main {argv} {
-    variable axi
+    variable axi; variable out0_src
+    set out0_src [detect_out0]
     set mode ""; set dir ""; set out build/prototype/out0.bin; set bytes 64
     set timeout_ms 2000; set soft_reset 0; set url localhost:3121; set probes ""; set connect 1
     for {set i 0} {$i < [llength $argv]} {incr i} {
@@ -211,10 +260,13 @@ proc rvn::main {argv} {
             -url        { set url [lindex $argv [incr i]] }
             -probes     { set probes [lindex $argv [incr i]] }
             -no_connect { set connect 0 }
+            -out0       { set out0_src [string tolower [lindex $argv [incr i]]] }
             default     { error "Unknown option $opt (see the header of run_fixture.tcl)" }
         }
     }
     if {$mode eq ""} { error "Choose -smoke or -fixture <dir>" }
+    if {$out0_src ni {pattern memory}} { error "-out0 takes pattern or memory" }
+    puts "RAVEN: OUT0 source $out0_src"
     if {$bytes % 4 || $bytes <= 0 || $bytes > 0x2000} { error "-bytes must be a positive multiple of 4, at most 8192" }
 
     if {$connect} {

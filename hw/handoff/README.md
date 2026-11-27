@@ -7,7 +7,7 @@ the same zip.
 | Package | OUT0 source | Use |
 |---|---|---|
 | `raven_board_pattern.zip` | PATTERN | Bring-up: JTAG, PS initialization, 50 MHz clock, address map, bridge, live NOP START → DONE. GEMM does not complete. |
-| `raven_board_memory.zip` | MEMORY | GEMM demo with the 64-byte readback. Not built yet; waits on the memory adapter (plan §13). |
+| `raven_board_memory.zip` | MEMORY | GEMM demo: preloaded BRAM banks, START → DONE, 64-byte OUT0 readback checked on the board. **Use this one.** Step-by-step instructions: [BOARD_HANDOFF.md](BOARD_HANDOFF.md). |
 
 Contents of each zip:
 
@@ -20,7 +20,8 @@ Contents of each zip:
 | `board_bringup_xsdb.tcl` | Step 1: reset, program the PL, run `psu_init`, release the PL reset |
 | `run_fixture.tcl` | Step 2 `-smoke`, step 3 `-fixture` (Hardware Manager, JTAG-to-AXI) |
 | `build_info.txt` | Commit, Vivado version, part, clock and timing for this build |
-| `BRINGUP.md` | This page's quick steps |
+| `BRINGUP.md` (PATTERN) / `BOARD_HANDOFF.md` (MEMORY) | Bring-up instructions |
+| `normal_8x16x8/` (MEMORY only) | The preloaded fixture: `cmd.txt`, `expected_int8.hex` and the BRAM images |
 
 ## Quick steps (PATTERN package)
 
@@ -54,3 +55,4 @@ SHA-256 of each package, from the commit that added it:
 | Package | Built from | SHA-256 |
 |---|---|---|
 | `raven_board_pattern.zip` | `3cba04a` | `ce7f2ff95be47675749d31335c7dd61716298126953c2c2a38efd5c6175b0838` |
+| `raven_board_memory.zip` | `d567757` | `0eb1f591020fcfc93352c8b751fa9438c8992c743ac66fb3ecdd6ab26c731334` |
