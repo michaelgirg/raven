@@ -86,11 +86,10 @@ module tb_banked_scratchpad_preload;
             cmd_owner = owner;
             cmd_generation = generation;
             cmd_length = length;
-            while (!cmd_ready) @(negedge clk);
-            @(posedge clk);
+            do @(posedge clk); while (!cmd_ready);
             #1;
             cmd_valid = 1'b0;
-            if (!cmd_rsp_valid || cmd_rsp_status != expected_status)
+            if (cmd_rsp_valid !== 1'b1 || cmd_rsp_status !== expected_status)
                 $fatal(1, "Unexpected preload command response");
         end
     endtask
@@ -108,10 +107,10 @@ module tb_banked_scratchpad_preload;
         rst = 0;
         #1;
 
-        if (bank_state[BANK_ACT0] != BANK_READY ||
-            bank_owner[BANK_ACT0] != OWNER_DMA ||
-            bank_generation[BANK_ACT0] != 8'd1 ||
-            bank_length[BANK_ACT0] != BANK_BYTES)
+        if (bank_state[BANK_ACT0] !== BANK_READY ||
+            bank_owner[BANK_ACT0] !== OWNER_DMA ||
+            bank_generation[BANK_ACT0] !== 8'd1 ||
+            bank_length[BANK_ACT0] !== BANK_BYTES)
             $fatal(1, "ACT0 fixture state was not initialized");
 
         issue_command(CMD_ACQUIRE_READ, BANK_ACT0, OWNER_DMA, 8'd1, 0,
@@ -123,13 +122,12 @@ module tb_banked_scratchpad_preload;
         rd_generation = 8'd1;
         rd_addr = 0;
         rd_rsp_ready = 0;
-        while (!rd_req_ready) @(negedge clk);
-        @(posedge clk);
+        do @(posedge clk); while (!rd_req_ready);
         #1;
         rd_req_valid = 0;
 
-        if (!rd_rsp_valid ||
-            rd_data != 128'h00112233445566778899aabbccddeeff)
+        if (rd_rsp_valid !== 1'b1 ||
+            rd_data !== 128'h00112233445566778899aabbccddeeff)
             $fatal(1, "ACT0 fixture word 0 mismatch");
 
         rd_rsp_ready = 1;
@@ -139,13 +137,12 @@ module tb_banked_scratchpad_preload;
 
         rd_req_valid = 1;
         rd_addr = 16;
-        while (!rd_req_ready) @(negedge clk);
-        @(posedge clk);
+        do @(posedge clk); while (!rd_req_ready);
         #1;
         rd_req_valid = 0;
 
-        if (!rd_rsp_valid ||
-            rd_data != 128'hffeeddccbbaa99887766554433221100)
+        if (rd_rsp_valid !== 1'b1 ||
+            rd_data !== 128'hffeeddccbbaa99887766554433221100)
             $fatal(1, "ACT0 fixture word 1 mismatch");
 
         $display("ALL BANKED SCRATCHPAD PRELOAD TESTS PASSED");

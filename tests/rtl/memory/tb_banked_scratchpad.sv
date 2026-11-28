@@ -122,10 +122,7 @@ module tb_banked_scratchpad;
             cmd_length  = length;
             cmd_valid   = 1'b1;
 
-            while (!cmd_ready)
-                @(negedge clk);
-
-            @(posedge clk);
+            do @(posedge clk); while (!cmd_ready);
             #1;
 
             cmd_valid = 1'b0;
@@ -167,12 +164,7 @@ module tb_banked_scratchpad;
             wr_data       = data;
             wr_strb       = '1;
             wr_valid      = 1'b1;
-            #1;
-
-            while (!wr_ready)
-                @(negedge clk);
-
-            @(posedge clk);
+            do @(posedge clk); while (!wr_ready);
             @(negedge clk);
 
             wr_valid = 1'b0;
@@ -197,10 +189,8 @@ module tb_banked_scratchpad;
             rd_req_valid  = 1'b1;
             rd_rsp_ready  = 1'b0;
 
-            while (!rd_req_ready)
-                @(negedge clk);
-
-            @(posedge clk);
+            // Observe the request handshake before ready drops for its response.
+            do @(posedge clk); while (!rd_req_ready);
             #1;
 
             rd_req_valid = 1'b0;

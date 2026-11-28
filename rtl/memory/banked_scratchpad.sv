@@ -267,6 +267,20 @@ module raven_banked_scratchpad #(
         end
     end
 
+    // The file preload also writes storage, so use a plain clocked process for
+    // its runtime writes. Reset leaves the backing bytes intact.
+    always @(posedge clk) begin
+        if (!rst && wr_valid_i && wr_ready_o &&
+            valid_access(wr_bank_i, wr_owner_i, wr_generation_i, wr_addr_i) &&
+            ((bank_state[wr_slot] == BANK_DMA_FILLING) ||
+             (bank_state[wr_slot] == BANK_NPU_WRITING))) begin
+            for (int b = 0; b < DATA_BYTES; b++) begin
+                if (wr_strb_i[b])
+                    storage[wr_slot][wr_addr_i + b] <= wr_data_i[b*8 +: 8];
+            end
+        end
+    end
+
     always_ff @(posedge clk or posedge rst) begin
         if (rst) begin
             cmd_rsp_valid_o      <= 1'b0;
@@ -419,25 +433,6 @@ module raven_banked_scratchpad #(
                         end
 
                     endcase
-                end
-            end
-
-            //generic writes
-            if (wr_valid_i && wr_ready_o) begin
-                if (valid_access(
-                        wr_bank_i,
-                        wr_owner_i,
-                        wr_generation_i,
-                        wr_addr_i
-                    ) &&
-                    ((bank_state[wr_slot] == BANK_DMA_FILLING) ||
-                     (bank_state[wr_slot] == BANK_NPU_WRITING))) begin
-
-                    for (int b = 0; b < DATA_BYTES; b++) begin
-                        if (wr_strb_i[b])
-                            storage[wr_slot][wr_addr_i + b]
-                                <= wr_data_i[b*8 +: 8];
-                    end
                 end
             end
 
