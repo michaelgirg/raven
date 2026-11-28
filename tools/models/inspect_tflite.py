@@ -1,8 +1,10 @@
+from pathlib import Path
+
 import tensorflow as tf
 
-model_path = "models/deep_autoencoder/ad01_int8.tflite"
+MODEL = Path(__file__).resolve().parents[2] / "models/deep_autoencoder/ad01_int8.tflite"
 
-interpreter = tf.lite.Interpreter(model_path=model_path)
+interpreter = tf.lite.Interpreter(model_path=str(MODEL))
 interpreter.allocate_tensors()
 
 # Get all tensors

@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 """Adapt one RAVEN pre-alpha golden case to Michael's existing GEMM RTL testbench.
 
-Compute-only bridge: INT32 GEMM, NOT integrated quantization/memory/command RTL.
-Does not modify Michael's files; emits a case_00 fixture for +DEMO_ONLY.
+Exports one INT32 GEMM case for the compute testbench's +DEMO_ONLY mode.
 """
 import argparse
 import json
@@ -20,7 +19,7 @@ def write_hex128(path, bank):
 def export(case_dir, output):
     d = json.loads((case_dir / 'reference.json').read_text(encoding='utf-8'))
     m, n, k, pitch = (int(d[key]) for key in ('M','N','K','A_pitch_bytes'))
-    if not (1 <= m <= 8 and 1 <= n <= 8 and k > 0 and pitch % 16 == 0):
+    if not (1 <= m <= 8 and 1 <= n <= 8 and 0 < k <= pitch and pitch % 16 == 0):
         raise ValueError('Expected a valid 1..8 by 1..8 GEMM tile with padded A pitch')
     if m * pitch > BANK_BYTES or k * 8 > BANK_BYTES:
         raise ValueError('Fixture too large for current simulation memory banks')

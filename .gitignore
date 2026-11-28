@@ -1,5 +1,6 @@
 # Local generated output; builds should write under this directory.
 /build/
+/transcript
 
 # Vivado/Vitis project state and generated implementation products.
 .Xil/

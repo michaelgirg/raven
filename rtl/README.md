@@ -8,19 +8,16 @@ output buffers plus adapters connecting them to the pre-alpha pipeline,
 and [operators](operators/README.md) contains a one-lane
 requantization/clamp block. Their benches are under `tests/rtl/`. The control
 directory contains the pre-alpha register block and single-command FSM. The top
-directory contains the pre-alpha NPU simulation top (`raven_npu_top`), which connects
+directory contains `raven_npu_top`, which connects
 control, the GEMM core, a PARAM-loading wrapper around Quan's requant block, and the INT8
 result writer. Every bank transfer passes through the native memory-buffer RTL by
-default. Full-capacity backing banks remain top-level ports; the integration testbench
-connects them to the synthesizable `raven_memory_banks` aggregate. See
-[Control pre-alpha and integration](../README.md#control-pre-alpha-and-integration) and the
-[control plan](../docs/plans/nahjay_control_integration_prealpha.md). Common interfaces
-remain reserved, and an integrated FPGA build is not supplied. See the
-[current subsystem status](../README.md#current-subsystem-status-and-integration).
+default. The integration testbench and the MEMORY board wrapper both connect
+the NPU bank ports to the synthesizable `raven_memory_banks` aggregate.
+[Control and integration](../README.md#control-pre-alpha-and-integration) · [FPGA build](../hw/README.md)
 
-The physical bank aggregate has a dedicated [Vivado out-of-context BRAM inference
-check](../hw/README.md#physical-memory-bank-synthesis); synthesis results remain
-unverified until that target is run.
+The standalone aggregate passed Vivado BRAM inference, and the Ultra96-V2
+prototype read the 64-byte GEMM result from OUT0.
+[BRAM synthesis](../hw/README.md#physical-memory-bank-synthesis) · [Live board evidence](../evidence/vivado/board-prototype/live-gemm/results.json)
 
 | Directory | Intended contents | Lead |
 |---|---|---|
@@ -30,6 +27,7 @@ unverified until that target is run.
 | `control/` | Pre-alpha register block and single-command FSM; later the generated CSR block, command queue/dispatch, completion, IRQs, and counters | Nahjay |
 | `common/` | Shared types, interfaces, and utilities reviewed by their consumers | Shared; assign a lead per change |
 | `top/` | Pre-alpha NPU top, requant PARAM loader and INT8 result writer; later the system-level RTL integration | Nahjay (pre-alpha); system integration lead TBD |
+| `board/` | AXI4-Lite bridge, Ultra96-V2 wrapper and OUT0 readback | Shared |
 
 Keep simulation-only testbenches in [tests/rtl/](../tests/rtl/). Vivado setup and board constraints belong in [hw/](../hw/). The proposed register source belongs in [tools/regs/](../tools/regs/); generated CSR RTL belongs in `control/` and must stay consistent with it.
 

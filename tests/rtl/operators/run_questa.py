@@ -12,11 +12,13 @@ import signal
 import subprocess
 import sys
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from questa_log import has_unexpected_diagnostics
+
 ROOT = Path(__file__).resolve().parents[3]
 SOURCES = [ROOT / 'rtl/operators/raven_requantize_clamp.sv',
            ROOT / 'tests/rtl/operators/tb_raven_requantize_clamp.sv']
 PASS = 'PASS REQUANT: rounding, clamps, tags, stalls, reset, and consecutive inputs'
-ERROR = re.compile(r'\*\*\s+(?:Error|Fatal)\b|^\s*#?\s*Errors:\s*[1-9]', re.M)
 PROBE = '''`timescale 1ns/1ps
 module tb_operator_assertion_probe;
   bit clk=0, sva_mode=0;
@@ -62,7 +64,7 @@ def main():
         'run -all\nquit -force -code 1\n', encoding='utf-8')
     report = {'status': 'running', 'source_sha256': {
         p.relative_to(ROOT).as_posix(): hashlib.sha256(p.read_bytes()).hexdigest()
-        for p in SOURCES + [Path(__file__).resolve()]}, 'steps': []}
+        for p in SOURCES + [Path(__file__).resolve(), ROOT / 'tests/rtl/questa_log.py']}, 'steps': []}
 
     def run_path(path):
         try:
@@ -99,7 +101,7 @@ def main():
         if rejection:
             if not re.search(r'^#\s*\*\* Fatal:.*' + re.escape(marker), combined, re.M):
                 raise RuntimeError(label + ': expected assertion did not execute')
-        elif proc.returncode or ERROR.search(combined):
+        elif proc.returncode or has_unexpected_diagnostics(combined):
             raise RuntimeError(label + ': tool or RTL error')
         elif marker and not re.search(r'^#\s*' + re.escape(marker) + r'\s*$', combined, re.M):
             raise RuntimeError(label + ': completion marker missing')

@@ -3,8 +3,8 @@
 This is the team handoff for the first Ultra96-V2 demo. Run one
 resident `M=8, K=16, N=8` INT8 GEMM, requantize the INT32 accumulations, and
 compare the 64 bytes read from FPGA OUT0 to the existing Python golden. The
-ports and command values below come from the integrated pre-alpha design. The
-board wrapper, BRAM implementation, and physical readback are prototype work.
+ports and command values below match the MEMORY board prototype. The demo runs
+over JTAG with preloaded operands. [Board test](../../hw/README.md#run-the-full-board-test) · [Live evidence](../../evidence/vivado/board-prototype/live-gemm/results.json)
 
 ## Board access for START and readback
 
@@ -17,14 +17,15 @@ use the same wrapper and register offsets.
 | JTAG AXI byte address, inclusive | Access | Board-wrapper decode |
 | --- | --- | --- |
 | `0xA4000000`–`0xA4000FFF` | NPU CSR reads and writes | Pass the low 12-bit offset to `reg_addr_i`. The NPU defines the register offsets and response behavior. |
-| `0xA4001000`–`0xA4001FFF` | Unmapped | Return an AXI error. |
-| `0xA4002000`–`0xA4003FFF` | Read-only OUT0 | Subtract `0xA4002000` for the OUT0 byte offset. Read the actual output BRAM. |
+| `0xA4001000`–`0xA4001FFF` | Unmapped | Return `DECERR`. |
+| `0xA4002000`–`0xA4003FFF` | Read-only OUT0 | Subtract `0xA4002000` for the OUT0 byte offset. Read the output BRAM. Writes return `SLVERR`. |
+| Outside `0xA4000000`–`0xA4003FFF` | Unmapped | Compare the full 32-bit AXI address and return `DECERR`. |
 
 Use one aligned 32-bit transaction at a time and full byte strobes for CSR
 writes. The wrapper must accept AXI address and write data independently,
 issue the native access once, wait for `reg_rvalid_o`, and report
 `reg_error_o` as an AXI error. Hold each AXI response until accepted. Reject
-unaligned accesses, partial CSR writes, and writes to OUT0 with an AXI error.
+unaligned accesses, partial CSR writes, and writes to OUT0 with `SLVERR`.
 AXI transfer completion for a START write acknowledges the register write.
 Command retirement is reported separately through the NPU status registers.
 

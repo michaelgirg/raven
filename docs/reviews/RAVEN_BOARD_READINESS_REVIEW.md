@@ -3,10 +3,10 @@
 This is the baseline review before runtime staging parity was implemented. The
 [integrity contract](../interfaces/RAVEN_STAGING_INTEGRITY.md),
 [rubric mapping](RAVEN_PREALPHA_RUBRIC_COVERAGE.md) and
-[current synthesis results](../../hw/README.md#verified-block-synthesis) describe
+[current synthesis results](../../hw/README.md#npu-block-synthesis) describe
 the subsequent protection and its measured cost. The baseline figures below
-remain tied to the pinned revision; efficient buffering and board integration
-are still future work.
+remain tied to the pinned revision. The later MEMORY board build verified the
+fixed GEMM fixture over JTAG at 50 MHz. [Live board evidence](../../evidence/vivado/board-prototype/live-gemm/results.json)
 
 [PR #4](https://github.com/michaelgirg/raven/pull/4) is a functional pre-alpha integration path and the NPU block
 synthesizes for the Ultra96-V2 FPGA. It is not a complete board build. The staging

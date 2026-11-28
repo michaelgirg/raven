@@ -14,19 +14,18 @@ import subprocess
 import sys
 import time
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from questa_log import has_unexpected_diagnostics
+
 ROOT = Path(__file__).resolve().parents[3]
 TEST = ROOT / 'tests/rtl/compute'
+FIXTURE_EXPORTER = ROOT / 'tools/goldens/export_compute_fixture.py'
 SOURCES = [ROOT / p for p in (
     'rtl/compute/raven_mac_pe.sv', 'rtl/compute/raven_mac_array.sv',
     'rtl/compute/raven_gemm_frontend.sv', 'rtl/compute/raven_gemm_core.sv',
     'tests/rtl/compute/sim_read_memory.sv',
     'tests/rtl/compute/tb_raven_mac_pe.sv',
     'tests/rtl/compute/tb_raven_gemm_core.sv')]
-ERROR = re.compile(r'\*\*\s+(?:Warning|Error|Fatal)\b|^\s*#?\s*Errors:\s*[1-9]', re.M)
-BENIGN_WARNING = re.compile(
-    r'^.*\*\*\s+Warning:\s+\(vopt-10587\).*$',
-    re.M
-)
 PROBE = '''`timescale 1ns/1ps
 module tb_assertion_probe;
   bit clk=0, sva_mode=0;
@@ -49,10 +48,18 @@ def main():
     parser.add_argument('--questa-bin', type=Path, help='Directory containing vsim/vlog/vlib/vmap; overrides QUESTA_BIN and PATH')
     parser.add_argument('--build', type=Path, default=ROOT / 'build/tests/compute/questa')
     parser.add_argument('--timeout', type=float, default=180, help='Wall-clock seconds per tool invocation')
-    parser.add_argument('--demo-only', action='store_true', help='Run assertion guards and the 8x8 demo only')
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument('--demo-only', action='store_true', help='Run assertion guards and the 8x8 demo only')
+    mode.add_argument('--fixture-case', type=Path, help='Run one independent INT32 fixture directory in a fresh 8x8 compile')
     args = parser.parse_args()
     if args.timeout <= 0:
         parser.error('--timeout must be positive')
+    fixture = args.fixture_case
+    if fixture is not None:
+        fixture = fixture.resolve()
+        if not (fixture / 'reference.json').is_file():
+            parser.error('--fixture-case must contain reference.json')
+    full = not (args.demo_only or fixture)
     # Resolve the project from this script, independently of the caller's cwd.
     # Simulator location is user configuration, never a checked-in machine path.
     questa_bin = args.questa_bin
@@ -92,9 +99,10 @@ def main():
         'tools': {name: Path(exe).name for name, exe in tools.items()},
         'command_working_directory': 'generated run directory',
         'simulator_selection': 'configured directory' if questa_bin else 'PATH',
-        'mode': 'demo' if args.demo_only else 'full',
+        'mode': 'fixture' if fixture else 'full' if full else 'demo',
         'source_sha256': {p.relative_to(ROOT).as_posix(): hashlib.sha256(p.read_bytes()).hexdigest()
-                          for p in SOURCES + [TEST/'generate_vectors.py', TEST/'run_questa.py', TEST/'run_batch.do', TEST/'view_demo.do']},
+                          for p in SOURCES + [TEST/'generate_vectors.py', TEST/'run_questa.py', TEST/'run_batch.do',
+                                              TEST/'view_demo.do', ROOT/'tests/rtl/questa_log.py', FIXTURE_EXPORTER]},
         'steps': [], 'status': 'running'}
 
     def command(label, argv, *, marker=None, expected_failure=False):
@@ -131,7 +139,7 @@ def main():
             active = re.search(r'^#\s*\*\* Fatal:.*' + re.escape(marker), combined, re.M)
             if not active or 'ASSERTIONS_DISABLED' in re.sub(r'^.*\$display.*$', '', combined, flags=re.M):
                 raise RuntimeError(f'{label}: expected assertion rejection was not observed')
-        elif proc.returncode or ERROR.search(BENIGN_WARNING.sub('', combined)) or (marker and marker not in combined):
+        elif proc.returncode or has_unexpected_diagnostics(combined) or (marker and marker not in combined):
             raise RuntimeError(f'{label}: tool/RTL/PASS check failed; see {label}.console.log')
         step['status'] = 'pass'
         print(f'PASS {label} ({step["seconds"]} s)', flush=True)
@@ -156,8 +164,19 @@ def main():
                             *[run_path(p) for p in SOURCES], 'assertion_probe.sv'])
         simulate('guard-immediate', 'tb_assertion_probe', marker='ASSERT_PROBE_IMMEDIATE_ACTIVE', rejection=True)
         simulate('guard-sva', 'tb_assertion_probe', ['+SVA'], marker='ASSERT_PROBE_SVA_ACTIVE', rejection=True)
-        dimensions = [(8,8)] if args.demo_only else [(8,8),(4,4),(2,4),(1,1)]
-        if not args.demo_only:
+        dimensions = [(8,8),(4,4),(2,4),(1,1)] if full else [(8,8)]
+        demo_vectors = '8x8/vectors'
+        demo_outputs = 64
+        if fixture:
+            dimensions = []
+            demo_vectors = 'external-fixture'
+            command('export-fixture', [sys.executable, run_path(FIXTURE_EXPORTER), '--case',
+                                       run_path(fixture), '--output', demo_vectors])
+            reference = (fixture / 'reference.json').read_bytes()
+            shape = json.loads(reference)
+            demo_outputs = int(shape['M']) * int(shape['N'])
+            report['fixture'] = {'name': fixture.name, 'reference_sha256': hashlib.sha256(reference).hexdigest()}
+        if full:
             simulate('pe', 'tb_raven_mac_pe', marker='PASS PE: 65536 signed products, bias/bubbles, both overflow directions, in-flight reset')
         for rows, cols in dimensions:
             dims = f'{rows}x{cols}'
@@ -175,16 +194,16 @@ def main():
                 for filename in ('a.hex','b.hex','param.hex','expected.hex','reference.json'):
                     if not (vectors/f'case_{idx:02d}'/filename).is_file():
                         raise RuntimeError('Missing fixture file: '+filename)
-            if not args.demo_only:
-                transcript = simulate('core-'+dims, 'tb_raven_gemm_core', [f'+FIXTURES={dims}/vectors'],
-                                      [f'-gROWS={rows}',f'-gCOLS={cols}'],
-                                      marker=f'PASS CORE {dims}: 42 fixtures and 3 in-flight reset/restart phases')
+            if full:
+                simulate('core-'+dims, 'tb_raven_gemm_core', [f'+FIXTURES={dims}/vectors'],
+                         [f'-gROWS={rows}',f'-gCOLS={cols}'],
+                         marker=f'PASS CORE {dims}: 42 fixtures and 3 in-flight reset/restart phases')
                 # Each marker occurs in stdout and native log, so inspect stdout alone.
                 console = (run/f'core-{dims}.console.log').read_text()
                 ids = [int(v) for v in re.findall(r'PASS GEMM '+dims+r' case (\d+)\b',console)]
                 if ids != list(range(42)):
                     raise RuntimeError('Missing/duplicate fixture PASS records: '+dims)
-        if not args.demo_only:
+        if full:
             # Exercise the formerly silent manifest exit using the real core TB.
             for kind, data, fatal in [
                 ('empty', '', 'Expected 42 fixtures, completed 0'),
@@ -197,17 +216,17 @@ def main():
                 (bad/'cases.txt').write_text(data)
                 simulate('guard-manifest-'+kind, 'tb_raven_gemm_core', ['+FIXTURES='+bad.name],
                          ['-gROWS=8','-gCOLS=8'], marker=fatal, rejection=True)
-        simulate('demo', 'tb_raven_gemm_core', ['+FIXTURES=8x8/vectors',
+        simulate('demo', 'tb_raven_gemm_core', [f'+FIXTURES={demo_vectors}',
                  '+DEMO_ONLY', '+WAVE=demo.vcd'], ['-gROWS=8','-gCOLS=8'],
                  marker='PASS CORE 8x8: 1 fixtures and 0 in-flight reset/restart phases', waves=True)
         if not (run/'demo.vcd').is_file() or not (run/'demo.wlf').is_file():
             raise RuntimeError('Demo waveform capture missing')
         report['status'] = 'pass'
-        report['totals'] = {'signed_pe_products': 0 if args.demo_only else 65536,
-                            'regression_fixtures': 0 if args.demo_only else 168,
-                            'reset_restart_phases': 0 if args.demo_only else 12,
-                            'assertion_guards': 2, 'manifest_rejection_guards': 0 if args.demo_only else 3,
-                            'demo_outputs': 64}
+        report['totals'] = {'signed_pe_products': 65536 if full else 0,
+                            'regression_fixtures': 168 if full else 0,
+                            'reset_restart_phases': 12 if full else 0,
+                            'assertion_guards': 2, 'manifest_rejection_guards': 3 if full else 0,
+                            'demo_outputs': demo_outputs}
     except Exception as exc:
         report['status'] = 'fail'
         report['failure'] = str(exc)

@@ -28,6 +28,9 @@ import subprocess
 import sys
 import time
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from questa_log import has_unexpected_diagnostics
+
 ROOT = Path(__file__).resolve().parents[3]
 TEST = ROOT / 'tests/rtl/board'
 BOARD_RTL = [ROOT / p for p in ('rtl/memory/raven_bram_bank.sv', 'rtl/memory/raven_memory_banks.sv',
@@ -49,7 +52,7 @@ SOURCES = [ROOT / p for p in (
     'tests/rtl/board/axil_master_pkg.sv',
     'tests/rtl/board/tb_raven_axil_bridge.sv',
     'tests/rtl/board/tb_raven_board_top.sv')]
-SCRIPTS = [TEST / 'run_questa.py', TEST / 'run_batch.do',
+SCRIPTS = [ROOT / 'tests/rtl/questa_log.py', TEST / 'run_questa.py', TEST / 'run_batch.do',
            ROOT / 'tests/rtl/integration/export_fixtures.py', ROOT / 'tools/goldens/compare_prealpha.py']
 # W13: the fixture preloaded into the MEMORY build, and the ACT1/WGT1 variant of its command.
 FIXTURE = 'normal_8x16x8'
@@ -61,10 +64,6 @@ BRIDGE_TESTS = [f'W{i}' for i in range(1, 13)]
 TESTS = BRIDGE_TESTS + ['W13']
 # Simulation configurations: (label, OUT0 latency, seed, test the board wrapper).
 CONFIGS = [('bridge', 4, 1, 0), ('bridge-latency0', 0, 2, 0), ('board-top', 1, 3, 1)]
-ERROR = re.compile(r'\*\*\s+(?:Warning|Error|Fatal)\b|^\s*#?\s*Errors:\s*[1-9]', re.M)
-BENIGN_WARNING = re.compile(r'^.*\*\*\s+Warning:\s+\(vopt-10587\).*$', re.M)
-# ModelSim-only: SVA is parsed but not simulated. Allowed only with --no-sva-guard.
-NO_SVA_WARNING = re.compile(r'^.*\*\*\s+Warning:.*\((?:vlog-2186|vsim-8311)\).*$', re.M)
 SUMMARY = re.compile(r'SUMMARY: (\d+) passed, (\d+) failed, (\d+) checks, (\d+) writes, (\d+) reads')
 PROBE = '''`timescale 1ns/1ps
 module tb_assertion_probe;
@@ -172,14 +171,13 @@ def main():
         report['steps'].append(step)
         if timed_out:
             raise RuntimeError(f'{label}: wall-clock timeout; see {label}.console.log')
-        scanned = BENIGN_WARNING.sub('', combined)
-        if args.no_sva_guard:
-            scanned = NO_SVA_WARNING.sub('', scanned)
         if expected_failure:
             active = re.search(r'^#\s*\*\* Fatal:.*' + re.escape(marker), combined, re.M)
             if not active or 'ASSERTIONS_DISABLED' in re.sub(r'^.*\$display.*$', '', combined, flags=re.M):
                 raise RuntimeError(f'{label}: expected failure signature was not observed')
-        elif proc.returncode or ERROR.search(scanned) or (marker and marker not in combined):
+        elif (proc.returncode
+              or has_unexpected_diagnostics(combined, allow_no_sva=args.no_sva_guard)
+              or (marker and marker not in combined)):
             raise RuntimeError(f'{label}: tool/RTL/PASS check failed; see {label}.console.log')
         step['status'] = 'pass'
         print(f'PASS {label} ({step["seconds"]} s)', flush=True)

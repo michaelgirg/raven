@@ -216,13 +216,12 @@ RAM:
 vivado -mode batch -source hw/check_memory_banks_synthesis.tcl -tclargs . build/hw/memory-banks
 ```
 
-The out-of-context target uses the ZU3EG speed-grade part and a 10 ns clock
-constraint. It checks that inferred RAMB36/RAMB18 capacity covers all 80 KiB
-of logical storage, and writes utilization, timing, and checkpoint outputs under
-`build/hw/memory-banks/`. This validates bank-memory inference only; it does not
-integrate the banks into `raven_npu_top`, validate the NPU memory adapters, or
-establish board timing. The target has been added, but its result must not be
-reported as validated until run with Vivado.
+The out-of-context target uses `xczu3eg-sbva484-1-e` and a 10 ns clock constraint.
+Vivado 2025.2 inferred 22 RAMB36 blocks and passed the capacity check for all
+80 KiB of logical storage, including both PARAM copies. The command writes
+utilization, timing and checkpoint outputs under `build/hw/memory-banks/`.
+The MEMORY board build has its own routed timing and hardware results.
+[MEMORY board results](#memory-build)
 
 ## Board project layout
 
@@ -230,7 +229,8 @@ reported as validated until run with Vivado.
 - `create_project.tcl`, `bd.tcl`, `build.tcl`: project, block design, and the full build and handoff.
 - `check_board_synthesis.tcl`, `check_npu_synthesis.tcl`, `check_memory_banks_synthesis.tcl`, `check_staging_integrity_netlist.tcl`: out-of-context checks.
 - `constraints/raven_board.xdc`: board constraints. There are no package pins, and the PS IP constrains `pl_clk0`.
-- `debug/`: board-side scripts (`board_bringup_xsdb.tcl`, `run_fixture.tcl`); generated captures belong under `build/hw/`.
+- `debug/`: XSDB programming, individual smoke/fixture commands and the full
+  `run_board_test.tcl` runner. Captures default to `build/prototype/board-test/`.
 - `ip/`: vendor-IP configuration sources, such as reviewed Tcl or XCI files.
 
 Taylor leads memory/DMA configuration; Nahjay leads processor/control integration and the board build scripts.

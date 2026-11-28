@@ -68,18 +68,12 @@ PATH, QUESTA_BIN or `--questa-bin`; `--timeout` bounds each tool invocation.
 
 ## Prototype memory work
 
-The Pre-Alpha result path is complete through simulated OUT0 storage. For the
-board prototype, the remaining work is to connect the writer's aligned 128-bit
-data and byte strobe to synthesizable output memory, then verify each output
-address and byte against the expected INT8 result. Taylor's
-`rtl/memory/banked_scratchpad.sv` currently provides a separate managed-memory
-model with bank ownership, generation IDs, 16-byte generic transfers, and
-valid/ready reads; it is not yet connected to the NPU top or physical BRAM.
-
-The prototype readback goal is all 64 INT8 values of the 8-by-8 output tile.
-It requires an agreed output-bank adapter/readback interface and an Ultra96-V2
-test that compares the stored bytes and addresses with the golden result. No
-synthesizable-memory or board readback result is claimed here.
+The NPU top applies this requantization stage before the result writer. The
+MEMORY board wrapper stores each byte in OUT0 BRAM using the writer's aligned
+128-bit beat and byte strobe. The preloaded Ultra96-V2 GEMM returned all 64
+expected INT8 bytes over JTAG. The separate managed scratchpad model remains
+the prototype for future bank ownership and DMA.
+[Live OUT0 comparison](../../evidence/vivado/board-prototype/live-gemm/golden.log)
 
 ## Limits
 

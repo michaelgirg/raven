@@ -1,11 +1,9 @@
 # Repository structure
 
-This layout contains compute, activation-buffer and requantization/clamp RTL,
-standalone testbenches, golden-fixture tools and selected simulation evidence,
-alongside the research documents and model files.
-Control and full-system integration remain future work. Empty directories
-contain `.gitkeep` so Git retains them. No integrated firmware or FPGA build is
-supplied. See the [current subsystem status](../README.md#current-subsystem-status-and-integration).
+The repository contains the integrated RTL pipeline, the Vivado Ultra96-V2
+prototype build, testbenches, golden fixtures, and physical board evidence.
+Firmware, DMA and full-model deployment remain planned. Empty directories use
+`.gitkeep` to reserve their paths. [Current subsystem status](../README.md#current-subsystem-status-and-integration)
 
 ## Directory map
 
@@ -15,7 +13,7 @@ raven/
 ├── .gitignore
 ├── .github/
 │   ├── AUTOMATION.md           # CI notes; root README is the project overview
-│   └── workflows/             # Future CI; no runnable workflow yet
+│   └── workflows/             # Host verification on pushes and pull requests
 ├── configs/
 │   ├── README.md
 │   ├── hardware/              # Future named design presets
@@ -47,7 +45,8 @@ raven/
 │   │   ├── compute/
 │   │   ├── memory/
 │   │   └── operators/
-│   └── questa/                # Compute results, combined log, waveform and experiments
+│   ├── questa/                # Regression results, logs, waveform and experiments
+│   └── vivado/                # Synthesis, routed timing and live board evidence
 ├── rtl/
 │   ├── README.md
 │   ├── common/                # Shared SV types, interfaces, and utilities
@@ -55,11 +54,14 @@ raven/
 │   ├── operators/             # Quan: output/support operators
 │   ├── memory/                # Taylor: scratchpad, adapter, ownership
 │   ├── control/               # Nahjay: CSR, queue, dispatch, IRQ/status
-│   └── top/                   # RTL integration
+│   ├── top/                   # NPU pipeline integration
+│   └── board/                 # AXI-Lite bridge and FPGA board wrapper
 ├── hw/
 │   ├── README.md              # Project/block-design Tcl belongs alongside this file
 │   ├── constraints/           # Board and timing constraints
-│   ├── debug/                 # Future ILA/JTAG/debug configuration and Tcl
+│   ├── debug/                 # XSDB programming, JTAG smoke and GEMM Tcl
+│   ├── fixtures/              # Preloaded board fixture
+│   ├── handoff/               # Archived packages and checksums
 │   └── ip/                    # Vendor-IP configuration sources
 ├── software/
 │   ├── README.md
@@ -134,7 +136,7 @@ The named subsystem leads follow the research documents. Shared milestone leads 
 ## Source and generated files
 
 - Keep synthesizable custom logic under `rtl/`; simulation-only harnesses belong under `tests/rtl/`.
-- Keep Vivado recreation/programming scripts under `hw/`. Planned script names such as `create_project.tcl` and `bd.tcl` match the control proposal; they are not implemented by this skeleton.
+- Keep Vivado recreation and programming scripts under `hw/`. Use `create_project.tcl`, `bd.tcl` and `build.tcl` to recreate the prototype. [Board build and test](../hw/README.md)
 - Keep the canonical register description under `tools/regs/`. The proposed generated destinations are `rtl/control/`, `software/include/`, and `docs/regs/`. Review source and outputs together.
 - Keep original TFLite artifacts under their existing `models/` paths. Derived deployment blobs and bulk tensors go under `build/models/`.
 - Use `build/hw/`, `build/software/`, `build/tests/`, and `build/benchmarks/` for local generated products. Waveforms, bitstreams, ELFs, caches, and logs are build output.
@@ -148,6 +150,7 @@ The named subsystem leads follow the research documents. Shared milestone leads 
 
 Keep the project overview in the root `README.md`. Store CI notes in `.github/AUTOMATION.md`; a README in `.github/` takes precedence on the repository front page, so do not place an area README there. See [GitHub README selection rules](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-readmes).
 
-Each top-level implementation area has a README describing its role. Keep setup/run commands with the actual working implementation and record tested dependencies when available. The compute suite currently runs through Python; a root Makefile and CI jobs remain future work.
+Keep setup commands with the implementation and record tested dependencies in the
+tool guide. [Tool setup](../tools/README.md#tool-setup) · [CI checks](../.github/AUTOMATION.md)
 
 The five research documents explain subsystem proposals. The [shared interface contract](interfaces/RAVEN_INTERFACE_CONTRACT.md) supplies common behavior, and the [project plan](PROJECT_PLAN.md) supplies targets/dates. Keep those definitions synchronized with the register proposal and future generated outputs. Additional reviewed interfaces belong under `docs/interfaces/`, editable diagrams under `docs/diagrams/`, and setup/handoff material under `docs/guides/`. Selected proposals remain distinct from verified implementations.

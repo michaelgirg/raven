@@ -5,23 +5,11 @@ All 14 smoke checks passed, the GEMM retired with `DONE_SEQ=1`, and the raw OUT0
 capture matched 64/64 golden bytes. W1–W13 and T1–T16 also passed in Questa.
 [Live evidence](../../evidence/vivado/board-prototype/live-gemm/results.json) · [Rerun instructions](../../hw/README.md#run-the-full-board-test)
 
-**Earlier build record.** Phases 1–3 and 5 implemented. W1–W12 pass under ModelSim ASE 18.1 with
-`--no-sva-guard` (immediate checks only) for the separate parts at OUT0 latency 4 and 0,
-and for `raven_board_top_v` in PATTERN mode; a licensed Questa run with SVA is still
-needed for acceptance evidence. Vivado 2025.2 on the development machine: the wrapper's
-out-of-context synthesis passes (0 critical warnings, +11.2 ns at 20 ns), and
-`hw/build.tcl` builds the PATTERN bitstream with pl_clk0 at 50.000 MHz, WNS +7.667 ns,
-WHS +0.012 ns, 0 critical warnings, and the RAVEN slave at 0xA4000000/16K. Not yet run on
-the board (xsdb bring-up and `run_fixture.tcl -smoke`). Phase 4: the MEMORY branch of
-`raven_board_top` now instantiates Taylor's `raven_memory_banks` (O1–O3 resolved in §13),
-and W13 passes under ModelSim ASE (64/64 bytes for ACT0/WGT0, after SOFT_RESET, and for
-ACT1/WGT1). The MEMORY bitstream builds from `d567757` at 50 MHz (WNS +7.026 ns,
-WHS +0.010 ns, 0 critical warnings) and is packaged as `hw/handoff/raven_board_memory.zip`
-with the step-by-step guide `hw/handoff/BOARD_HANDOFF.md`; only the board run (W14) remains.
-Phase 6: Vivado evidence (`evidence/vivado/board-prototype/`), the `hw/README.md` build
-and bring-up guide, and the PATTERN handoff package (`hw/handoff/raven_board_pattern.zip`,
-rebuilt from `3cba04a`) are done; Questa evidence and the board run are pending. The last
-step of the prototype is in §13.
+**Earlier build record.** ModelSim ASE 18.1 passed W1–W13 with
+`--no-sva-guard`. Vivado 2025.2 met 50 MHz routed timing for the original
+PATTERN and MEMORY configurations. Those reports and packages are archived.
+Section 13 records the MEMORY integration and later W14 result.
+[Archived build reports](../../hw/README.md#verified-board-build) · [Archived packages](../../hw/handoff/README.md)
 **Owner:** Nahjay (control/board bring-up). **Working branch:** `nahjay_control_prototype`.
 **Goal:** one resident `M=8, K=16, N=8` GEMM on the Ultra96-V2. A live START
 reaches DONE, and all 64 OUT0 bytes read back over JTAG match the golden.

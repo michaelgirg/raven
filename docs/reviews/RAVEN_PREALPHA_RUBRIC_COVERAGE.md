@@ -45,11 +45,11 @@ malicious-intrusion protection. Simulation assertions and golden scoreboards are
 additional verification tools, not on-board protection mechanisms. See the
 [implemented integrity and recovery contract](../interfaces/RAVEN_STAGING_INTEGRITY.md).
 
-Physical backing banks, DMA/processor integration, a complete board wrapper,
-routed timing closure and full-model quality/latency remain future work. The
-[FPGA review](RAVEN_BOARD_READINESS_REVIEW.md) documents the board boundary and
-staging overhead. Prepared simulation structures and block synthesis should be
-presented at that scope.
+The later MEMORY prototype connected the backing banks through the board wrapper,
+met routed timing at 50 MHz, and matched all 64 bytes from one preloaded GEMM over
+JTAG. The fault-injection findings above still describe the simulation coverage.
+Processor/DMA integration and full-model quality and latency remain future work.
+[Live board evidence](../../evidence/vivado/board-prototype/live-gemm/results.json) · [Baseline FPGA review](RAVEN_BOARD_READINESS_REVIEW.md)
 
 ## Where to find it
 

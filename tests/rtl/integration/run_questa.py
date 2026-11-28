@@ -24,6 +24,9 @@ import subprocess
 import sys
 import time
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from questa_log import has_unexpected_diagnostics
+
 ROOT = Path(__file__).resolve().parents[3]
 TEST = ROOT / 'tests/rtl/integration'
 SOURCES = [ROOT / p for p in (
@@ -40,16 +43,11 @@ SOURCES = [ROOT / p for p in (
     'tests/rtl/integration/raven_tb_driver_pkg.sv',
     'tests/rtl/integration/tb_raven_npu_top.sv',
     'tests/rtl/integration/tb_raven_memory_adapters.sv')]
-SCRIPTS = [TEST / 'export_fixtures.py', TEST / 'run_questa.py', TEST / 'run_batch.do',
+SCRIPTS = [ROOT / 'tests/rtl/questa_log.py', TEST / 'export_fixtures.py', TEST / 'run_questa.py', TEST / 'run_batch.do',
            ROOT / 'tools/goldens/compare_prealpha.py']
 VECTORS = ROOT / 'tests/vectors/prealpha'
 # Tests the testbench must report, each by at least one "PASS ..." line.
 TESTS = [f'T{i}' for i in range(1, 17)]
-ERROR = re.compile(r'\*\*\s+(?:Warning|Error|Fatal)\b|^\s*#?\s*Errors:\s*[1-9]', re.M)
-BENIGN_WARNING = re.compile(r'^\s*#?\s*\**\s+Warning:\s+\((?:vopt-10587|vmap-223|vlog-223|vsim-223|vopt-223)\).*$',
-                            re.M)
-# ModelSim-only: SVA is parsed but not simulated. Allowed only with --no-sva-guard.
-NO_SVA_WARNING = re.compile(r'^.*\*\*\s+Warning:.*\((?:vlog-2186|vsim-8311)\).*$', re.M)
 PROBE = '''`timescale 1ns/1ps
 module tb_assertion_probe;
   bit clk=0, sva_mode=0;
@@ -154,14 +152,13 @@ def main():
         report['steps'].append(step)
         if timed_out:
             raise RuntimeError(f'{label}: wall-clock timeout; see {label}.console.log')
-        scanned = BENIGN_WARNING.sub('', combined)
-        if args.no_sva_guard:
-            scanned = NO_SVA_WARNING.sub('', scanned)
         if expected_failure:
             active = re.search(r'^#\s*\*\* Fatal:.*' + re.escape(marker), combined, re.M)
             if not active or 'ASSERTIONS_DISABLED' in re.sub(r'^.*\$display.*$', '', combined, flags=re.M):
                 raise RuntimeError(f'{label}: expected failure signature was not observed')
-        elif proc.returncode or ERROR.search(scanned) or (marker and marker not in combined):
+        elif (proc.returncode
+              or has_unexpected_diagnostics(combined, allow_no_sva=args.no_sva_guard)
+              or (marker and marker not in combined)):
             raise RuntimeError(f'{label}: tool/RTL/PASS check failed; see {label}.console.log')
         step['status'] = 'pass'
         print(f'PASS {label} ({step["seconds"]} s)', flush=True)

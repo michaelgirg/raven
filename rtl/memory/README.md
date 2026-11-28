@@ -269,14 +269,14 @@ The integration logic must ensure that required data has been written before it 
 
 | Component | Status |
 |---|---|
-| Banked scratchpad | RTL model implemented; directed testbench covers lifecycle, ownership, bounds, generation, read backpressure, release, and reset. |
-| Physical ACT/WGT/PARAM/OUT banks | Synthesizable aggregate and fixture simulation implemented; dedicated Vivado BRAM inference check is available but not yet run. |
+| Banked scratchpad | Standalone lifecycle and preload benches pass. They cover ownership, physical bank bounds, generation, read backpressure, release, and reset. |
+| Physical ACT/WGT/PARAM/OUT banks | Fixture simulation, Vivado BRAM inference and 64-byte readback on the Ultra96-V2 MEMORY prototype passed. |
 | Activation buffer | RTL implemented; simulation tests passed. |
 | Weight buffer | RTL implemented; testbench passed. |
 | Parameter buffer | RTL implemented; simulation tests passed. |
 | Output buffer | RTL implemented; simulation tests passed. |
 
-## Known Limitations and Future Improvements (some could be condisdered as bugs)
+## Known limitations and future improvements
 
 - Activation and parameter buffers do not currently track whether
   individual entries have been initialized.
@@ -293,6 +293,8 @@ The integration logic must ensure that required data has been written before it 
   parameters have been loaded.
 - The banked scratchpad is a simulation model and is not connected to the
   compute top, physical BRAM, DMA, or the existing specialized buffers.
+- The scratchpad records each allocation's length. Its data ports currently
+  check ownership, alignment and physical bank bounds.
 - Invalid generic writes are currently suppressed by the storage path rather
   than returned through a dedicated write-error response.
 - The scratchpad lifecycle does not yet implement the complete production

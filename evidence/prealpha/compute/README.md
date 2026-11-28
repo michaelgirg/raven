@@ -15,13 +15,7 @@ The generator creates INT8 activations/weights, biases, quantization parameters,
 
 ## 2. Test the GEMM RTL using Python fixtures
 
-Compile the testbench first, and again after RTL changes:
-
-```powershell
-python tests/rtl/compute/run_questa.py --demo-only
-```
-
-Then run:
+Each command compiles the current RTL and writes results to a fresh run directory:
 
 ```powershell
 .\tools\goldens\run_compute_rtl.ps1 -Case normal
@@ -59,11 +53,8 @@ regression also passed 168 fixtures across four array sizes and 12 reset/restart
 The [connected integration suite](../../../README.md#run-the-integration-tests)
 now covers command control, the actual activation/weight/parameter/output buffers,
 per-channel parameter delivery, requantization/clamp and committed INT8 output.
-T1–T15 pass in both buffered and direct configurations with 22 independently
-compared INT8 dumps each. See the
-[complete validation record](../../questa/final-prealpha/results.json) and
-[test coverage](../../../tests/README.md#verified-pre-alpha-results).
-Physical backing banks, processor/DMA, complete board implementation and full-model
-execution remain future work.
+The later regression covers T1–T16, and the physical board demo verifies INT8
+readback for the normal preloaded fixture.
+[Current coverage](../../../tests/README.md#verified-pre-alpha-results) · [Live board record](../../vivado/board-prototype/live-gemm/results.json)
 
 -MD and Verification done by Jackie

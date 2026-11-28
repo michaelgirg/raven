@@ -79,10 +79,10 @@ Its results apply to the pinned PR revision and do not establish a working board
 | Area | Implemented and tested | Connection still needed |
 |---|---|---|
 | Compute — Michael | Resident INT8 GEMM microtile; connected to control, buffered operands and INT8 storage; reset/backpressure/error tests | Production physical-bank connection and broader operation support |
-| Memory — Taylor | Activation, weight, parameter and output buffers; synthesizable physical-bank aggregate connected in simulation; standalone and integrated tests | Production-top integration, Vivado BRAM inference, DMA, bank ownership and efficient tile reuse |
-| Operators — Quan | One-lane INT32-to-INT8 requantization/clamp; connected channel mapping, per-channel PARAM delivery and output storage | Broader operators and board integration |
+| Memory — Taylor | Native buffers and BRAM backing banks exercised in simulation and on the Ultra96-V2 | Production memory ownership, DMA and efficient tile reuse |
+| Operators — Quan | One-lane INT32-to-INT8 requantization/clamp with per-channel PARAM delivery and OUT0 storage | Broader operators |
 | Goldens — Jackie | Reproducible fixtures, byte comparator and three extra INT32 GEMM cases | Fixtures for overflow/bad-pitch errors (currently derived in the integration exporter) |
-| Control — Nahjay | Register block, single-command FSM, NPU simulation top (control → compute → requant → INT8 writer), command driver and T1–T16 integration tests | AXI4-Lite/generated CSR, command queue, bank-state interlock, production physical-bank integration, RISC-V firmware |
+| Control — Nahjay | Register block, single-command FSM, AXI4-Lite JTAG bridge, command driver and T1–T16 integration tests | Generated CSRs, command queue, bank-state interlock and RISC-V firmware |
 
 Compute's operand frontend requests 128-bit words with bank-local byte offsets.
 The [memory adapters](rtl/memory/README.md#pre-alpha-pipeline-adapters) refill native
@@ -96,9 +96,10 @@ The operator tail uses the compute column tag to select multiplier and shift
 from canonical PARAM records; output zero-point and clamp remain command fields.
 Backpressure propagates through the complete path, and DONE follows the final
 committed OUT0 write. The small native buffers are transient staging, while the architectural
-ACT/WGT/PRM/OUT capacities have a synthesizable backing aggregate connected in
-simulation. The aggregate is not connected to the production NPU top, and its
-Vivado BRAM inference, timing and board operation have not yet been validated.
+ACT/WGT/PRM/OUT capacities are provided by a synthesizable backing aggregate in
+simulation and in the MEMORY board wrapper. The Ultra96-V2 demo uses preloaded
+operands and met routed timing at 50 MHz. Production bank ownership, host loading
+and DMA are planned. [Live board evidence](evidence/vivado/board-prototype/live-gemm/results.json)
 
 ## Proposed system architecture
 
@@ -455,7 +456,7 @@ FPGA resources, memory ports/bandwidth, timing closure, unsupported operators, q
 
 ```text
 raven/
-├── .github/            # Future CI workflow definitions
+├── .github/            # Host verification workflow and CI notes
 ├── configs/            # Future design, model-export, and simulation presets
 ├── data/               # Local raw/processed datasets; contents ignored by Git
 ├── docs/               # Research, decisions, interface contracts, diagrams, and guides
@@ -472,6 +473,7 @@ raven/
 └── README.md
 ```
 
-See the [full directory map and ownership guide](docs/REPOSITORY_STRUCTURE.md) for where each teammate's work belongs. Area READMEs describe current implementations and planned work; [automation notes](.github/AUTOMATION.md) cover future CI. `.gitkeep` files retain empty implementation folders in Git. The command queue, physical-bank integration into the production top, DMA, runtime and full-system integration remain future work.
+Area READMEs describe current implementations and planned work. The command queue,
+DMA, runtime and full-system integration remain future work. [Directory map and ownership](docs/REPOSITORY_STRUCTURE.md) · [Host verification](.github/AUTOMATION.md)
 
 Generated products belong under the Git-ignored `build/` directory. See the compute run instructions in this README; additional build instructions will accompany their corresponding implementations.

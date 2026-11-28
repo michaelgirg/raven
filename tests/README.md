@@ -2,19 +2,18 @@
 
 ## Prototype fixture and board comparison
 
-Export the canonical fixture with `python tests/rtl/integration/export_fixtures.py --output build/prototype/fixtures`.
-The board handoff reads 16 OUT0 words into `build/prototype/out0.bin` as 64 raw
-bytes in ascending address order. After a successful live GEMM, compare and save
-the log with:
+The MEMORY build preloads the committed fixture. The full board test reads 16
+OUT0 words into `build/prototype/board-test/out0.bin` as 64 raw bytes in ascending
+address order. To independently compare a fresh capture and save a log, run:
 
 ```sh
-python tools/goldens/compare_prealpha.py --case tests/vectors/prealpha/normal_8x16x8 --kind int8 --actual build/prototype/out0.bin --log build/prototype/compare.log
+python tools/goldens/compare_prealpha.py --case tests/vectors/prealpha/normal_8x16x8 --kind int8 --actual build/prototype/board-test/out0.bin --log build/prototype/board-test/golden.log
 ```
 
 The comparator requires 64 values, reports each mismatch with its byte offset,
-and records SHA-256 hashes of the golden and dump. Board readback remains pending.
-See the [board interface](../docs/interfaces/RAVEN_BOARD_PROTOTYPE_INTERFACE.md)
-for the command sequence and OUT0 mapping.
+and records SHA-256 hashes of the golden and dump. W14 on the Ultra96-V2 passed
+14 smoke checks and matched all 64 bytes.
+[Board test](../hw/README.md#run-the-full-board-test) · [W14 evidence](../evidence/vivado/board-prototype/live-gemm/results.json)
 
 ## Verified pre-alpha results
 
@@ -61,11 +60,11 @@ python tools/goldens/run_requant_golden.py --case normal_8x16x8
 python tools/goldens/run_requant_golden.py --case normal_8x16x8 --stall
 ```
 
-Fresh [out-of-context synthesis](../hw/README.md#verified-block-synthesis) reproduced
-the FPGA review's resource and preliminary timing estimates. Physical backing
-banks, processor/DMA, complete routed timing, board operation and full-model
-accuracy/latency remain unverified. The synthetic FC-shaped test is not execution
-of the actual AD01 model.
+Out-of-context synthesis reproduced the baseline block estimates. The later
+MEMORY board build used BRAM banks and met routed timing at 50 MHz. Processor
+and DMA integration, AD01 execution, and full-model accuracy and latency remain
+future validation work.
+[NPU block synthesis](../hw/README.md#npu-block-synthesis) · [Board build results](../hw/README.md#memory-build)
 
 ## Run the main suites
 
@@ -95,12 +94,18 @@ See [Control pre-alpha and integration](../README.md#control-pre-alpha-and-integ
 for T1–T16 and its verification status. A full run uses the synthesizable physical bank
 aggregate in the integration testbench, checks the direct-bank configuration against
 buffered outputs, and runs dedicated adapter stall, address, byte-strobe and reset tests.
-The fixture-focused physical-bank simulation can also be run with
-`python tests/rtl/memory/run_bram_fixture.py`. The
-[Vivado BRAM inference check](../hw/README.md#physical-memory-bank-synthesis) is
-available but has not yet been run. Instantiating the aggregate in the production
-top, DMA and RISC-V integration remain future work. See the
-[current subsystem boundaries](../README.md#current-subsystem-status-and-integration).
+The fixture-focused physical-bank simulation runs with
+`python tests/rtl/memory/run_bram_fixture.py`. Vivado also verified standalone
+BRAM inference. [BRAM synthesis](../hw/README.md#physical-memory-bank-synthesis)
+
+Run the W1–W13 AXI and MEMORY-wrapper regression in Questa:
+
+```sh
+python tests/rtl/board/run_questa.py
+```
+
+For W14, program the Ultra96-V2 and run the live Tcl test.
+[Physical board test](../hw/README.md#run-the-full-board-test)
 
 | Directory | Intended contents | Lead |
 |---|---|---|
@@ -109,6 +114,7 @@ top, DMA and RISC-V integration remain future work. See the
 | `rtl/memory/` | Standalone activation, weight, parameter and output benches; scratchpad/DMA/ownership tests remain planned | Taylor |
 | `rtl/control/` | CSR, queue/dispatch, IRQ, interlock, and recovery tests (pre-alpha control is covered by `rtl/integration/`) | Nahjay |
 | `rtl/integration/` | Buffered/direct NPU top, memory-adapter benches, command driver, bank models, fixture exporter and T1–T16, including runtime integrity/recovery | Shared |
+| `rtl/board/` | W1–W13 AXI bridge, reset, BRAM-backed GEMM and OUT0 readback in simulation | Shared |
 | `integration/` | Cross-subsystem simulation and on-board hardware/software checks | Shared; assign a lead per milestone |
 | `formal/` | Optional future assertion/property harnesses and formal-run configuration | Scope and owner TBD; no formal flow implemented |
 | `vectors/` | Small, reproducible fixtures with documented dtype, shape, layout, quantization, and provenance | Jackie with test owner |

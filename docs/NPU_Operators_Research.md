@@ -159,21 +159,11 @@ Recommended staged work is: (1) define and verify one common requantize/clamp ar
 
 ### Prototype output-memory responsibilities
 
-The completed Pre-Alpha path carries GEMM results through the requantization
-wrapper and result writer to simulated, byte-strobed OUT0 storage. Prototype
-work is to retain that address, data, strobe, and completion behavior while
-connecting it to synthesizable memory and verifying it on the Ultra96-V2.
-
-Taylor's `rtl/memory/banked_scratchpad.sv` is an initial separate managed-memory
-model: it has six logical banks, ownership and generation checks, 16-byte
-generic write/read transfers by default, and valid/ready read responses. It is
-not yet connected to the NPU top, physical BRAM, or the existing specialized
-buffers. The output writer still needs to be connected to the new memory interface, along with a way to read back the stored results.
-
-Prototype verification should check every output address and stored INT8 byte,
-then read back all 64 values of the 8-by-8 output tile on the Ultra96-V2 against
-the golden result. This is pending hardware integration; no new prototype pass
-is claimed.
+The MEMORY prototype carries GEMM results through the requantization wrapper
+and result writer to byte-strobed OUT0 BRAM. The Ultra96-V2 test retired the
+preloaded GEMM and read back all 64 expected INT8 output bytes over JTAG.
+The separate `banked_scratchpad.sv` model covers ownership and generations for
+future production memory management. [Live verification](../evidence/vivado/board-prototype/live-gemm/results.json)
 
 ## 8. Verification Considerations
 
